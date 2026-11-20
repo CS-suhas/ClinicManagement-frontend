@@ -16,6 +16,16 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## API configuration
+
+The frontend reads API settings from `NEXT_PUBLIC_API_URL` (default:
+`http://localhost:8080/api`). It requests `GET /allergy-severities` for the
+available allergy severity values and `GET /appointment-settings` for
+`appointmentDurationMinutes`, `clinicOpeningTime`, and `clinicClosingTime`.
+These API values drive the allergy form and appointment scheduling controls,
+including when entity CRUD is using mock data. Next.js proxies these requests
+through the same origin to avoid browser CORS restrictions.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
