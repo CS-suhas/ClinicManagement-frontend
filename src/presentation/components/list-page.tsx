@@ -4,9 +4,9 @@ import { PlusIcon } from "@radix-ui/react-icons";
 import { Button, Flex } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { AsyncContent } from "./async-content";
-import { PageHeader } from "./page-header";
 import { PaginationControls } from "./pagination-controls";
 import { SearchField } from "./search-field";
+import { PageHeader } from "./ui/page-header";
 
 /** The slice of `useCrudPage` that ListPage renders. */
 interface ListState {
@@ -61,9 +61,9 @@ export function ListPage({
     <>
       <PageHeader
         title={title}
-        description={description}
+        subtitle={description}
         actions={
-          <Button onClick={onCreate} disabled={createDisabled}>
+          <Button color="teal" onClick={onCreate} disabled={createDisabled}>
             <PlusIcon /> New {entity}
           </Button>
         }

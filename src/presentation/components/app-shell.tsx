@@ -1,24 +1,7 @@
 "use client";
 
-import {
-  CalendarIcon,
-  DashboardIcon,
-  ExclamationTriangleIcon,
-  ExitIcon,
-  HomeIcon,
-  IdCardIcon,
-  PersonIcon,
-} from "@radix-ui/react-icons";
-import {
-  Box,
-  Button,
-  Callout,
-  Flex,
-  Heading,
-  Separator,
-  Spinner,
-  Text,
-} from "@radix-ui/themes";
+import { ExclamationTriangleIcon, ExitIcon } from "@radix-ui/react-icons";
+import { Button, DropdownMenu, Spinner } from "@radix-ui/themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
@@ -32,18 +15,15 @@ import { useAuth } from "@/presentation/auth/auth-provider";
 import { RoleBadges } from "@/presentation/auth/role-badges";
 import { getErrorMessage } from "../lib/errors";
 import { useNotify } from "./notifications";
+import { IconCircle } from "./ui/icon-circle";
+import { PersonAvatar } from "./ui/person-avatar";
+import { Surface } from "./ui/surface";
+import { Wordmark } from "./ui/wordmark";
 
-/** Public pages render without the admin sidebar and need no sign-in. */
+/** Public pages render without the admin navbar and need no sign-in. */
 const PUBLIC_ROUTES = ["/", "/doctors", "/login"];
 
-const NAV_ICONS = {
-  "/dashboard": DashboardIcon,
-  "/clinics": HomeIcon,
-  "/providers": IdCardIcon,
-  "/patients": PersonIcon,
-  "/allergies": ExclamationTriangleIcon,
-  "/appointments": CalendarIcon,
-} as const;
+const PAGE_BACKGROUND = "#f3f8f7";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -78,109 +58,129 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Flex className="min-h-screen flex-col md:flex-row">
-      <Box
-        asChild
-        className="flex flex-col md:w-60 md:min-h-screen border-b md:border-b-0 md:border-r"
-        style={{ borderColor: "var(--gray-a5)", background: "var(--gray-a2)" }}
+    <div className="min-h-screen" style={{ background: PAGE_BACKGROUND }}>
+      <header
+        className="flex flex-wrap items-stretch justify-between gap-x-6 bg-white px-6 md:px-12"
+        style={{ borderBottom: "1px solid var(--mp-paper-deep)" }}
       >
-        <aside>
-          <Box p="4">
-            <Heading size="4">MediPulse Life</Heading>
-            <Text size="1" color="gray">
-              Management console
-            </Text>
-          </Box>
-          <Separator size="4" />
-          <nav aria-label="Main">
-            <Flex
-              direction={{ initial: "row", md: "column" }}
-              gap="1"
-              p="2"
-              wrap="wrap"
-            >
-              {navItems.map(({ href, label }) => {
-                const active = isActive(href);
-                const Icon = NAV_ICONS[href as keyof typeof NAV_ICONS];
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    aria-current={active ? "page" : undefined}
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm no-underline"
-                    style={{
-                      color: active ? "var(--accent-11)" : "var(--gray-12)",
-                      background: active ? "var(--accent-a3)" : undefined,
-                      fontWeight: active ? 600 : 400,
-                    }}
-                  >
-                    <Icon />
-                    {label}
-                  </Link>
-                );
-              })}
-            </Flex>
-          </nav>
-          <Box mt="auto" p="4">
-            <Separator size="4" mb="4" />
-            <Text as="p" size="2" weight="bold">
-              {user.displayName}
-            </Text>
-            <Box my="2">
-              <RoleBadges roles={user.roles} />
-            </Box>
-            <Flex direction="column" gap="1" align="start">
-              {personas.length > 0 && (
-                <Link href="/login" className="text-sm">
-                  Switch user
-                </Link>
-              )}
-              <Button
-                variant="ghost"
-                color="gray"
-                size="1"
-                onClick={() => void handleSignOut()}
+        <div className="flex items-center py-3">
+          <Wordmark href="/dashboard" />
+        </div>
+
+        <nav
+          aria-label="Main"
+          className="order-last -mx-6 flex w-[calc(100%+3rem)] min-w-0 items-stretch overflow-x-auto px-6 md:order-none md:mx-0 md:w-auto md:flex-1 md:px-0"
+        >
+          {navItems.map(({ href, label }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className="relative inline-flex shrink-0 items-center whitespace-nowrap px-3 text-sm no-underline transition-colors hover:text-[var(--mp-ink)]"
+                style={{
+                  color: active ? "var(--mp-ink)" : "var(--mp-muted)",
+                  fontWeight: active ? 600 : 500,
+                }}
               >
+                {label}
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-0 bottom-0 h-0.5"
+                    style={{ background: "var(--mp-primary)" }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="flex items-center py-3">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <button
+                type="button"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full py-1 pr-2 text-sm font-medium"
+                style={{ color: "var(--mp-ink)" }}
+              >
+                <PersonAvatar name={user.displayName} size={32} />
+                <span className="hidden sm:inline">{user.displayName}</span>
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end" style={{ minWidth: 240 }}>
+              <div className="px-2 pb-2 pt-1">
+                <div
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--mp-ink)" }}
+                >
+                  {user.displayName}
+                </div>
+                <div className="mt-2">
+                  <RoleBadges roles={user.roles} />
+                </div>
+              </div>
+              <DropdownMenu.Separator />
+              {personas.length > 0 && (
+                <DropdownMenu.Item asChild>
+                  <Link href="/login">Switch user</Link>
+                </DropdownMenu.Item>
+              )}
+              <DropdownMenu.Item onSelect={() => void handleSignOut()}>
                 <ExitIcon />
                 Sign out
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </div>
+      </header>
+
+      <main className="px-6 py-8 md:px-12">
+        {allowed ? (
+          children
+        ) : (
+          <Surface
+            padding="lg"
+            role="alert"
+            className="flex items-start gap-4"
+            style={{ maxWidth: 560 }}
+          >
+            <IconCircle size={40}>
+              <ExclamationTriangleIcon />
+            </IconCircle>
+            <div>
+              <p
+                className="m-0 text-base font-semibold"
+                style={{ color: "var(--mp-ink)" }}
+              >
+                No access
+              </p>
+              <p
+                className="mb-3 mt-1 text-sm"
+                style={{ color: "var(--mp-muted)" }}
+              >
+                You don&apos;t have access to this page.
+              </p>
+              <Button asChild color="teal" variant="soft">
+                <Link href="/dashboard">Go to dashboard</Link>
               </Button>
-            </Flex>
-          </Box>
-        </aside>
-      </Box>
-      <Box asChild className="flex-1 min-w-0" p={{ initial: "4", md: "6" }}>
-        <main>
-          {allowed ? (
-            children
-          ) : (
-            <Callout.Root color="amber" role="alert">
-              <Callout.Icon>
-                <ExclamationTriangleIcon />
-              </Callout.Icon>
-              <Callout.Text>
-                You don&apos;t have access to this page.{" "}
-                <Link href="/dashboard" className="underline">
-                  Go to dashboard
-                </Link>
-              </Callout.Text>
-            </Callout.Root>
-          )}
-        </main>
-      </Box>
-    </Flex>
+            </div>
+          </Surface>
+        )}
+      </main>
+    </div>
   );
 }
 
 function LoadingScreen() {
   return (
-    <Flex
-      role="status"
+    <output
       aria-label="Loading"
-      align="center"
-      justify="center"
-      minHeight="100vh"
+      className="flex min-h-screen items-center justify-center"
+      style={{ background: PAGE_BACKGROUND }}
     >
       <Spinner size="3" />
-    </Flex>
+    </output>
   );
 }

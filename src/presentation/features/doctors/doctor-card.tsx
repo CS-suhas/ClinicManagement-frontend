@@ -6,21 +6,15 @@ import {
 } from "@radix-ui/react-icons";
 import { Badge, Button, Flex, Heading, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
+import { IconCircle } from "@/presentation/components/ui/icon-circle";
+import { Surface } from "@/presentation/components/ui/surface";
 import { DoctorAvatar } from "./doctor-avatar";
 import type { DoctorProfile } from "./doctor-profile";
 
 function Fact({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <Flex align="center" gap="2">
-      <span
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
-        style={{
-          background: "var(--mp-primary-tint)",
-          color: "var(--mp-primary)",
-        }}
-      >
-        {icon}
-      </span>
+      <IconCircle>{icon}</IconCircle>
       <Text size="2">{children}</Text>
     </Flex>
   );
@@ -36,12 +30,10 @@ export function DoctorCard({
   const { rating, experienceYears, consultationFee, location, phone } = doctor;
 
   return (
-    <article
-      className="flex h-full flex-col rounded-2xl bg-white p-4"
-      style={{
-        border: "1px solid var(--mp-paper-deep)",
-        color: "var(--mp-ink)",
-      }}
+    <Surface
+      as="article"
+      className="flex h-full flex-col"
+      style={{ color: "var(--mp-ink)" }}
     >
       <div
         className="flex flex-1 flex-col gap-4 rounded-xl p-4"
@@ -128,6 +120,6 @@ export function DoctorCard({
           </button>
         </Flex>
       </Flex>
-    </article>
+    </Surface>
   );
 }

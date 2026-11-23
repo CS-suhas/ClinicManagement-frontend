@@ -179,3 +179,19 @@
   --mp-primary-dark: #006873;
   --mp-primary-tint: #e0f0f2;
 }
+
+/* Admin tables inside a Surface: paper header, hairline rows, soft teal hover. */
+.mp-table thead th {
+  background: var(--mp-paper);
+  color: var(--mp-muted);
+  font-weight: 500;
+}
+
+.mp-table tbody tr {
+  border-top: 1px solid var(--mp-paper-deep);
+  transition: background-color 0.15s ease;
+}
+
+.mp-table tbody tr:hover {
+  background: color-mix(in srgb, var(--mp-primary-tint) 50%, transparent);
+}

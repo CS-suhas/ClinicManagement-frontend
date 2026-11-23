@@ -9,7 +9,7 @@ export const ROUTE_ROLES = {
   "/appointments": null,
   "/clinics": ["admin", "clinicadmin"],
   "/providers": ["admin"],
-  "/patients": ["admin"],
+  "/patients": ["admin", "doctor"],
   "/allergies": ["admin"],
 } as const satisfies Record<string, readonly Role[] | null>;
 

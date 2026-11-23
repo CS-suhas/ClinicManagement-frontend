@@ -4,7 +4,7 @@ import { Card, Flex, Grid, Heading, Table, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useService } from "@/di/container-provider";
 import { AsyncContent } from "@/presentation/components/async-content";
-import { PageHeader } from "@/presentation/components/page-header";
+import { PageHeader } from "@/presentation/components/ui/page-header";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { formatDateTime } from "@/presentation/lib/format";
 
@@ -41,7 +41,7 @@ export default function Page() {
     <>
       <PageHeader
         title="Dashboard"
-        description="Overview of the clinic network."
+        subtitle="Overview of the clinic network."
       />
       <AsyncContent
         loading={loading}

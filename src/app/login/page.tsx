@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Box,
-  Button,
-  Card,
-  Flex,
-  Grid,
-  Heading,
-  Spinner,
-  Text,
-} from "@radix-ui/themes";
+import { Button, Flex, Heading, Spinner, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -18,6 +9,8 @@ import { useAuth } from "@/presentation/auth/auth-provider";
 import { RoleBadges } from "@/presentation/auth/role-badges";
 import { ErrorCallout } from "@/presentation/components/error-callout";
 import { PublicNavbar } from "@/presentation/components/public-navbar";
+import { PersonAvatar } from "@/presentation/components/ui/person-avatar";
+import { Surface } from "@/presentation/components/ui/surface";
 import { getErrorMessage } from "@/presentation/lib/errors";
 
 /** Only same-app paths are accepted, so ?next= cannot send people off-site. */
@@ -58,9 +51,9 @@ function LoginContent() {
   // No demo personas means the real sign-in provider is in use (rest mode).
   if (personas.length === 0)
     return (
-      <Card>
+      <Surface padding="lg">
         <Flex direction="column" gap="3" align="start">
-          <Text color="gray">
+          <Text style={{ color: "var(--mp-muted)" }}>
             Sign-in is handled by Keycloak, which is not configured in this
             build yet.
           </Text>
@@ -68,15 +61,15 @@ function LoginContent() {
             Sign in with Keycloak (not configured)
           </Button>
         </Flex>
-      </Card>
+      </Surface>
     );
 
   return (
     <Flex direction="column" gap="4">
       {user && (
-        <Card>
+        <Surface padding="lg">
           <Flex direction="column" gap="3" align="start">
-            <Text>
+            <Text style={{ color: "var(--mp-ink)" }}>
               You are signed in as <strong>{user.displayName}</strong>.
             </Text>
             <RoleBadges roles={user.roles} />
@@ -84,67 +77,74 @@ function LoginContent() {
               <Link href="/dashboard">Go to dashboard</Link>
             </Button>
           </Flex>
-        </Card>
+        </Surface>
       )}
-      <Text color="gray">
+      <Text style={{ color: "var(--mp-muted)" }}>
         {user ? "Or switch to another demo account." : "Pick a demo account."}{" "}
         Mock data only; nothing is sent to a server.
       </Text>
       {error && <ErrorCallout message={error} />}
-      <Grid columns={{ initial: "1", sm: "2" }} gap="4">
+      <div className="grid gap-4 sm:grid-cols-2">
         {personas.map((persona) => (
-          <Card key={persona.id} asChild>
-            <button
-              type="button"
-              disabled={pendingId !== null}
-              onClick={() => void handleSignIn(persona.id)}
-              aria-label={`Sign in as ${persona.label}`}
-              className="w-full cursor-pointer text-left disabled:cursor-wait disabled:opacity-60"
-            >
-              <Flex direction="column" gap="2">
-                <Text size="3" weight="bold">
-                  {pendingId === persona.id ? "Signing in..." : persona.label}
-                </Text>
-                <Text size="2" color="gray">
-                  {persona.description}
-                </Text>
+          <Surface
+            key={persona.id}
+            as="button"
+            padding="lg"
+            disabled={pendingId !== null}
+            onClick={() => void handleSignIn(persona.id)}
+            aria-label={`Sign in as ${persona.label}`}
+            className="flex w-full cursor-pointer items-start gap-4 text-left transition-shadow hover:shadow-md disabled:cursor-wait disabled:opacity-60"
+          >
+            <PersonAvatar name={persona.user.displayName} size={56} />
+            <div className="flex min-w-0 flex-col gap-1">
+              <span
+                className="text-base font-semibold"
+                style={{ color: "var(--mp-ink)" }}
+              >
+                {pendingId === persona.id ? "Signing in..." : persona.label}
+              </span>
+              <span className="text-sm" style={{ color: "var(--mp-muted)" }}>
+                {persona.description}
+              </span>
+              <div className="mt-2">
                 <RoleBadges roles={persona.user.roles} />
-              </Flex>
-            </button>
-          </Card>
+              </div>
+            </div>
+          </Surface>
         ))}
-      </Grid>
+      </div>
     </Flex>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Flex direction="column" minHeight="100vh">
+    <div
+      className="flex min-h-screen flex-col"
+      style={{ background: "#f3f8f7" }}
+    >
       <PublicNavbar
         crumbs={[{ label: "Home", href: "/" }, { label: "Sign in" }]}
       />
-      <Box asChild flexGrow="1" px={{ initial: "4", md: "6" }} py="8">
-        <main>
-          <Box maxWidth="720px" mx="auto">
-            <Heading size="7" mb="2">
-              Sign in
-            </Heading>
-            <Text as="p" color="gray" mb="6">
-              Access the MediPulse Life management console.
-            </Text>
-            <Suspense
-              fallback={
-                <Flex justify="center" py="9">
-                  <Spinner size="3" />
-                </Flex>
-              }
-            >
-              <LoginContent />
-            </Suspense>
-          </Box>
-        </main>
-      </Box>
-    </Flex>
+      <main className="flex-1 px-6 py-8 md:px-12">
+        <div className="max-w-[720px]">
+          <Heading as="h1" size="6" mb="2" style={{ color: "var(--mp-ink)" }}>
+            Sign in
+          </Heading>
+          <Text as="p" size="2" mb="6" style={{ color: "var(--mp-muted)" }}>
+            Access the MediPulse Life management console.
+          </Text>
+          <Suspense
+            fallback={
+              <Flex justify="center" py="9">
+                <Spinner size="3" />
+              </Flex>
+            }
+          >
+            <LoginContent />
+          </Suspense>
+        </div>
+      </main>
+    </div>
   );
 }

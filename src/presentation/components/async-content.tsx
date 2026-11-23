@@ -1,6 +1,7 @@
-import { Card, Flex, Spinner, Text } from "@radix-ui/themes";
+import { Flex, Spinner, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { ErrorCallout } from "./error-callout";
+import { Surface } from "./ui/surface";
 
 /** Renders loading / error / empty states around a data view. */
 export function AsyncContent({
@@ -27,11 +28,11 @@ export function AsyncContent({
     );
   if (isEmpty)
     return (
-      <Card>
+      <Surface>
         <Flex justify="center" py="6">
-          <Text color="gray">{emptyText}</Text>
+          <Text style={{ color: "var(--mp-muted)" }}>{emptyText}</Text>
         </Flex>
-      </Card>
+      </Surface>
     );
   return <>{children}</>;
 }

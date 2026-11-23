@@ -1,6 +1,7 @@
 import { Table } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { RowActions } from "./row-actions";
+import { Surface } from "./ui/surface";
 
 export type Column<T> = {
   header: string;
@@ -30,35 +31,39 @@ export function DataTable<T extends { id: string }>({
   const [first, ...rest] = columns;
 
   return (
-    <Table.Root variant="surface">
-      <Table.Header>
-        <Table.Row>
-          {columns.map((column) => (
-            <Table.ColumnHeaderCell key={column.header}>
-              {column.header}
-            </Table.ColumnHeaderCell>
-          ))}
-          <Table.ColumnHeaderCell justify="end">Actions</Table.ColumnHeaderCell>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {rows.map((row) => (
-          <Table.Row key={row.id} align="center">
-            <Table.RowHeaderCell>{first.cell(row)}</Table.RowHeaderCell>
-            {rest.map((column) => (
-              <Table.Cell key={column.header}>{column.cell(row)}</Table.Cell>
+    <Surface padding="none" className="overflow-hidden">
+      <Table.Root variant="ghost" className="mp-table">
+        <Table.Header>
+          <Table.Row>
+            {columns.map((column) => (
+              <Table.ColumnHeaderCell key={column.header}>
+                {column.header}
+              </Table.ColumnHeaderCell>
             ))}
-            <Table.Cell justify="end">
-              <RowActions
-                label={rowLabel(row)}
-                onEdit={() => onEdit(row)}
-                onDelete={() => onDelete(row)}
-                extra={extraActions?.(row)}
-              />
-            </Table.Cell>
+            <Table.ColumnHeaderCell justify="end">
+              Actions
+            </Table.ColumnHeaderCell>
           </Table.Row>
-        ))}
-      </Table.Body>
-    </Table.Root>
+        </Table.Header>
+        <Table.Body>
+          {rows.map((row) => (
+            <Table.Row key={row.id} align="center">
+              <Table.RowHeaderCell>{first.cell(row)}</Table.RowHeaderCell>
+              {rest.map((column) => (
+                <Table.Cell key={column.header}>{column.cell(row)}</Table.Cell>
+              ))}
+              <Table.Cell justify="end">
+                <RowActions
+                  label={rowLabel(row)}
+                  onEdit={() => onEdit(row)}
+                  onDelete={() => onDelete(row)}
+                  extra={extraActions?.(row)}
+                />
+              </Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </Surface>
   );
 }
