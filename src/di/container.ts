@@ -3,6 +3,7 @@ import {
   AppointmentService,
   ClinicService,
   ConfigurationService,
+  DashboardService,
   PatientAllergyService,
   PatientService,
   ProviderService,
@@ -10,8 +11,6 @@ import {
 import type {
   AllergyType,
   AllergyTypeInput,
-  Appointment,
-  AppointmentInput,
   Clinic,
   ClinicInput,
   Patient,
@@ -23,19 +22,23 @@ import type {
   AllergyTypeRepository,
   AppointmentRepository,
   ClinicRepository,
+  DashboardRepository,
   PatientAllergyRepository,
   PatientRepository,
   ProviderRepository,
 } from "@/domain/repositories";
 import { HttpClient } from "@/infrastructure/http/http-client";
 import {
+  RestAppointmentRepository,
   RestClinicRepository,
   RestConfigurationRepository,
   RestCrudRepository,
+  RestDashboardRepository,
   RestPatientAllergyRepository,
 } from "@/infrastructure/http/rest-repositories";
 import { LocalStorageCollection } from "@/infrastructure/mock/local-storage-collection";
 import {
+  MockAppointmentRepository,
   MockCrudRepository,
   MockPatientAllergyRepository,
 } from "@/infrastructure/mock/mock-repositories";
@@ -57,6 +60,7 @@ export interface Container {
   patientAllergyService: PatientAllergyService;
   appointmentService: AppointmentService;
   configurationService: ConfigurationService;
+  dashboardService: DashboardService;
 }
 
 interface Repositories {
@@ -73,30 +77,49 @@ const STORAGE_PREFIX = "clinic-admin:";
 function createMockRepositories(): Repositories {
   const col = <T>(key: string, data: T[]) =>
     new LocalStorageCollection<T>(STORAGE_PREFIX + key, data);
+  const clinics = new MockCrudRepository<Clinic, ClinicInput>(
+    col("clinics", seed.seedClinics),
+    "Clinic",
+  );
+  const providers = new MockCrudRepository<Provider, ProviderInput>(
+    col("providers", seed.seedProviders),
+    "Provider",
+  );
+  const patients = new MockCrudRepository<Patient, PatientInput>(
+    col("patients", seed.seedPatients),
+    "Patient",
+  );
+  const allergyTypesStore = col("allergy-types", seed.seedAllergyTypes);
+  const allergyTypes = new MockCrudRepository<AllergyType, AllergyTypeInput>(
+    allergyTypesStore,
+    "Allergy type",
+  );
+  const patientAllergies = new MockPatientAllergyRepository(
+    col("patient-allergies", seed.seedPatientAllergies),
+    allergyTypesStore,
+  );
+  const appointments = new MockAppointmentRepository(
+    col("appointments", seed.seedAppointments),
+    async () => {
+      const [patientList, providerList, clinicList] = await Promise.all([
+        patients.list(),
+        providers.list(),
+        clinics.list(),
+      ]);
+      return {
+        patients: patientList,
+        providers: providerList,
+        clinics: clinicList,
+      };
+    },
+  );
   return {
-    clinics: new MockCrudRepository<Clinic, ClinicInput>(
-      col("clinics", seed.seedClinics),
-      "Clinic",
-    ),
-    providers: new MockCrudRepository<Provider, ProviderInput>(
-      col("providers", seed.seedProviders),
-      "Provider",
-    ),
-    patients: new MockCrudRepository<Patient, PatientInput>(
-      col("patients", seed.seedPatients),
-      "Patient",
-    ),
-    allergyTypes: new MockCrudRepository<AllergyType, AllergyTypeInput>(
-      col("allergy-types", seed.seedAllergyTypes),
-      "Allergy type",
-    ),
-    patientAllergies: new MockPatientAllergyRepository(
-      col("patient-allergies", seed.seedPatientAllergies),
-    ),
-    appointments: new MockCrudRepository<Appointment, AppointmentInput>(
-      col("appointments", seed.seedAppointments),
-      "Appointment",
-    ),
+    clinics,
+    providers,
+    patients,
+    allergyTypes,
+    patientAllergies,
+    appointments,
   };
 }
 
@@ -108,7 +131,58 @@ function createRestRepositories(baseUrl: string): Repositories {
     patients: new RestCrudRepository(http, "/patients"),
     allergyTypes: new RestCrudRepository(http, "/allergy-types"),
     patientAllergies: new RestPatientAllergyRepository(http),
-    appointments: new RestCrudRepository(http, "/appointments"),
+    appointments: new RestAppointmentRepository(http),
+  };
+}
+
+function createMockDashboardRepository(
+  repositories: Repositories,
+): DashboardRepository {
+  return {
+    async getDashboard() {
+      const [clinics, providers, patients, allergyTypes, appointments] =
+        await Promise.all([
+          repositories.clinics.list(),
+          repositories.providers.list(),
+          repositories.patients.list(),
+          repositories.allergyTypes.list(),
+          repositories.appointments.list(),
+        ]);
+      const patientById = new Map(patients.map((item) => [item.id, item]));
+      const providerById = new Map(providers.map((item) => [item.id, item]));
+      const clinicById = new Map(clinics.map((item) => [item.id, item]));
+      const upcomingAppointments = appointments
+        .filter((item) => Date.parse(item.appointmentDateTime) >= Date.now())
+        .sort((a, b) =>
+          a.appointmentDateTime.localeCompare(b.appointmentDateTime),
+        )
+        .slice(0, 5)
+        .map((item) => {
+          const provider = providerById.get(item.providerId);
+          const patient = patientById.get(item.patientId);
+          const clinic = provider ? clinicById.get(provider.clinicId) : null;
+          return {
+            ...item,
+            patientName: patient
+              ? `${patient.firstName} ${patient.lastName}`.trim()
+              : "",
+            providerName: provider
+              ? `${provider.firstName} ${provider.lastName}`.trim()
+              : "",
+            providerSpecialty: provider?.specialty ?? "",
+            clinicId: provider?.clinicId ?? "",
+            clinicName: clinic?.name ?? "",
+          };
+        });
+      return {
+        clinics: clinics.length,
+        providers: providers.length,
+        patients: patients.length,
+        allergyTypes: allergyTypes.length,
+        appointments: appointments.length,
+        upcomingAppointments,
+      };
+    },
   };
 }
 
@@ -135,6 +209,11 @@ export function createContainer(config: ContainerConfig): Container {
     appointmentService: new AppointmentService(r.appointments),
     configurationService: new ConfigurationService(
       new RestConfigurationRepository(new HttpClient("")),
+    ),
+    dashboardService: new DashboardService(
+      config.dataSource === "rest"
+        ? new RestDashboardRepository(new HttpClient(config.apiBaseUrl))
+        : createMockDashboardRepository(r),
     ),
   };
 }

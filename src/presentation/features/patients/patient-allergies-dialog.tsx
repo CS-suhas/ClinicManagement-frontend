@@ -14,7 +14,6 @@ import {
 import { type FormEvent, useEffect, useState } from "react";
 import { useService } from "@/di/container-provider";
 import {
-  type AllergyType,
   type Patient,
   type PatientAllergy,
   patientFullName,
@@ -31,7 +30,6 @@ import { SeverityBadge, severityLabel } from "./severity-badge";
 
 interface Loaded {
   allergies: PatientAllergy[];
-  types: AllergyType[];
   severities: string[];
 }
 
@@ -54,43 +52,67 @@ export function PatientAllergiesDialog({
   patient: Patient | null;
 }) {
   const patientAllergyService = useService("patientAllergyService");
-  const allergyTypeService = useService("allergyTypeService");
   const configurationService = useService("configurationService");
   const { submitting, fieldErrors, formError, run, reset } = useFormSubmit();
 
+  const patientId = patient?.id;
   const { data, loading, error, reload } = useAsyncData<Loaded>(async () => {
-    if (!patient) return { allergies: [], types: [], severities: [] };
-    const [allergies, types, severities] = await Promise.all([
-      patientAllergyService.listByPatient(patient.id),
-      allergyTypeService.list(),
+    if (!patientId) return { allergies: [], severities: [] };
+    const [allergyPage, severities] = await Promise.all([
+      patientAllergyService.searchByPatient(patientId, {
+        page: 1,
+        pageSize: 100,
+      }),
       configurationService.getAllergySeverities(),
     ]);
-    return { allergies, types, severities };
-  });
+    return { allergies: allergyPage.items, severities };
+  }, `${open}|${patientId}`);
 
   const [editing, setEditing] = useState<PatientAllergy | null>(null);
   const [form, setForm] = useState<AllergyForm>(EMPTY_FORM);
   const [removing, setRemoving] = useState<PatientAllergy | null>(null);
 
-  const patientId = patient?.id;
   useEffect(() => {
+    if (!open) {
+      setEditing(null);
+      setForm(EMPTY_FORM);
+      reset();
+      return;
+    }
+    if (!patientId) return;
     setEditing(null);
     setForm(EMPTY_FORM);
     reset();
-    if (open && patientId) void reload();
-  }, [open, patientId, reload, reset]);
+  }, [open, patientId, reset]);
+
+  const {
+    data: options,
+    error: optionsError,
+    reload: reloadOptions,
+  } = useAsyncData(
+    () =>
+      open && patientId
+        ? patientAllergyService.allergyOptions(patientId, {
+            page: 1,
+            pageSize: 100,
+            selectedAllergyId: editing?.allergyId,
+          })
+        : Promise.resolve({
+            items: [],
+            totalCount: 0,
+            page: 1,
+            pageSize: 100,
+          }),
+    `${open}|${patientId}|${editing?.allergyId ?? ""}`,
+  );
 
   const allergies = data?.allergies ?? [];
-  const types = data?.types ?? [];
   const severities = data?.severities ?? [];
+  const selectable = options?.items ?? [];
   const typeName = (allergyId: string) =>
-    types.find((t) => t.id === allergyId)?.name ?? allergyId;
-
-  // Adding: only types not yet recorded. Editing: just the fixed allergy.
-  const recordedIds = new Set(allergies.map((a) => a.allergyId));
-  const selectable = editing
-    ? types.filter((t) => t.id === editing.allergyId)
-    : types.filter((t) => !recordedIds.has(t.id));
+    allergies.find((item) => item.allergyId === allergyId)?.allergyName ??
+    selectable.find((item) => item.id === allergyId)?.name ??
+    allergyId;
 
   const startEdit = (pa: PatientAllergy) => {
     setEditing(pa);
@@ -126,8 +148,10 @@ export function PatientAllergiesDialog({
         : patientAllergyService.add(record),
     );
     if (ok) {
+      const wasEditing = editing !== null;
       cancelEdit();
       void reload();
+      if (!wasEditing) void reloadOptions();
     }
   };
 
@@ -196,6 +220,12 @@ export function PatientAllergiesDialog({
                   {editing ? "Edit allergy" : "Add allergy"}
                 </Text>
                 {formError && <ErrorCallout message={formError} />}
+                {optionsError && (
+                  <ErrorCallout
+                    message={optionsError}
+                    onRetry={() => void reloadOptions()}
+                  />
+                )}
                 <Grid columns="2" gap="3">
                   <FormField
                     label="Allergy"
@@ -244,7 +274,7 @@ export function PatientAllergiesDialog({
                     </Select.Root>
                   </FormField>
                 </Grid>
-                {!editing && !loading && selectable.length === 0 && (
+                {!editing && !loading && options?.totalCount === 0 && (
                   <Text size="1" color="gray">
                     Every allergy type is already recorded for this patient.
                   </Text>
@@ -305,10 +335,14 @@ export function PatientAllergiesDialog({
         description={`"${removing ? typeName(removing.allergyId) : ""}" will be removed from this patient's record.`}
         onConfirm={removeConfirmed}
         onDeleted={() => {
-          if (editing && removing && editing.allergyId === removing.allergyId)
-            cancelEdit();
+          const wasEditing =
+            editing !== null &&
+            removing !== null &&
+            editing.allergyId === removing.allergyId;
+          if (wasEditing) cancelEdit();
           setRemoving(null);
           void reload();
+          if (!wasEditing) void reloadOptions();
         }}
       />
     </>

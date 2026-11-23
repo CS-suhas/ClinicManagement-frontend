@@ -11,49 +11,47 @@ import {
 } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
+import { ErrorCallout } from "@/presentation/components/error-callout";
 import { PageHeader } from "@/presentation/components/page-header";
+import { PaginationControls } from "@/presentation/components/pagination-controls";
 import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
+import { ProviderFormDialog } from "@/presentation/features/providers/provider-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { matchesQuery } from "@/presentation/lib/format";
-import {
-  ProviderFormDialog,
-} from "@/presentation/features/providers/provider-form-dialog";
+import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
 
 const ALL_CLINICS = "all";
+const PAGE_SIZE = 20;
 
 export default function Page() {
   const providerService = useService("providerService");
   const clinicService = useService("clinicService");
-  const { data, loading, error, reload } = useAsyncData(async () => {
-    const [providers, clinics] = await Promise.all([
-      providerService.list(),
-      clinicService.list(),
-    ]);
-    return { providers, clinics };
-  });
-  const [query, setQuery] = useState("");
+  const { query, search, page, setQuery, setPage } = usePagedSearch();
   const [clinicFilter, setClinicFilter] = useState<string>(ALL_CLINICS);
+  const { data, loading, error, reload } = useAsyncData(
+    () =>
+      providerService.search({
+        search: search || undefined,
+        clinicId: clinicFilter === ALL_CLINICS ? undefined : clinicFilter,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
+    `${search}|${clinicFilter}|${page}`,
+  );
+  const {
+    data: clinicData,
+    error: clinicError,
+    loading: clinicsLoading,
+    reload: reloadClinics,
+  } = useAsyncData(() => clinicService.search({ page: 1, pageSize: 100 }));
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Provider | null>(null);
   const [deleting, setDeleting] = useState<Provider | null>(null);
 
-  const providers = data?.providers ?? [];
-  const clinics = data?.clinics ?? [];
+  const providers = data?.items ?? [];
+  const clinics = clinicData?.items ?? [];
   const clinicName = (id: string) => clinics.find((c) => c.id === id)?.name;
-
-  const rows = providers.filter(
-    (p) =>
-      (clinicFilter === ALL_CLINICS || p.clinicId === clinicFilter) &&
-      matchesQuery(
-        query,
-        providerFullName(p),
-        p.firstName,
-        p.lastName,
-        p.specialty,
-        clinicName(p.clinicId),
-      ),
-  );
+  const rows = providers;
 
   const openCreate = () => {
     setEditing(null);
@@ -70,18 +68,32 @@ export default function Page() {
         title="Providers"
         description="Clinicians who see patients at a clinic."
         actions={
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} disabled={clinicsLoading || !clinicData}>
             <PlusIcon /> New provider
           </Button>
         }
       />
+      {clinicError && (
+        <Flex mb="3">
+          <ErrorCallout
+            message={clinicError}
+            onRetry={() => void reloadClinics()}
+          />
+        </Flex>
+      )}
       <Flex mb="3" gap="3" wrap="wrap">
         <SearchField
           value={query}
           onChange={setQuery}
           placeholder="Search providers…"
         />
-        <Select.Root value={clinicFilter} onValueChange={setClinicFilter}>
+        <Select.Root
+          value={clinicFilter}
+          onValueChange={(value) => {
+            setClinicFilter(value);
+            setPage(1);
+          }}
+        >
           <Select.Trigger aria-label="Filter by clinic" />
           <Select.Content>
             <Select.Item value={ALL_CLINICS}>All clinics</Select.Item>
@@ -134,6 +146,14 @@ export default function Page() {
           </Table.Body>
         </Table.Root>
       </AsyncContent>
+      {data && (
+        <PaginationControls
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={data.totalCount}
+          onPageChange={setPage}
+        />
+      )}
 
       <ProviderFormDialog
         open={formOpen}

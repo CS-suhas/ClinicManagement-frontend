@@ -21,10 +21,14 @@ import { assertValid, ConflictError } from "@/domain/errors";
 import type {
   AllergyTypeRepository,
   AppointmentRepository,
+  AppointmentSearchOptions,
   ClinicRepository,
+  DashboardRepository,
   PatientAllergyRepository,
   PatientRepository,
   ProviderRepository,
+  ProviderSearchOptions,
+  SearchOptions,
 } from "@/domain/repositories";
 import { CrudService } from "./crud-service";
 
@@ -33,16 +37,21 @@ export { CrudService } from "./crud-service";
 
 export class ClinicService extends CrudService<Clinic, ClinicInput> {
   constructor(
-    repo: ClinicRepository,
+    private readonly clinicRepo: ClinicRepository,
     private readonly providers: ProviderRepository,
   ) {
-    super(repo, "Clinic");
+    super(clinicRepo, "Clinic");
   }
   protected validate = validateClinic;
+  search(options: SearchOptions) {
+    return this.clinicRepo.search(options);
+  }
   protected async ensureDeletable(id: string) {
-    const count = (await this.providers.list()).filter(
-      (p) => p.clinicId === id,
-    ).length;
+    const { totalCount: count } = await this.providers.search({
+      page: 1,
+      pageSize: 1,
+      clinicId: id,
+    });
     if (count > 0)
       throw new ConflictError(
         `Cannot delete: ${count} provider(s) still belong to this clinic.`,
@@ -52,16 +61,21 @@ export class ClinicService extends CrudService<Clinic, ClinicInput> {
 
 export class ProviderService extends CrudService<Provider, ProviderInput> {
   constructor(
-    repo: ProviderRepository,
+    private readonly providerRepo: ProviderRepository,
     private readonly appointments: AppointmentRepository,
   ) {
-    super(repo, "Provider");
+    super(providerRepo, "Provider");
   }
   protected validate = validateProvider;
+  search(options: ProviderSearchOptions) {
+    return this.providerRepo.search(options);
+  }
   protected async ensureDeletable(id: string) {
-    const count = (await this.appointments.list()).filter(
-      (a) => a.providerId === id,
-    ).length;
+    const { totalCount: count } = await this.appointments.search({
+      page: 1,
+      pageSize: 1,
+      providerId: id,
+    });
     if (count > 0)
       throw new ConflictError(
         `Cannot delete: provider has ${count} appointment(s).`,
@@ -71,17 +85,22 @@ export class ProviderService extends CrudService<Provider, ProviderInput> {
 
 export class PatientService extends CrudService<Patient, PatientInput> {
   constructor(
-    repo: PatientRepository,
+    private readonly patientRepo: PatientRepository,
     private readonly appointments: AppointmentRepository,
     private readonly patientAllergies: PatientAllergyRepository,
   ) {
-    super(repo, "Patient");
+    super(patientRepo, "Patient");
   }
   protected validate = validatePatient;
+  search(options: SearchOptions) {
+    return this.patientRepo.search(options);
+  }
   protected async ensureDeletable(id: string) {
-    const count = (await this.appointments.list()).filter(
-      (a) => a.patientId === id,
-    ).length;
+    const { totalCount: count } = await this.appointments.search({
+      page: 1,
+      pageSize: 1,
+      patientId: id,
+    });
     if (count > 0)
       throw new ConflictError(
         `Cannot delete: patient has ${count} appointment(s).`,
@@ -102,12 +121,15 @@ export class AllergyTypeService extends CrudService<
   AllergyTypeInput
 > {
   constructor(
-    repo: AllergyTypeRepository,
+    private readonly allergyTypeRepo: AllergyTypeRepository,
     private readonly patientAllergies: PatientAllergyRepository,
   ) {
-    super(repo, "Allergy type");
+    super(allergyTypeRepo, "Allergy type");
   }
   protected validate = validateAllergyType;
+  search(options: SearchOptions) {
+    return this.allergyTypeRepo.search(options);
+  }
   protected async ensureDeletable(id: string) {
     const count = (await this.patientAllergies.listByAllergy(id)).length;
     if (count > 0)
@@ -121,10 +143,13 @@ export class AppointmentService extends CrudService<
   Appointment,
   AppointmentInput
 > {
-  constructor(repo: AppointmentRepository) {
-    super(repo, "Appointment");
+  constructor(private readonly appointmentRepo: AppointmentRepository) {
+    super(appointmentRepo, "Appointment");
   }
   protected validate = validateAppointment;
+  search(options: AppointmentSearchOptions) {
+    return this.appointmentRepo.search(options);
+  }
 }
 
 export class PatientAllergyService {
@@ -134,15 +159,21 @@ export class PatientAllergyService {
     return this.repo.listByPatient(patientId);
   }
 
-  /** Adds a new allergy to a patient; rejects duplicates. */
+  searchByPatient(patientId: string, options: SearchOptions) {
+    return this.repo.searchByPatient(patientId, options);
+  }
+
+  allergyOptions(
+    patientId: string,
+    options: SearchOptions & { selectedAllergyId?: string },
+  ) {
+    return this.repo.allergyOptions(patientId, options);
+  }
+
+  /** Adds or upserts an allergy on a patient. */
   async add(record: PatientAllergy): Promise<PatientAllergy> {
     assertValid(validatePatientAllergy(record));
-    const existing = await this.repo.listByPatient(record.patientId);
-    if (existing.some((e) => e.allergyId === record.allergyId))
-      throw new ConflictError(
-        "This allergy is already recorded for the patient.",
-      );
-    return this.repo.save(record);
+    return this.repo.add(record);
   }
 
   /** Updates severity/notes of an existing record. */
@@ -153,5 +184,13 @@ export class PatientAllergyService {
 
   remove(patientId: string, allergyId: string): Promise<void> {
     return this.repo.delete(patientId, allergyId);
+  }
+}
+
+export class DashboardService {
+  constructor(private readonly repo: DashboardRepository) {}
+
+  getDashboard() {
+    return this.repo.getDashboard();
   }
 }

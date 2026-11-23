@@ -8,32 +8,36 @@ import { type Patient, patientFullName } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { PageHeader } from "@/presentation/components/page-header";
+import { PaginationControls } from "@/presentation/components/pagination-controls";
 import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
+import { PatientAllergiesDialog } from "@/presentation/features/patients/patient-allergies-dialog";
+import { PatientFormDialog } from "@/presentation/features/patients/patient-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { formatDate, matchesQuery } from "@/presentation/lib/format";
-import {
-  PatientAllergiesDialog,
-} from "@/presentation/features/patients/patient-allergies-dialog";
-import {
-  PatientFormDialog,
-} from "@/presentation/features/patients/patient-form-dialog";
+import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
+import { formatDate } from "@/presentation/lib/format";
+
+const PAGE_SIZE = 20;
 
 export default function Page() {
   const patientService = useService("patientService");
-  const { data, loading, error, reload } = useAsyncData(() =>
-    patientService.list(),
+  const { query, search, page, setQuery, setPage } = usePagedSearch();
+  const { data, loading, error, reload } = useAsyncData(
+    () =>
+      patientService.search({
+        search: search || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
+    `${search}|${page}`,
   );
-  const [query, setQuery] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Patient | null>(null);
   const [deleting, setDeleting] = useState<Patient | null>(null);
   const [allergiesOpen, setAllergiesOpen] = useState(false);
   const [allergyPatient, setAllergyPatient] = useState<Patient | null>(null);
 
-  const rows = (data ?? []).filter((p) =>
-    matchesQuery(query, patientFullName(p), p.email, p.phoneNumber),
-  );
+  const rows = data?.items ?? [];
 
   const openCreate = () => {
     setEditing(null);
@@ -123,6 +127,14 @@ export default function Page() {
           </Table.Body>
         </Table.Root>
       </AsyncContent>
+      {data && (
+        <PaginationControls
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={data.totalCount}
+          onPageChange={setPage}
+        />
+      )}
 
       <PatientFormDialog
         open={formOpen}

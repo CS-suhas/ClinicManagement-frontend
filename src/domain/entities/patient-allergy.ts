@@ -7,6 +7,7 @@ export type Severity = string;
 export interface PatientAllergy {
   patientId: string;
   allergyId: string;
+  allergyName?: string;
   notes: string;
   severity: Severity;
 }

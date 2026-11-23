@@ -14,7 +14,10 @@ export interface AsyncData<T> {
  * Loads data from a use-case on mount and exposes `reload()` for after mutations.
  * The loader may change identity between renders; the latest one is always used.
  */
-export function useAsyncData<T>(loader: () => Promise<T>): AsyncData<T> {
+export function useAsyncData<T>(
+  loader: () => Promise<T>,
+  dependencyKey?: string,
+): AsyncData<T> {
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
   const [data, setData] = useState<T>();
@@ -38,9 +41,10 @@ export function useAsyncData<T>(loader: () => Promise<T>): AsyncData<T> {
     }
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the key intentionally reloads query-driven data.
   useEffect(() => {
     void reload();
-  }, [reload]);
+  }, [dependencyKey, reload]);
 
   return { data, loading, error, reload };
 }

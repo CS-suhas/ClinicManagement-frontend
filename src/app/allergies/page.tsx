@@ -8,27 +8,32 @@ import type { AllergyType } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { PageHeader } from "@/presentation/components/page-header";
+import { PaginationControls } from "@/presentation/components/pagination-controls";
 import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
+import { AllergyTypeFormDialog } from "@/presentation/features/allergies/allergy-type-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { matchesQuery } from "@/presentation/lib/format";
-import {
-  AllergyTypeFormDialog,
-} from "@/presentation/features/allergies/allergy-type-form-dialog";
+import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
+
+const PAGE_SIZE = 20;
 
 export default function Page() {
   const allergyTypeService = useService("allergyTypeService");
-  const { data, loading, error, reload } = useAsyncData(() =>
-    allergyTypeService.list(),
+  const { query, search, page, setQuery, setPage } = usePagedSearch();
+  const { data, loading, error, reload } = useAsyncData(
+    () =>
+      allergyTypeService.search({
+        search: search || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
+    `${search}|${page}`,
   );
-  const [query, setQuery] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AllergyType | null>(null);
   const [deleting, setDeleting] = useState<AllergyType | null>(null);
 
-  const rows = (data ?? [])
-    .filter((a) => matchesQuery(query, a.name))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const rows = data?.items ?? [];
 
   const openCreate = () => {
     setEditing(null);
@@ -92,6 +97,14 @@ export default function Page() {
           </Table.Body>
         </Table.Root>
       </AsyncContent>
+      {data && (
+        <PaginationControls
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={data.totalCount}
+          onPageChange={setPage}
+        />
+      )}
 
       <AllergyTypeFormDialog
         open={formOpen}

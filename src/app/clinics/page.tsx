@@ -8,27 +8,32 @@ import type { Clinic } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { PageHeader } from "@/presentation/components/page-header";
+import { PaginationControls } from "@/presentation/components/pagination-controls";
 import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
+import { ClinicFormDialog } from "@/presentation/features/clinics/clinic-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { matchesQuery } from "@/presentation/lib/format";
-import {
-  ClinicFormDialog,
-} from "@/presentation/features/clinics/clinic-form-dialog";
+import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
+
+const PAGE_SIZE = 20;
 
 export default function Page() {
   const clinicService = useService("clinicService");
-  const { data, loading, error, reload } = useAsyncData(() =>
-    clinicService.list(),
+  const { query, search, page, setQuery, setPage } = usePagedSearch();
+  const { data, loading, error, reload } = useAsyncData(
+    () =>
+      clinicService.search({
+        search: search || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
+    `${search}|${page}`,
   );
-  const [query, setQuery] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Clinic | null>(null);
   const [deleting, setDeleting] = useState<Clinic | null>(null);
 
-  const rows = (data ?? []).filter((c) =>
-    matchesQuery(query, c.name, c.location ?? undefined, c.phoneNumber),
-  );
+  const rows = data?.items ?? [];
 
   const openCreate = () => {
     setEditing(null);
@@ -94,6 +99,14 @@ export default function Page() {
           </Table.Body>
         </Table.Root>
       </AsyncContent>
+      {data && (
+        <PaginationControls
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={data.totalCount}
+          onPageChange={setPage}
+        />
+      )}
 
       <ClinicFormDialog
         open={formOpen}

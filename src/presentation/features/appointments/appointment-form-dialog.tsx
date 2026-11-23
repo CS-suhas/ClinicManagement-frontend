@@ -4,9 +4,7 @@ import { Select, TextArea, TextField } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useService } from "@/di/container-provider";
 import type {
-  Appointment,
   AppointmentInput,
-  AppointmentSettings,
   Clinic,
   Patient,
   Provider,
@@ -17,9 +15,14 @@ import {
   validateAppointmentSchedule,
 } from "@/domain/entities";
 import { assertValid } from "@/domain/errors";
+import type { AppointmentListItem } from "@/domain/repositories";
+import { ErrorCallout } from "@/presentation/components/error-callout";
 import { FormDialog } from "@/presentation/components/form-dialog";
 import { FormField } from "@/presentation/components/form-field";
+import { SearchField } from "@/presentation/components/search-field";
+import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { useFormSubmit } from "@/presentation/hooks/use-form-submit";
+import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
 import { toDateTimeLocal } from "@/presentation/lib/format";
 
 const EMPTY: AppointmentInput = {
@@ -33,56 +36,147 @@ interface AppointmentFormValues extends AppointmentInput {
   clinicId: string;
 }
 
+const EMPTY_PAGE = { items: [], totalCount: 0, page: 1, pageSize: 100 };
+
 /** Create when `appointment` is null, edit otherwise. */
 export function AppointmentFormDialog({
   open,
   onOpenChange,
   appointment,
-  patients,
-  providers,
-  clinics,
-  appointments,
-  settings,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  appointment: Appointment | null;
-  patients: Patient[];
-  providers: Provider[];
-  clinics: Clinic[];
-  appointments: Appointment[];
-  settings: AppointmentSettings | undefined;
+  appointment: AppointmentListItem | null;
   onSaved: () => void;
 }) {
   const appointmentService = useService("appointmentService");
+  const patientService = useService("patientService");
+  const providerService = useService("providerService");
+  const clinicService = useService("clinicService");
+  const configurationService = useService("configurationService");
   const { submitting, fieldErrors, formError, run, reset } = useFormSubmit();
+  const {
+    query: patientQuery,
+    search: patientSearchTerm,
+    setQueryNow: setPatientQuery,
+  } = usePagedSearch();
+  const {
+    query: clinicQuery,
+    search: clinicSearchTerm,
+    setQueryNow: setClinicQuery,
+  } = usePagedSearch();
+  const {
+    query: providerQuery,
+    search: providerSearchTerm,
+    setQueryNow: setProviderQuery,
+  } = usePagedSearch();
+  const [optionsReady, setOptionsReady] = useState(false);
   const [values, setValues] = useState<AppointmentFormValues>({
     ...EMPTY,
     clinicId: "",
   });
 
+  const {
+    data: settings,
+    error: settingsError,
+    reload: reloadSettings,
+  } = useAsyncData(
+    () =>
+      open && optionsReady
+        ? configurationService.getAppointmentSettings()
+        : Promise.resolve(undefined),
+    `${open}|${optionsReady}`,
+  );
+  const {
+    data: patientPage,
+    error: patientsError,
+    loading: patientsLoading,
+    reload: reloadPatients,
+  } = useAsyncData(
+    () =>
+      open && optionsReady
+        ? patientService.search({
+            search: patientSearchTerm || undefined,
+            page: 1,
+            pageSize: 100,
+          })
+        : Promise.resolve(EMPTY_PAGE),
+    `${open}|${optionsReady}|${patientSearchTerm}`,
+  );
+  const {
+    data: clinicPage,
+    error: clinicsError,
+    loading: clinicsLoading,
+    reload: reloadClinics,
+  } = useAsyncData(
+    () =>
+      open && optionsReady
+        ? clinicService.search({
+            search: clinicSearchTerm || undefined,
+            page: 1,
+            pageSize: 100,
+          })
+        : Promise.resolve({ ...EMPTY_PAGE, items: [] as Clinic[] }),
+    `${open}|${optionsReady}|${clinicSearchTerm}`,
+  );
+  const {
+    data: providerPage,
+    error: providersError,
+    loading: providersLoading,
+    reload: reloadProviders,
+  } = useAsyncData(
+    () =>
+      open && optionsReady && values.clinicId
+        ? providerService.search({
+            clinicId: values.clinicId,
+            search: providerSearchTerm || undefined,
+            page: 1,
+            pageSize: 100,
+          })
+        : Promise.resolve({ ...EMPTY_PAGE, items: [] as Provider[] }),
+    `${open}|${optionsReady}|${values.clinicId}|${providerSearchTerm}`,
+  );
+
   useEffect(() => {
-    if (open) {
-      reset();
-      const clinicId = providers.find(
-        (provider) => provider.id === appointment?.providerId,
-      )?.clinicId;
-      setValues(
-        appointment
-          ? {
-              clinicId: clinicId ?? "",
-              patientId: appointment.patientId,
-              providerId: appointment.providerId,
-              appointmentDateTime: toDateTimeLocal(
-                appointment.appointmentDateTime,
-              ),
-              reasonForVisit: appointment.reasonForVisit,
-            }
-          : { ...EMPTY, clinicId: "" },
-      );
+    if (!open) {
+      setOptionsReady(false);
+      setPatientQuery("");
+      setClinicQuery("");
+      setProviderQuery("");
+      setValues({ ...EMPTY, clinicId: "" });
+      return;
     }
-  }, [open, appointment, providers, reset]);
+    reset();
+    setPatientQuery(appointment?.patientName ?? "");
+    setClinicQuery(appointment?.clinicName ?? "");
+    setProviderQuery(appointment?.providerName ?? "");
+    setValues(
+      appointment
+        ? {
+            clinicId: appointment.clinicId,
+            patientId: appointment.patientId,
+            providerId: appointment.providerId,
+            appointmentDateTime: toDateTimeLocal(
+              appointment.appointmentDateTime,
+            ),
+            reasonForVisit: appointment.reasonForVisit,
+          }
+        : { ...EMPTY, clinicId: "" },
+    );
+    setOptionsReady(true);
+  }, [
+    open,
+    appointment,
+    reset,
+    setPatientQuery,
+    setClinicQuery,
+    setProviderQuery,
+  ]);
+
+  const patients: Patient[] = patientPage?.items ?? [];
+  const clinics: Clinic[] = clinicPage?.items ?? [];
+  const providers: Provider[] = providerPage?.items ?? [];
 
   const submit = async () => {
     const ok = await run(async () => {
@@ -99,13 +193,13 @@ export function AppointmentFormDialog({
       const errors = validateAppointmentSchedule(
         input,
         settings,
-        appointments,
+        [],
         appointment?.id,
       );
       const provider = providers.find((item) => item.id === values.providerId);
       if (!values.clinicId) errors.clinicId = "Clinic is required";
-      else if (provider && provider.clinicId !== values.clinicId)
-        errors.providerId = "Provider must belong to the selected clinic";
+      else if (!provider || provider.clinicId !== values.clinicId)
+        errors.providerId = "Select a provider from the selected clinic";
       assertValid(errors);
       if (appointment) await appointmentService.update(appointment.id, input);
       else await appointmentService.create(input);
@@ -116,9 +210,6 @@ export function AppointmentFormDialog({
     }
   };
 
-  const availableProviders = providers.filter(
-    (provider) => provider.clinicId === values.clinicId,
-  );
   const date = values.appointmentDateTime.slice(0, 10);
   const openingTime = settings?.clinicOpeningTime.slice(0, 5);
   const closingMinutes = settings
@@ -143,13 +234,43 @@ export function AppointmentFormDialog({
       formError={formError}
       onSubmit={submit}
     >
+      {settingsError && (
+        <ErrorCallout
+          message={settingsError}
+          onRetry={() => void reloadSettings()}
+        />
+      )}
+      {patientsError && (
+        <ErrorCallout
+          message={patientsError}
+          onRetry={() => void reloadPatients()}
+        />
+      )}
+      {clinicsError && (
+        <ErrorCallout
+          message={clinicsError}
+          onRetry={() => void reloadClinics()}
+        />
+      )}
+      {providersError && (
+        <ErrorCallout
+          message={providersError}
+          onRetry={() => void reloadProviders()}
+        />
+      )}
       <FormField
         label="Patient"
         htmlFor="appointment-patient"
         error={fieldErrors.patientId}
       >
+        <SearchField
+          value={patientQuery}
+          onChange={setPatientQuery}
+          placeholder="Search patients…"
+        />
         <Select.Root
           value={values.patientId}
+          disabled={patientsLoading}
           onValueChange={(v) => setValues((s) => ({ ...s, patientId: v }))}
         >
           <Select.Trigger
@@ -172,11 +293,18 @@ export function AppointmentFormDialog({
         htmlFor="appointment-clinic"
         error={fieldErrors.clinicId}
       >
+        <SearchField
+          value={clinicQuery}
+          onChange={setClinicQuery}
+          placeholder="Search clinics…"
+        />
         <Select.Root
           value={values.clinicId}
-          onValueChange={(clinicId) =>
-            setValues((current) => ({ ...current, clinicId, providerId: "" }))
-          }
+          disabled={clinicsLoading}
+          onValueChange={(clinicId) => {
+            setValues((current) => ({ ...current, clinicId, providerId: "" }));
+            setProviderQuery("");
+          }}
         >
           <Select.Trigger
             id="appointment-clinic"
@@ -198,9 +326,14 @@ export function AppointmentFormDialog({
         htmlFor="appointment-provider"
         error={fieldErrors.providerId}
       >
+        <SearchField
+          value={providerQuery}
+          onChange={setProviderQuery}
+          placeholder="Search providers…"
+        />
         <Select.Root
           value={values.providerId}
-          disabled={!values.clinicId}
+          disabled={!values.clinicId || providersLoading}
           onValueChange={(v) => setValues((s) => ({ ...s, providerId: v }))}
         >
           <Select.Trigger
@@ -209,7 +342,7 @@ export function AppointmentFormDialog({
             style={{ width: "100%" }}
           />
           <Select.Content>
-            {availableProviders.map((p) => (
+            {providers.map((p) => (
               <Select.Item key={p.id} value={p.id}>
                 {`${providerFullName(p)} — ${p.specialty}`}
               </Select.Item>
