@@ -5,6 +5,7 @@ const apiBaseUrl = (
 ).replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
   async rewrites() {
