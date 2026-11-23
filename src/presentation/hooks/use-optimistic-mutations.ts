@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import { ConflictError, ValidationError } from "@/domain/errors";
 import { useNotify } from "../components/notifications";
 import { getErrorMessage } from "../lib/errors";
 
@@ -13,6 +14,14 @@ export interface OptimisticMutation {
   request: () => Promise<unknown>;
   /** Start of the failure popup, e.g. "Could not delete clinic". */
   failureMessage: string;
+}
+
+/** A conflict already explains itself; other errors follow the headline. */
+function failureText(failureMessage: string, e: unknown) {
+  if (e instanceof ConflictError) return e.message;
+  if (e instanceof ValidationError)
+    return `${failureMessage}: ${Object.values(e.fieldErrors).join(" ")}`;
+  return `${failureMessage}: ${getErrorMessage(e)}`;
 }
 
 /**
@@ -37,7 +46,7 @@ export function useOptimisticMutations(onIdle: () => void) {
           await request();
         } catch (e) {
           rollback();
-          notifyError(`${failureMessage}: ${getErrorMessage(e)}`);
+          notifyError(failureText(failureMessage, e));
         } finally {
           pending.current--;
           if (pending.current === 0) onIdleRef.current();
