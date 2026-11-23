@@ -37,6 +37,7 @@ import {
   RestPatientAllergyRepository,
 } from "@/infrastructure/http/rest-repositories";
 import { LocalStorageCollection } from "@/infrastructure/mock/local-storage-collection";
+import { MockConfigurationRepository } from "@/infrastructure/mock/mock-configuration-repository";
 import {
   MockAppointmentRepository,
   MockCrudRepository,
@@ -208,7 +209,10 @@ export function createContainer(config: ContainerConfig): Container {
     patientAllergyService: new PatientAllergyService(r.patientAllergies),
     appointmentService: new AppointmentService(r.appointments),
     configurationService: new ConfigurationService(
-      new RestConfigurationRepository(new HttpClient("")),
+      config.dataSource === "rest"
+        ? // Served by the Next.js rewrites in next.config.ts, hence no base URL.
+          new RestConfigurationRepository(new HttpClient(""))
+        : new MockConfigurationRepository(),
     ),
     dashboardService: new DashboardService(
       config.dataSource === "rest"
