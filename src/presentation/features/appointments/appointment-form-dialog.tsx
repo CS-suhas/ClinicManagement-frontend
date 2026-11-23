@@ -1,6 +1,7 @@
 "use client";
 
-import { TextField } from "@radix-ui/themes";
+import { TrashIcon } from "@radix-ui/react-icons";
+import { Button, TextField } from "@radix-ui/themes";
 import { patientFullName, providerFullName } from "@/domain/entities";
 import type { AppointmentListItem } from "@/domain/repositories";
 import { ErrorCallout } from "@/presentation/components/error-callout";
@@ -21,13 +22,24 @@ export function AppointmentFormDialog({
   onOpenChange,
   appointment,
   onSave,
+  defaultDateTime,
+  onDelete,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointment: AppointmentListItem | null;
   onSave: UseAppointmentFormOptions["onSave"];
+  defaultDateTime?: string;
+  /** Adds a delete button when editing. The caller confirms the delete. */
+  onDelete?: (appointment: AppointmentListItem) => void;
 }) {
-  const form = useAppointmentForm({ open, onOpenChange, appointment, onSave });
+  const form = useAppointmentForm({
+    open,
+    onOpenChange,
+    appointment,
+    onSave,
+    defaultDateTime,
+  });
   const { values, fieldErrors, settings, patients, clinics, providers } = form;
 
   return (
@@ -112,6 +124,20 @@ export function AppointmentFormDialog({
         value={values.reasonForVisit}
         onChange={(e) => form.setValue("reasonForVisit", e.target.value)}
       />
+
+      {appointment && onDelete && (
+        <Button
+          type="button"
+          color="red"
+          variant="soft"
+          style={{ alignSelf: "flex-start" }}
+          disabled={form.dialogProps.submitting}
+          onClick={() => onDelete(appointment)}
+        >
+          <TrashIcon />
+          Delete appointment
+        </Button>
+      )}
     </FormDialog>
   );
 }

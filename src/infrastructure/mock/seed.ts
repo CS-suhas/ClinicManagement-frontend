@@ -95,7 +95,7 @@ export const seedPatientAllergies: PatientAllergy[] = [
   },
 ];
 
-export const seedAppointments: Appointment[] = [
+const fixedAppointments: Appointment[] = [
   {
     id: "ap1",
     patientId: "p1",
@@ -117,4 +117,169 @@ export const seedAppointments: Appointment[] = [
     appointmentDateTime: "2026-11-24T10:15",
     reasonForVisit: "Vaccination",
   },
+];
+
+/** "YYYY-MM-DD" of the local day `offset` days from today. */
+function dayKey(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * An appointment `offset` days from today. The date is a getter, so it is
+ * read only when the mock store first clones the seed, never at import time
+ * (a module-level Date would run during prerender).
+ */
+function onDay(
+  offset: number,
+  time: string,
+  appointment: Omit<Appointment, "appointmentDateTime">,
+): Appointment {
+  return {
+    ...appointment,
+    get appointmentDateTime() {
+      return `${dayKey(offset)}T${time}`;
+    },
+  };
+}
+
+const relativeAppointments: Appointment[] = [
+  // Today
+  onDay(0, "08:00", {
+    id: "ap4",
+    patientId: "p1",
+    providerId: "pr1",
+    reasonForVisit: "Blood pressure check",
+  }),
+  onDay(0, "08:30", {
+    id: "ap5",
+    patientId: "p2",
+    providerId: "pr2",
+    reasonForVisit: "Chest pain follow-up",
+  }),
+  onDay(0, "09:30", {
+    id: "ap6",
+    patientId: "p3",
+    providerId: "pr1",
+    reasonForVisit: "Annual check-up",
+  }),
+  onDay(0, "10:00", {
+    id: "ap7",
+    patientId: "p3",
+    providerId: "pr3",
+    reasonForVisit: "Vaccination",
+  }),
+  onDay(0, "11:00", {
+    id: "ap8",
+    patientId: "p1",
+    providerId: "pr2",
+    reasonForVisit: "ECG results review",
+  }),
+  onDay(0, "13:00", {
+    id: "ap9",
+    patientId: "p2",
+    providerId: "pr1",
+    reasonForVisit: "Medication review",
+  }),
+  onDay(0, "14:00", {
+    id: "ap10",
+    patientId: "p2",
+    providerId: "pr2",
+    reasonForVisit: "Stress test follow-up",
+  }),
+  onDay(0, "15:30", {
+    id: "ap11",
+    patientId: "p1",
+    providerId: "pr1",
+    reasonForVisit: "Lab results",
+  }),
+  // Tomorrow
+  onDay(1, "09:00", {
+    id: "ap12",
+    patientId: "p2",
+    providerId: "pr1",
+    reasonForVisit: "Diabetes review",
+  }),
+  onDay(1, "09:30", {
+    id: "ap13",
+    patientId: "p1",
+    providerId: "pr2",
+    reasonForVisit: "Palpitations",
+  }),
+  onDay(1, "10:30", {
+    id: "ap14",
+    patientId: "p3",
+    providerId: "pr3",
+    reasonForVisit: "Ear infection",
+  }),
+  onDay(1, "11:00", {
+    id: "ap15",
+    patientId: "p1",
+    providerId: "pr1",
+    reasonForVisit: "Prescription refill",
+  }),
+  onDay(1, "13:30", {
+    id: "ap16",
+    patientId: "p2",
+    providerId: "pr2",
+    reasonForVisit: "Blood pressure monitoring",
+  }),
+  // In two days
+  onDay(2, "08:30", {
+    id: "ap17",
+    patientId: "p3",
+    providerId: "pr1",
+    reasonForVisit: "Wellness visit",
+  }),
+  onDay(2, "10:00", {
+    id: "ap18",
+    patientId: "p1",
+    providerId: "pr2",
+    reasonForVisit: "Heart murmur assessment",
+  }),
+  onDay(2, "14:00", {
+    id: "ap19",
+    patientId: "p2",
+    providerId: "pr1",
+    reasonForVisit: "Lab results",
+  }),
+  // In three days
+  onDay(3, "09:15", {
+    id: "ap20",
+    patientId: "p1",
+    providerId: "pr1",
+    reasonForVisit: "Skin rash",
+  }),
+  onDay(3, "11:00", {
+    id: "ap21",
+    patientId: "p2",
+    providerId: "pr2",
+    reasonForVisit: "Cardiology consult",
+  }),
+  onDay(3, "15:00", {
+    id: "ap22",
+    patientId: "p3",
+    providerId: "pr3",
+    reasonForVisit: "Allergy review",
+  }),
+  // Yesterday
+  onDay(-1, "10:00", {
+    id: "ap23",
+    patientId: "p1",
+    providerId: "pr1",
+    reasonForVisit: "Follow-up visit",
+  }),
+  onDay(-1, "12:00", {
+    id: "ap24",
+    patientId: "p2",
+    providerId: "pr2",
+    reasonForVisit: "Echo results",
+  }),
+];
+
+export const seedAppointments: Appointment[] = [
+  ...fixedAppointments,
+  ...relativeAppointments,
 ];

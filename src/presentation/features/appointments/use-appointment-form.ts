@@ -40,6 +40,8 @@ export interface UseAppointmentFormOptions {
     editing: AppointmentListItem | null,
     overrides: Partial<AppointmentListItem>,
   ) => void;
+  /** Pre-filled date-time (datetime-local value) when creating. */
+  defaultDateTime?: string;
 }
 
 /** State and rules of the appointment dialog; the component only renders. */
@@ -48,6 +50,7 @@ export function useAppointmentForm({
   onOpenChange,
   appointment,
   onSave,
+  defaultDateTime,
 }: UseAppointmentFormOptions) {
   const patientService = useService("patientService");
   const providerService = useService("providerService");
@@ -114,12 +117,13 @@ export function useAppointmentForm({
             ),
             reasonForVisit: appointment.reasonForVisit,
           }
-        : EMPTY,
+        : { ...EMPTY, appointmentDateTime: defaultDateTime ?? "" },
     );
     setOptionsReady(true);
   }, [
     open,
     appointment,
+    defaultDateTime,
     reset,
     setPatientQuery,
     setClinicQuery,
