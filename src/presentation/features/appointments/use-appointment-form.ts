@@ -42,6 +42,8 @@ export interface UseAppointmentFormOptions {
   ) => void;
   /** Pre-filled date-time (datetime-local value) when creating. */
   defaultDateTime?: string;
+  /** Pre-selected patient when creating, e.g. from a patient page. */
+  defaultPatientId?: string;
 }
 
 /** State and rules of the appointment dialog; the component only renders. */
@@ -51,6 +53,7 @@ export function useAppointmentForm({
   appointment,
   onSave,
   defaultDateTime,
+  defaultPatientId,
 }: UseAppointmentFormOptions) {
   const patientService = useService("patientService");
   const providerService = useService("providerService");
@@ -120,10 +123,21 @@ export function useAppointmentForm({
         : { ...EMPTY, appointmentDateTime: defaultDateTime ?? "" },
     );
     setOptionsReady(true);
+    if (!appointment && defaultPatientId) {
+      patientService
+        .get(defaultPatientId)
+        .then((patient) => {
+          setValues((current) => ({ ...current, patientId: patient.id }));
+          setPatientQuery(patientFullName(patient));
+        })
+        .catch(() => {});
+    }
   }, [
     open,
     appointment,
     defaultDateTime,
+    defaultPatientId,
+    patientService,
     reset,
     setPatientQuery,
     setClinicQuery,

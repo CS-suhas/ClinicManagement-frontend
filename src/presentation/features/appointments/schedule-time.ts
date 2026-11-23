@@ -1,10 +1,10 @@
 import type { AppointmentSettings } from "@/domain/entities";
 
-export type AppointmentView = "calendar" | "list";
+/** Which view the page shows. Each role gets a subset, see appointments-view. */
+export type AppointmentView = "month" | "day" | "week" | "list";
 
-/** Calendar is about 60px per hour; the agenda gives each slot more height. */
-export const CALENDAR_PX_PER_MINUTE = 1;
-export const AGENDA_PX_PER_MINUTE = 2;
+/** About 150px per hour: room for a time, a name and a status pill in one block. */
+export const CALENDAR_PX_PER_MINUTE = 2.5;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -51,6 +51,12 @@ export function clock12(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   return `${hours % 12 || 12}:${pad(minutes % 60)} ${hours < 12 ? "am" : "pm"}`;
 }
+
+/** "10:20 am" for an appointment start, local time. */
+export const clockOf = (iso: string) => {
+  const d = new Date(iso);
+  return clock12(d.getHours() * 60 + d.getMinutes());
+};
 
 /** "9:00 – 9:45" for a slot starting at `start`. */
 export function timeRange(start: number, duration: number): string {

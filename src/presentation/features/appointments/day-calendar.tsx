@@ -1,7 +1,13 @@
 "use client";
 
+import type { AppointmentScope } from "@/application/services/appointment-service";
+import type { AppointmentAction } from "@/domain/entities";
 import type { AppointmentListItem } from "@/domain/repositories";
 import { Surface } from "@/presentation/components/ui/surface";
+import {
+  AppointmentBlock,
+  type AppointmentViewProps,
+} from "./appointment-parts";
 import { NowLine } from "./now-line";
 import type { ScheduleColumn } from "./schedule-columns";
 import {
@@ -16,14 +22,25 @@ const GUTTER = 64;
 const COLUMN_MIN_WIDTH = 200;
 const HOUR = 60 * CALENDAR_PX_PER_MINUTE;
 
+/** Shared inputs for the block grids. */
+export interface GridCommon {
+  scope: AppointmentScope;
+  now: number | null;
+  actionsFor: (item: AppointmentListItem) => AppointmentAction[];
+  onAct: (item: AppointmentListItem, action: AppointmentAction) => void;
+  onEdit?: (item: AppointmentListItem) => void;
+  showAllergy: boolean;
+}
+
+/** One day as provider columns. Admins see every doctor; a doctor sees only their own column. */
 export function DayCalendar({
   columns,
   items,
   clinic,
   nowOffset,
   toneOrder,
-  onEdit,
-}: {
+  ...common
+}: GridCommon & {
   columns: ScheduleColumn[];
   items: AppointmentListItem[];
   clinic: ClinicWindow;
@@ -31,8 +48,6 @@ export function DayCalendar({
   nowOffset: number | null;
   /** Provider ids in display order, which set the accent colours. */
   toneOrder: string[];
-  /** Given only for roles that may edit; blocks are read-only otherwise. */
-  onEdit?: (item: AppointmentListItem) => void;
 }) {
   const { opening, closing, duration } = clinic;
   const height = (closing - opening) * CALENDAR_PX_PER_MINUTE;
@@ -120,54 +135,21 @@ export function DayCalendar({
                     const start = minutesOfDay(
                       Date.parse(item.appointmentDateTime),
                     );
-                    const tone = toneOf(item.providerId, toneOrder);
-                    const style = {
-                      top: (start - opening) * CALENDAR_PX_PER_MINUTE + 1,
-                      height: duration * CALENDAR_PX_PER_MINUTE - 2,
-                      left: 4,
-                      right: 4,
-                      background: `color-mix(in srgb, ${tone} 10%, white)`,
-                      borderLeft: `3px solid ${tone}`,
-                    };
-                    const body = (
-                      <>
-                        <span
-                          className="block truncate text-xs font-semibold leading-tight"
-                          style={{ color: "var(--mp-ink)" }}
-                        >
-                          {item.patientName}
-                        </span>
-                        <span
-                          className="block truncate text-[11px] leading-tight"
-                          style={{ color: "var(--mp-muted)" }}
-                        >
-                          {item.reasonForVisit || "No reason given"}
-                        </span>
-                      </>
-                    );
-                    if (!onEdit)
-                      return (
-                        <div
-                          key={item.id}
-                          title={`${item.patientName} · ${item.reasonForVisit ?? ""}`}
-                          className="absolute overflow-hidden rounded-md px-1.5 py-0.5"
-                          style={style}
-                        >
-                          {body}
-                        </div>
-                      );
+                    const blockHeight = duration * CALENDAR_PX_PER_MINUTE - 2;
                     return (
-                      <button
+                      <AppointmentBlock
                         key={item.id}
-                        type="button"
-                        onClick={() => onEdit(item)}
-                        aria-label={`Edit appointment for ${item.patientName}`}
-                        title={`${item.patientName} · ${item.reasonForVisit ?? ""}`}
-                        className="absolute cursor-pointer overflow-hidden rounded-md px-1.5 py-0.5 text-left transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-1"
-                        style={{ ...style, outlineColor: "var(--mp-ink)" }}
-                      >
-                        {body}
-                      </button>
+                        view={viewFor(item, common)}
+                        duration={duration}
+                        accent={toneOf(item.providerId, toneOrder)}
+                        tall={blockHeight >= 80}
+                        style={{
+                          top: (start - opening) * CALENDAR_PX_PER_MINUTE + 1,
+                          height: blockHeight,
+                          left: 4,
+                          right: 4,
+                        }}
+                      />
                     );
                   })}
               </div>
@@ -181,4 +163,20 @@ export function DayCalendar({
       </div>
     </Surface>
   );
+}
+
+/** Builds the per-item props a block or card needs from the shared inputs. */
+export function viewFor(
+  item: AppointmentListItem,
+  common: GridCommon,
+): AppointmentViewProps {
+  return {
+    item,
+    scope: common.scope,
+    now: common.now,
+    actions: common.actionsFor(item),
+    onAct: common.onAct,
+    onEdit: common.onEdit,
+    showAllergy: common.showAllergy,
+  };
 }

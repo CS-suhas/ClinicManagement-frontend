@@ -5,6 +5,7 @@ import {
   StarFilledIcon,
 } from "@radix-ui/react-icons";
 import { Badge, Button, Flex, Heading, Text } from "@radix-ui/themes";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { IconCircle } from "@/presentation/components/ui/icon-circle";
 import { Surface } from "@/presentation/components/ui/surface";
@@ -44,7 +45,13 @@ export function DoctorCard({
           <DoctorAvatar name={doctor.name} size={64} />
           <div className="min-w-0">
             <Heading as="h3" size="4">
-              {doctor.name}
+              <Link
+                href={`/doctors/${doctor.id}`}
+                className="no-underline hover:underline"
+                style={{ color: "var(--mp-ink)" }}
+              >
+                {doctor.name}
+              </Link>
             </Heading>
             {doctor.qualifications && (
               <Text as="p" size="2" style={{ color: "var(--mp-muted)" }}>

@@ -1,6 +1,7 @@
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import Link from "next/link";
+import { LandingWelcome } from "@/presentation/features/landing/landing-welcome";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -68,6 +69,8 @@ export default function LandingPage() {
           </Link>
         </div>
       </main>
+
+      <LandingWelcome />
     </div>
   );
 }

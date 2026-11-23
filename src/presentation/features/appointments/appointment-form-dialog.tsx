@@ -23,6 +23,7 @@ export function AppointmentFormDialog({
   appointment,
   onSave,
   defaultDateTime,
+  defaultPatientId,
   onDelete,
 }: {
   open: boolean;
@@ -30,6 +31,7 @@ export function AppointmentFormDialog({
   appointment: AppointmentListItem | null;
   onSave: UseAppointmentFormOptions["onSave"];
   defaultDateTime?: string;
+  defaultPatientId?: string;
   /** Adds a delete button when editing. The caller confirms the delete. */
   onDelete?: (appointment: AppointmentListItem) => void;
 }) {
@@ -39,6 +41,7 @@ export function AppointmentFormDialog({
     appointment,
     onSave,
     defaultDateTime,
+    defaultPatientId,
   });
   const { values, fieldErrors, settings, patients, clinics, providers } = form;
 

@@ -9,6 +9,8 @@ export interface BookingAccessDialogProps {
   displayName: string;
   /** True when the account has no patient record, so it can create one. */
   canCreateProfile: boolean;
+  /** Where onboarding returns the visitor after the profile is created. */
+  returnTo?: string;
 }
 
 /** Explains why a signed-in account cannot book online. */
@@ -17,6 +19,7 @@ export function BookingAccessDialog({
   onOpenChange,
   displayName,
   canCreateProfile,
+  returnTo = "/doctors",
 }: BookingAccessDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -35,7 +38,9 @@ export function BookingAccessDialog({
           </Dialog.Close>
           {canCreateProfile && (
             <Button asChild color="teal">
-              <Link href="/onboarding/patient?next=/doctors">
+              <Link
+                href={`/onboarding?as=patient&next=${encodeURIComponent(returnTo)}`}
+              >
                 Create patient profile
               </Link>
             </Button>

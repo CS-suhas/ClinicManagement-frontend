@@ -1,17 +1,14 @@
 "use client";
 
-import { Heading } from "@radix-ui/themes";
-import { useRouter } from "next/navigation";
+import { Heading, Text } from "@radix-ui/themes";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
-import { canBookOnline } from "@/application/auth/permissions";
 import { useService } from "@/di/container-provider";
-import { useAuth } from "@/presentation/auth/auth-provider";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { PublicNavbar } from "@/presentation/components/public-navbar";
 import { SearchField } from "@/presentation/components/search-field";
-import { BookingAccessDialog } from "@/presentation/features/doctors/booking-access-dialog";
-import { BookingDetailsDialog } from "@/presentation/features/doctors/booking-details-dialog";
-import { BookingDialog } from "@/presentation/features/doctors/booking-dialog";
+import { DoctorBookingDialogs } from "@/presentation/features/doctors/doctor-booking-dialogs";
 import {
   DEFAULT_FILTERS,
   DoctorFilters,
@@ -23,48 +20,54 @@ import {
   toDoctorProfile,
 } from "@/presentation/features/doctors/doctor-profile";
 import { filterDoctors } from "@/presentation/features/doctors/filter-doctors";
-import { useDoctorBooking } from "@/presentation/features/doctors/use-doctor-booking";
+import { useBookingGate } from "@/presentation/features/doctors/use-booking-gate";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 
 export default function DoctorsPage() {
+  // Search params need a Suspense boundary so the page can still prerender.
+  return (
+    <Suspense fallback={null}>
+      <DoctorDirectory />
+    </Suspense>
+  );
+}
+
+function DoctorDirectory() {
   const providerService = useService("providerService");
   const clinicService = useService("clinicService");
-  const booking = useDoctorBooking();
+  const searchParams = useSearchParams();
+  const clinicId = searchParams.get("clinicId") ?? "";
+  const gate = useBookingGate();
 
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [accessOpen, setAccessOpen] = useState(false);
   const [filters, setFilters] = useState<DoctorFilterValues>(DEFAULT_FILTERS);
   const [query, setQuery] = useState("");
 
-  /** Booking needs a patient account: visitors sign in, other accounts are told why not. */
-  const startBooking = (doctor: DoctorProfile) => {
-    if (authLoading) return;
-    if (!user) {
-      router.push("/login?next=/doctors");
-      return;
-    }
-    if (!canBookOnline(user)) {
-      setAccessOpen(true);
-      return;
-    }
-    booking.startBooking(doctor);
-  };
+  /** Where sign-in returns the visitor, keeping the clinic filter. */
+  const returnTo = clinicId
+    ? `/doctors?clinicId=${encodeURIComponent(clinicId)}`
+    : "/doctors";
 
   const { data, loading, error, reload } = useAsyncData(async () => {
     // The directory holds only bookable doctors: verified, and in a clinic.
     const [directory, clinics] = await Promise.all([
-      providerService.directory({ page: 1, pageSize: 100 }),
+      providerService.directory({
+        page: 1,
+        pageSize: 100,
+        clinicId: clinicId || undefined,
+      }),
       clinicService.list(),
     ]);
     const clinicById = new Map(clinics.map((c) => [c.id, c]));
-    return directory.items.map((p) =>
-      toDoctorProfile(p, clinicById.get(p.clinicId)),
-    );
-  });
+    return {
+      clinicName: clinicId ? (clinicById.get(clinicId)?.name ?? null) : null,
+      doctors: directory.items.map((p) =>
+        toDoctorProfile(p, clinicById.get(p.clinicId)),
+      ),
+    };
+  }, clinicId);
 
   const doctors = useMemo(
-    () => filterDoctors(data ?? [], filters, query),
+    () => filterDoctors(data?.doctors ?? [], filters, query),
     [data, filters, query],
   );
 
@@ -79,9 +82,21 @@ export default function DoctorsPage() {
           <DoctorFilters values={filters} onChange={setFilters} />
         </div>
         <div className="min-w-0">
-          <Heading as="h1" size="6" mb="4" style={{ color: "var(--mp-ink)" }}>
+          <Heading as="h1" size="6" mb="2" style={{ color: "var(--mp-ink)" }}>
             Find doctors
           </Heading>
+          {clinicId && (
+            <Text as="p" size="2" mb="4" style={{ color: "var(--mp-muted)" }}>
+              Doctors at {data?.clinicName ?? "this clinic"}.{" "}
+              <Link
+                href="/doctors"
+                className="font-semibold"
+                style={{ color: "var(--mp-primary)" }}
+              >
+                Show all doctors
+              </Link>
+            </Text>
+          )}
           <div className="mb-6">
             <SearchField
               size="3"
@@ -97,40 +112,17 @@ export default function DoctorsPage() {
             isEmpty={!data}
             onRetry={reload}
           >
-            <DoctorList doctors={doctors} onBook={startBooking} />
+            <DoctorList
+              doctors={doctors}
+              onBook={(doctor: DoctorProfile) =>
+                gate.requestBooking(doctor, returnTo)
+              }
+            />
           </AsyncContent>
         </div>
       </main>
 
-      {/* Suspense keeps "today" from being frozen at build time. */}
-      <Suspense>
-        <BookingDialog
-          doctor={booking.slotDoctor}
-          settings={booking.settings}
-          dateKey={booking.dateKey}
-          onDateChange={booking.setDateKey}
-          bookedStarts={booking.bookedStarts}
-          onOpenChange={(open) => !open && booking.cancelSlotPicking()}
-          onContinue={booking.chooseSlot}
-        />
-      </Suspense>
-      <BookingAccessDialog
-        open={accessOpen}
-        onOpenChange={setAccessOpen}
-        displayName={user?.displayName ?? ""}
-        canCreateProfile={user !== null && user.patient === null}
-      />
-      <BookingDetailsDialog
-        choice={booking.choice}
-        patient={booking.patient}
-        patientError={booking.patientError}
-        confirmed={booking.confirmed}
-        submitting={booking.submitting}
-        formError={booking.formError}
-        onBack={booking.backToSlots}
-        onSubmit={booking.confirm}
-        onDone={booking.finish}
-      />
+      <DoctorBookingDialogs gate={gate} returnTo={returnTo} />
     </div>
   );
 }
