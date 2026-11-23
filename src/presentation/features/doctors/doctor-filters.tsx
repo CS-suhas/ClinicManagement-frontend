@@ -9,8 +9,10 @@ import {
   Text,
 } from "@radix-ui/themes";
 import type { ReactNode } from "react";
+import { formatFeeShort } from "@/presentation/lib/format";
 
-export const FEE_RANGE = { min: 0, max: 500, step: 10 };
+/** LKR consultation fees. */
+export const FEE_RANGE = { min: 0, max: 10000, step: 250 };
 
 export const CONSULT_TYPES = [
   { value: "televisit", label: "Televisit" },
@@ -122,8 +124,8 @@ export function DoctorFilters({
 
         <Group label="Visiting fees">
           <Flex justify="between" mb="1">
-            <Text size="2">${values.fee[0]}</Text>
-            <Text size="2">${values.fee[1]}</Text>
+            <Text size="2">{formatFeeShort(values.fee[0])}</Text>
+            <Text size="2">{formatFeeShort(values.fee[1])}</Text>
           </Flex>
           <Slider
             min={FEE_RANGE.min}
