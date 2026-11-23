@@ -1,7 +1,7 @@
 "use client";
 
 import { Heading } from "@radix-ui/themes";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useService } from "@/di/container-provider";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { PublicNavbar } from "@/presentation/components/public-navbar";
@@ -74,13 +74,16 @@ export default function DoctorsPage() {
         </div>
       </main>
 
-      <BookingDialog
-        doctor={booking.slotDoctor}
-        settings={booking.settings}
-        bookedStarts={booking.bookedStarts}
-        onOpenChange={(open) => !open && booking.cancelSlotPicking()}
-        onContinue={booking.chooseSlot}
-      />
+      {/* Suspense keeps "today" from being frozen at build time. */}
+      <Suspense>
+        <BookingDialog
+          doctor={booking.slotDoctor}
+          settings={booking.settings}
+          bookedStarts={booking.bookedStarts}
+          onOpenChange={(open) => !open && booking.cancelSlotPicking()}
+          onContinue={booking.chooseSlot}
+        />
+      </Suspense>
       <BookingDetailsDialog
         choice={booking.choice}
         confirmed={booking.confirmed}
