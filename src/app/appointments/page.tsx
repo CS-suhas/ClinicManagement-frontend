@@ -1,16 +1,12 @@
 "use client";
 
-import { PlusIcon } from "@radix-ui/react-icons";
-import { Button, Flex, SegmentedControl, Text } from "@radix-ui/themes";
+import { Flex, SegmentedControl, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import type { AppointmentListItem } from "@/domain/repositories";
-import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
-import { PageHeader } from "@/presentation/components/page-header";
-import { PaginationControls } from "@/presentation/components/pagination-controls";
-import { SearchField } from "@/presentation/components/search-field";
+import { ListPage } from "@/presentation/components/list-page";
 import { AppointmentFormDialog } from "@/presentation/features/appointments/appointment-form-dialog";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 import { formatDateTime } from "@/presentation/lib/format";
@@ -22,6 +18,21 @@ function rangeOptions(range: Range) {
   if (range === "upcoming") return { from: now };
   if (range === "past") return { to: now };
   return {};
+}
+
+const time = (a: AppointmentListItem) =>
+  new Date(a.appointmentDateTime).getTime();
+
+/** Soonest first, except the "past" range which lists most recent first. */
+function sortByDate(items: AppointmentListItem[], range: Range) {
+  return [...items].sort((a, b) =>
+    range === "past" ? time(b) - time(a) : time(a) - time(b),
+  );
+}
+
+function emptyText(range: Range, query: string) {
+  if (query) return "No appointments match your search.";
+  return range === "all" ? "No appointments yet." : `No ${range} appointments.`;
 }
 
 const columns: Column<AppointmentListItem>[] = [
@@ -44,111 +55,63 @@ const columns: Column<AppointmentListItem>[] = [
 ];
 
 export default function Page() {
-  const appointmentService = useService("appointmentService");
   const [range, setRange] = useState<Range>("upcoming");
-  const {
-    query,
-    page,
-    setQuery,
-    setPage,
-    data,
-    rows: items,
-    loading,
-    error,
-    reload,
-    form,
-    deleting,
-    setDeleting,
-    confirmDelete,
-  } = useCrudPage(appointmentService, {
+  const crud = useCrudPage(useService("appointmentService"), {
     extraOptions: () => rangeOptions(range),
     extraKey: range,
   });
-  const time = (a: AppointmentListItem) =>
-    new Date(a.appointmentDateTime).getTime();
-  const rows = [...items].sort((a, b) =>
-    range === "past" ? time(b) - time(a) : time(a) - time(b),
-  );
-
-  const emptyText = query
-    ? "No appointments match your search."
-    : range === "all"
-      ? "No appointments yet."
-      : `No ${range} appointments.`;
 
   return (
     <>
-      <PageHeader
+      <ListPage
         title="Appointments"
         description="Scheduled visits between patients and providers."
-        actions={
-          <Button onClick={form.openCreate} disabled={loading || !data}>
-            <PlusIcon /> New appointment
-          </Button>
+        entity="appointment"
+        entityPlural="appointments"
+        list={crud}
+        pageSize={PAGE_SIZE}
+        onCreate={crud.form.openCreate}
+        createDisabled={crud.loading || !crud.data}
+        emptyText={emptyText(range, crud.query)}
+        filters={
+          <SegmentedControl.Root
+            value={range}
+            onValueChange={(v) => {
+              setRange(v as Range);
+              crud.setPage(1);
+            }}
+          >
+            <SegmentedControl.Item value="upcoming">
+              Upcoming
+            </SegmentedControl.Item>
+            <SegmentedControl.Item value="past">Past</SegmentedControl.Item>
+            <SegmentedControl.Item value="all">All</SegmentedControl.Item>
+          </SegmentedControl.Root>
         }
-      />
-      <Flex mb="3" gap="3" wrap="wrap" align="center">
-        <SearchField
-          value={query}
-          onChange={setQuery}
-          placeholder="Search appointments…"
-        />
-        <SegmentedControl.Root
-          value={range}
-          onValueChange={(v) => {
-            setRange(v as Range);
-            setPage(1);
-          }}
-        >
-          <SegmentedControl.Item value="upcoming">
-            Upcoming
-          </SegmentedControl.Item>
-          <SegmentedControl.Item value="past">Past</SegmentedControl.Item>
-          <SegmentedControl.Item value="all">All</SegmentedControl.Item>
-        </SegmentedControl.Root>
-      </Flex>
-
-      <AsyncContent
-        loading={loading}
-        error={error}
-        isEmpty={rows.length === 0}
-        emptyText={emptyText}
-        onRetry={reload}
       >
         <DataTable
           columns={columns}
-          rows={rows}
+          rows={sortByDate(crud.rows, range)}
           rowLabel={(a) => `appointment for ${a.patientName}`}
-          onEdit={form.openEdit}
-          onDelete={setDeleting}
+          onEdit={crud.form.openEdit}
+          onDelete={crud.setDeleting}
         />
-      </AsyncContent>
-      {data && (
-        <PaginationControls
-          page={page}
-          pageSize={PAGE_SIZE}
-          totalCount={data.totalCount}
-          onPageChange={setPage}
-        />
-      )}
+      </ListPage>
 
       <AppointmentFormDialog
-        open={form.open}
-        onOpenChange={form.onOpenChange}
-        appointment={form.editing}
-        onSaved={reload}
+        open={crud.form.open}
+        onOpenChange={crud.form.onOpenChange}
+        appointment={crud.form.editing}
+        onSaved={crud.reload}
       />
       <ConfirmDeleteDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
+        {...crud.deleteDialog}
         title="Delete appointment?"
         description={
-          deleting
-            ? `The appointment for ${deleting.patientName} on ${formatDateTime(deleting.appointmentDateTime)} will be permanently removed. This cannot be undone.`
+          crud.deleting
+            ? `The appointment for ${crud.deleting.patientName} on ${formatDateTime(crud.deleting.appointmentDateTime)} will be permanently removed. This cannot be undone.`
             : ""
         }
-        onConfirm={confirmDelete}
-        onDeleted={reload}
       />
     </>
   );

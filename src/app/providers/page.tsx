@@ -1,21 +1,13 @@
 "use client";
 
-import { PlusIcon } from "@radix-ui/react-icons";
-import { Button, Flex, Select } from "@radix-ui/themes";
+import { Flex, Select } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
-import {
-  type Clinic,
-  type Provider,
-  providerFullName,
-} from "@/domain/entities";
-import { AsyncContent } from "@/presentation/components/async-content";
+import { type Provider, providerFullName } from "@/domain/entities";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
 import { ErrorCallout } from "@/presentation/components/error-callout";
-import { PageHeader } from "@/presentation/components/page-header";
-import { PaginationControls } from "@/presentation/components/pagination-controls";
-import { SearchField } from "@/presentation/components/search-field";
+import { ListPage } from "@/presentation/components/list-page";
 import { ProviderFormDialog } from "@/presentation/features/providers/provider-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
@@ -23,24 +15,9 @@ import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 const ALL_CLINICS = "all";
 
 export default function Page() {
-  const providerService = useService("providerService");
   const clinicService = useService("clinicService");
   const [clinicFilter, setClinicFilter] = useState<string>(ALL_CLINICS);
-  const {
-    query,
-    page,
-    setQuery,
-    setPage,
-    data,
-    rows: providers,
-    loading,
-    error,
-    reload,
-    form,
-    deleting,
-    setDeleting,
-    confirmDelete,
-  } = useCrudPage(providerService, {
+  const crud = useCrudPage(useService("providerService"), {
     extraOptions: () => ({
       clinicId: clinicFilter === ALL_CLINICS ? undefined : clinicFilter,
     }),
@@ -60,96 +37,72 @@ export default function Page() {
     { header: "Specialty", cell: (p) => p.specialty },
     { header: "Clinic", cell: (p) => clinicName(p.clinicId) ?? "—" },
   ];
+  const hasFilters = crud.query !== "" || clinicFilter !== ALL_CLINICS;
 
   return (
     <>
-      <PageHeader
+      <ListPage
         title="Providers"
         description="Clinicians who see patients at a clinic."
-        actions={
-          <Button
-            onClick={form.openCreate}
-            disabled={clinicsLoading || !clinicData}
-          >
-            <PlusIcon /> New provider
-          </Button>
-        }
-      />
-      {clinicError && (
-        <Flex mb="3">
-          <ErrorCallout
-            message={clinicError}
-            onRetry={() => void reloadClinics()}
-          />
-        </Flex>
-      )}
-      <Flex mb="3" gap="3" wrap="wrap">
-        <SearchField
-          value={query}
-          onChange={setQuery}
-          placeholder="Search providers…"
-        />
-        <Select.Root
-          value={clinicFilter}
-          onValueChange={(value) => {
-            setClinicFilter(value);
-            setPage(1);
-          }}
-        >
-          <Select.Trigger aria-label="Filter by clinic" />
-          <Select.Content>
-            <Select.Item value={ALL_CLINICS}>All clinics</Select.Item>
-            {clinics.map((c: Clinic) => (
-              <Select.Item key={c.id} value={c.id}>
-                {c.name}
-              </Select.Item>
-            ))}
-          </Select.Content>
-        </Select.Root>
-      </Flex>
-
-      <AsyncContent
-        loading={loading}
-        error={error}
-        isEmpty={providers.length === 0}
+        entity="provider"
+        entityPlural="providers"
+        list={crud}
+        pageSize={PAGE_SIZE}
+        onCreate={crud.form.openCreate}
+        createDisabled={clinicsLoading || !clinicData}
         emptyText={
-          query || clinicFilter !== ALL_CLINICS
-            ? "No providers match your filters."
-            : "No providers yet."
+          hasFilters ? "No providers match your filters." : "No providers yet."
         }
-        onRetry={reload}
+        banner={
+          clinicError && (
+            <Flex mb="3">
+              <ErrorCallout
+                message={clinicError}
+                onRetry={() => void reloadClinics()}
+              />
+            </Flex>
+          )
+        }
+        filters={
+          <Select.Root
+            value={clinicFilter}
+            onValueChange={(value) => {
+              setClinicFilter(value);
+              crud.setPage(1);
+            }}
+          >
+            <Select.Trigger aria-label="Filter by clinic" />
+            <Select.Content>
+              <Select.Item value={ALL_CLINICS}>All clinics</Select.Item>
+              {clinics.map((c) => (
+                <Select.Item key={c.id} value={c.id}>
+                  {c.name}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+        }
       >
         <DataTable
           columns={columns}
-          rows={providers}
+          rows={crud.rows}
           rowLabel={providerFullName}
-          onEdit={form.openEdit}
-          onDelete={setDeleting}
+          onEdit={crud.form.openEdit}
+          onDelete={crud.setDeleting}
         />
-      </AsyncContent>
-      {data && (
-        <PaginationControls
-          page={page}
-          pageSize={PAGE_SIZE}
-          totalCount={data.totalCount}
-          onPageChange={setPage}
-        />
-      )}
+      </ListPage>
 
       <ProviderFormDialog
-        open={form.open}
-        onOpenChange={form.onOpenChange}
-        provider={form.editing}
+        open={crud.form.open}
+        onOpenChange={crud.form.onOpenChange}
+        provider={crud.form.editing}
         clinics={clinics}
-        onSaved={reload}
+        onSaved={crud.reload}
       />
       <ConfirmDeleteDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
+        {...crud.deleteDialog}
         title="Delete provider?"
-        description={`"${deleting ? providerFullName(deleting) : ""}" will be permanently removed.`}
-        onConfirm={confirmDelete}
-        onDeleted={reload}
+        description={`"${crud.deleting ? providerFullName(crud.deleting) : ""}" will be permanently removed.`}
       />
     </>
   );

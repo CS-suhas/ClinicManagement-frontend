@@ -1,16 +1,13 @@
 "use client";
 
-import { ExclamationTriangleIcon, PlusIcon } from "@radix-ui/react-icons";
-import { Button, Flex, IconButton, Tooltip } from "@radix-ui/themes";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { IconButton, Tooltip } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import { type Patient, patientFullName } from "@/domain/entities";
-import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
-import { PageHeader } from "@/presentation/components/page-header";
-import { PaginationControls } from "@/presentation/components/pagination-controls";
-import { SearchField } from "@/presentation/components/search-field";
+import { ListPage } from "@/presentation/components/list-page";
 import { PatientAllergiesDialog } from "@/presentation/features/patients/patient-allergies-dialog";
 import { PatientFormDialog } from "@/presentation/features/patients/patient-form-dialog";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
@@ -24,24 +21,10 @@ const columns: Column<Patient>[] = [
 ];
 
 export default function Page() {
-  const patientService = useService("patientService");
-  const {
-    query,
-    page,
-    setQuery,
-    setPage,
-    data,
-    rows,
-    loading,
-    error,
-    reload,
-    form,
-    deleting,
-    setDeleting,
-    confirmDelete,
-  } = useCrudPage(patientService);
+  const crud = useCrudPage(useService("patientService"));
   const [allergiesOpen, setAllergiesOpen] = useState(false);
   const [allergyPatient, setAllergyPatient] = useState<Patient | null>(null);
+
   const openAllergies = (p: Patient) => {
     setAllergyPatient(p);
     setAllergiesOpen(true);
@@ -49,38 +32,21 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader
+      <ListPage
         title="Patients"
         description="People registered at the clinics."
-        actions={
-          <Button onClick={form.openCreate}>
-            <PlusIcon /> New patient
-          </Button>
-        }
-      />
-      <Flex mb="3">
-        <SearchField
-          value={query}
-          onChange={setQuery}
-          placeholder="Search patients…"
-        />
-      </Flex>
-
-      <AsyncContent
-        loading={loading}
-        error={error}
-        isEmpty={rows.length === 0}
-        emptyText={
-          query ? "No patients match your search." : "No patients yet."
-        }
-        onRetry={reload}
+        entity="patient"
+        entityPlural="patients"
+        list={crud}
+        pageSize={PAGE_SIZE}
+        onCreate={crud.form.openCreate}
       >
         <DataTable
           columns={columns}
-          rows={rows}
+          rows={crud.rows}
           rowLabel={patientFullName}
-          onEdit={form.openEdit}
-          onDelete={setDeleting}
+          onEdit={crud.form.openEdit}
+          onDelete={crud.setDeleting}
           extraActions={(p) => (
             <Tooltip content="Allergies">
               <IconButton
@@ -95,21 +61,13 @@ export default function Page() {
             </Tooltip>
           )}
         />
-      </AsyncContent>
-      {data && (
-        <PaginationControls
-          page={page}
-          pageSize={PAGE_SIZE}
-          totalCount={data.totalCount}
-          onPageChange={setPage}
-        />
-      )}
+      </ListPage>
 
       <PatientFormDialog
-        open={form.open}
-        onOpenChange={form.onOpenChange}
-        patient={form.editing}
-        onSaved={reload}
+        open={crud.form.open}
+        onOpenChange={crud.form.onOpenChange}
+        patient={crud.form.editing}
+        onSaved={crud.reload}
       />
       <PatientAllergiesDialog
         open={allergiesOpen}
@@ -117,12 +75,9 @@ export default function Page() {
         patient={allergyPatient}
       />
       <ConfirmDeleteDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
+        {...crud.deleteDialog}
         title="Delete patient?"
-        description={`"${deleting ? patientFullName(deleting) : ""}" and their allergy records will be permanently removed.`}
-        onConfirm={confirmDelete}
-        onDeleted={reload}
+        description={`"${crud.deleting ? patientFullName(crud.deleting) : ""}" and their allergy records will be permanently removed.`}
       />
     </>
   );
