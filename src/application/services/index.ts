@@ -1,5 +1,6 @@
 export { AllergyTypeService } from "./allergy-type-service";
 export { AppointmentService } from "./appointment-service";
+export { AuthService } from "./auth-service";
 export { ClinicService } from "./clinic-service";
 export { ConfigurationService } from "./configuration-service";
 export { CrudService } from "./crud-service";

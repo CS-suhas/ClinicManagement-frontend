@@ -1,3 +1,5 @@
+export type { AuthRepository } from "../auth";
+
 import type {
   AllergyType,
   AllergyTypeInput,

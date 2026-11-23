@@ -3,6 +3,7 @@ import "./globals.css";
 import "@radix-ui/themes/styles.css";
 import { Theme } from "@radix-ui/themes";
 import { ContainerProvider } from "@/di/container-provider";
+import { AuthProvider } from "@/presentation/auth/auth-provider";
 import { AppShell } from "@/presentation/components/app-shell";
 import { NotificationProvider } from "@/presentation/components/notifications";
 
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Theme accentColor="teal" grayColor="slate" radius="medium">
           <ContainerProvider>
             <NotificationProvider>
-              <AppShell>{children}</AppShell>
+              <AuthProvider>
+                <AppShell>{children}</AppShell>
+              </AuthProvider>
             </NotificationProvider>
           </ContainerProvider>
         </Theme>

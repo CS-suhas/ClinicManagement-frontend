@@ -1,6 +1,7 @@
 import {
   AllergyTypeService,
   AppointmentService,
+  AuthService,
   ClinicService,
   ConfigurationService,
   DashboardService,
@@ -8,6 +9,7 @@ import {
   PatientService,
   ProviderService,
 } from "@/application/services";
+import type { AuthPersona, AuthRepository } from "@/domain/auth";
 import type {
   AllergyType,
   AllergyTypeInput,
@@ -27,6 +29,7 @@ import type {
   ProviderRepository,
 } from "@/domain/repositories";
 import { HttpClient } from "@/infrastructure/http/http-client";
+import { RestAuthRepository } from "@/infrastructure/http/rest-auth-repository";
 import {
   RestAppointmentRepository,
   RestClinicRepository,
@@ -36,6 +39,10 @@ import {
   RestPatientAllergyRepository,
 } from "@/infrastructure/http/rest-repositories";
 import { LocalStorageCollection } from "@/infrastructure/mock/local-storage-collection";
+import {
+  MOCK_PERSONAS,
+  MockAuthRepository,
+} from "@/infrastructure/mock/mock-auth-repository";
 import { MockConfigurationRepository } from "@/infrastructure/mock/mock-configuration-repository";
 import { createMockDashboardRepository } from "@/infrastructure/mock/mock-dashboard-repository";
 import {
@@ -62,6 +69,9 @@ export interface Container {
   appointmentService: AppointmentService;
   configurationService: ConfigurationService;
   dashboardService: DashboardService;
+  authService: AuthService;
+  /** Demo identities for the sign-in picker. Empty when sign-in is Keycloak-backed. */
+  authPersonas: AuthPersona[];
 }
 
 interface Repositories {
@@ -124,8 +134,11 @@ function createMockRepositories(): Repositories {
   };
 }
 
-function createRestRepositories(baseUrl: string): Repositories {
-  const http = new HttpClient(baseUrl);
+function createRestRepositories(
+  baseUrl: string,
+  getToken: () => Promise<string | null>,
+): Repositories {
+  const http = new HttpClient(baseUrl, getToken);
   return {
     clinics: new RestClinicRepository(http),
     providers: new RestCrudRepository(http, "/providers"),
@@ -138,10 +151,16 @@ function createRestRepositories(baseUrl: string): Repositories {
 
 /** Composition root: the only place that knows concrete implementations. */
 export function createContainer(config: ContainerConfig): Container {
-  const r =
-    config.dataSource === "rest"
-      ? createRestRepositories(config.apiBaseUrl)
-      : createMockRepositories();
+  const isRest = config.dataSource === "rest";
+  // The REST clients read their token from the auth repository on each request.
+  const getToken = (): Promise<string | null> =>
+    authRepository.getAccessToken();
+  const authRepository: AuthRepository = isRest
+    ? new RestAuthRepository(new HttpClient(config.apiBaseUrl, getToken))
+    : new MockAuthRepository();
+  const r = isRest
+    ? createRestRepositories(config.apiBaseUrl, getToken)
+    : createMockRepositories();
 
   return {
     clinicService: new ClinicService(r.clinics, r.providers),
@@ -158,16 +177,20 @@ export function createContainer(config: ContainerConfig): Container {
     patientAllergyService: new PatientAllergyService(r.patientAllergies),
     appointmentService: new AppointmentService(r.appointments),
     configurationService: new ConfigurationService(
-      config.dataSource === "rest"
+      isRest
         ? // Served by the Next.js rewrites in next.config.ts, hence no base URL.
-          new RestConfigurationRepository(new HttpClient(""))
+          new RestConfigurationRepository(new HttpClient("", getToken))
         : new MockConfigurationRepository(),
     ),
     dashboardService: new DashboardService(
-      config.dataSource === "rest"
-        ? new RestDashboardRepository(new HttpClient(config.apiBaseUrl))
+      isRest
+        ? new RestDashboardRepository(
+            new HttpClient(config.apiBaseUrl, getToken),
+          )
         : createMockDashboardRepository(r),
     ),
+    authService: new AuthService(authRepository),
+    authPersonas: isRest ? [] : MOCK_PERSONAS,
   };
 }
 

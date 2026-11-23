@@ -23,6 +23,22 @@ export class NotFoundError extends Error {
   }
 }
 
+/** Raised when the request has no valid credentials (HTTP 401). */
+export class UnauthorizedError extends Error {
+  constructor(message = "Your session has expired. Please sign in again.") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+/** Raised when the signed-in user may not perform the action (HTTP 403). */
+export class ForbiddenError extends Error {
+  constructor(message = "You do not have permission to do that.") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
 export function assertValid(errors: FieldErrors): void {
   if (Object.keys(errors).length > 0) throw new ValidationError(errors);
 }

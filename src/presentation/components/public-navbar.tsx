@@ -1,7 +1,10 @@
+"use client";
+
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import { Button } from "@radix-ui/themes";
 import Link from "next/link";
 import { Fragment } from "react";
+import { useAuth } from "@/presentation/auth/auth-provider";
 
 export interface Crumb {
   label: string;
@@ -11,6 +14,9 @@ export interface Crumb {
 
 /** White top strip of the public pages: logo, breadcrumbs and login. */
 export function PublicNavbar({ crumbs }: { crumbs: Crumb[] }) {
+  const { user, loading } = useAuth();
+  const signedIn = !loading && user !== null;
+
   return (
     <div
       className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 bg-white px-6 py-3 md:px-12"
@@ -73,7 +79,9 @@ export function PublicNavbar({ crumbs }: { crumbs: Crumb[] }) {
       </div>
 
       <Button asChild color="teal">
-        <Link href="/dashboard">Log in</Link>
+        <Link href={signedIn ? "/dashboard" : "/login"}>
+          {signedIn ? "Go to dashboard" : "Log in"}
+        </Link>
       </Button>
     </div>
   );

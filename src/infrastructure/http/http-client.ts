@@ -1,4 +1,10 @@
-import { ConflictError, NotFoundError, ValidationError } from "@/domain/errors";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "@/domain/errors";
 
 export class HttpError extends Error {
   constructor(
@@ -12,7 +18,11 @@ export class HttpError extends Error {
 
 /** Thin fetch wrapper that maps HTTP failures onto domain errors. */
 export class HttpClient {
-  constructor(private readonly baseUrl: string) {}
+  /** `getToken` supplies the bearer token; requests omit the header when it is null. */
+  constructor(
+    private readonly baseUrl: string,
+    private readonly getToken?: () => Promise<string | null>,
+  ) {}
 
   get<T>(path: string) {
     return this.request<T>("GET", path);
@@ -41,10 +51,14 @@ export class HttpClient {
     path: string,
     body?: unknown,
   ): Promise<T> {
+    const headers: Record<string, string> = {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    const token = await this.getToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}${path}`, {
       method,
-      headers:
-        body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     if (res.ok) {
@@ -63,6 +77,8 @@ export class HttpClient {
       typeof payload.errors === "object"
     )
       throw new ValidationError(payload.errors as Record<string, string>);
+    if (res.status === 401) throw new UnauthorizedError(message);
+    if (res.status === 403) throw new ForbiddenError(message);
     if (res.status === 404) throw new NotFoundError("Resource", path);
     if (res.status === 409) throw new ConflictError(message);
     throw new HttpError(res.status, message);
