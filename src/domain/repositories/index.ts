@@ -1,4 +1,5 @@
 export type { AuthRepository } from "../auth";
+export * from "./summary";
 
 import type { VerificationStatus } from "../auth";
 import type {

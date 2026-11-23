@@ -41,7 +41,7 @@ import type { HttpClient } from "./http-client";
 import { queryString } from "./query-string";
 
 /** Translates between the API's JSON and the domain's shapes. */
-interface RestMapper<T, TInput, TResponse> {
+export interface RestMapper<T, TInput, TResponse> {
   fromResponse(response: TResponse): T;
   toRequest(input: TInput): object;
 }
@@ -125,19 +125,24 @@ export class RestCrudRepository<T extends { id: string }, TInput, TResponse = T>
   }
 }
 
-interface ClinicResponse {
+export interface ClinicResponse {
   id: string;
   name: string;
   address: string | null;
   phoneNumber: string | null;
+  /** Verified doctors; present on list and search responses only. */
+  providerCount?: number;
 }
 
-const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
+export const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
   fromResponse: (clinic) => ({
     id: clinic.id,
     name: clinic.name,
     location: clinic.address,
     phoneNumber: clinic.phoneNumber ?? "",
+    ...(typeof clinic.providerCount === "number"
+      ? { providerCount: clinic.providerCount }
+      : {}),
   }),
   toRequest: (input) => ({
     name: input.name,
@@ -146,7 +151,7 @@ const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
   }),
 };
 
-interface ProviderResponse {
+export interface ProviderResponse {
   id: string;
   clinicId: string | null;
   firstName: string;
@@ -158,7 +163,11 @@ interface ProviderResponse {
   gender: ProviderGender | null;
 }
 
-const providerMapper: RestMapper<Provider, ProviderInput, ProviderResponse> = {
+export const providerMapper: RestMapper<
+  Provider,
+  ProviderInput,
+  ProviderResponse
+> = {
   fromResponse: (provider) => ({
     id: provider.id,
     // A self-registered doctor may have no clinic yet; the form treats "" as unset.

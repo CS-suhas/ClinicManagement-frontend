@@ -7,9 +7,8 @@ import type {
 } from "../entities";
 
 /**
- * Read models behind the glance cards (hover/tap previews). They are composed
- * client-side by GlanceService from existing endpoints today; a summary
- * endpoint can replace each method later without changing these shapes.
+ * Read models behind the glance cards (hover/tap previews). GlanceService
+ * fills them from the server summaries (see summary.ts) and a few existing reads.
  */
 
 /** One allergy on a patient, as the glance shows it. */

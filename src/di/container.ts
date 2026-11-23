@@ -10,9 +10,9 @@ import {
   PatientAllergyService,
   PatientService,
   ProviderService,
+  SearchService,
 } from "@/application/services";
 import type { AuthPersona, AuthRepository, CurrentUser } from "@/domain/auth";
-import type { Clinic, ClinicInput } from "@/domain/entities";
 import type {
   AllergyTypeRepository,
   AppointmentAvailabilityRepository,
@@ -26,6 +26,7 @@ import type {
   ProviderRepository,
   ProviderRosterRepository,
   ProviderVerificationRepository,
+  SummaryRepository,
 } from "@/domain/repositories";
 import { HttpClient } from "@/infrastructure/http/http-client";
 import { RestAuthRepository } from "@/infrastructure/http/rest-auth-repository";
@@ -43,6 +44,7 @@ import {
   RestProviderRosterRepository,
   RestProviderVerificationRepository,
 } from "@/infrastructure/http/rest-repositories";
+import { RestSummaryRepository } from "@/infrastructure/http/rest-summary-repository";
 import { LocalStorageCollection } from "@/infrastructure/mock/local-storage-collection";
 import { MockAppointmentAvailabilityRepository } from "@/infrastructure/mock/mock-appointment-availability";
 import { MockAppointmentRepository } from "@/infrastructure/mock/mock-appointment-repository";
@@ -51,6 +53,7 @@ import {
   MockAuthRepository,
 } from "@/infrastructure/mock/mock-auth-repository";
 import { MockClinicJoinRequestRepository } from "@/infrastructure/mock/mock-clinic-join-repository";
+import { MockClinicRepository } from "@/infrastructure/mock/mock-clinic-repository";
 import {
   MOCK_APPOINTMENT_SETTINGS,
   MockConfigurationRepository,
@@ -66,10 +69,8 @@ import {
   MockProviderVerificationRepository,
 } from "@/infrastructure/mock/mock-provider-repository";
 import { createMockProviderRosterRepository } from "@/infrastructure/mock/mock-provider-roster-repository";
-import {
-  MockCrudRepository,
-  MockPatientAllergyRepository,
-} from "@/infrastructure/mock/mock-repositories";
+import { MockPatientAllergyRepository } from "@/infrastructure/mock/mock-repositories";
+import { createMockSummaryRepository } from "@/infrastructure/mock/mock-summary-repository";
 import * as seed from "@/infrastructure/mock/seed";
 
 export type DataSource = "mock" | "rest";
@@ -91,8 +92,10 @@ export interface Container {
   configurationService: ConfigurationService;
   dashboardService: DashboardService;
   authService: AuthService;
-  /** Read models for the glance cards, composed from the services above. */
+  /** Read models for the glance cards, filled from the server summaries. */
   glanceService: GlanceService;
+  /** Global search for the command palette. */
+  searchService: SearchService;
   /** Demo identities for the sign-in picker. Empty when sign-in is Keycloak-backed. */
   authPersonas: AuthPersona[];
 }
@@ -111,6 +114,7 @@ interface Repositories {
   appointmentAvailability: AppointmentAvailabilityRepository;
   providerRoster: ProviderRosterRepository;
   clinicJoinRequests: ClinicJoinRequestRepository;
+  summaries: SummaryRepository;
 }
 
 const STORAGE_PREFIX = "clinic-admin:";
@@ -118,20 +122,19 @@ const STORAGE_PREFIX = "clinic-admin:";
 function createMockRepositories(): Repositories {
   const col = <T>(key: string, data: T[]) =>
     new LocalStorageCollection<T>(STORAGE_PREFIX + key, data);
-  const clinics = new MockCrudRepository<Clinic, ClinicInput>(
-    col("clinics", seed.seedClinics),
-    "Clinic",
-  );
+  // Stores are shared by every adapter that reads them, so the summaries see the same data.
+  const clinicsStore = col("clinics", seed.seedClinics);
   // Versioned key: providers-v2 adds the seeded pr4 and the verification fields.
-  // One store instance is shared by every adapter that reads or writes providers.
   const providersStore = col("providers-v2", seed.seedProviders);
   const providers = new MockProviderRepository(providersStore);
+  const clinics = new MockClinicRepository(clinicsStore, providers);
+  const patientsStore = col("patients", seed.seedPatients);
   const patientAllergiesStore = col(
     "patient-allergies",
     seed.seedPatientAllergies,
   );
   const patients = new MockPatientRepository(
-    col("patients", seed.seedPatients),
+    patientsStore,
     patientAllergiesStore,
   );
   const allergyTypesStore = col("allergy-types", seed.seedAllergyTypes);
@@ -169,8 +172,12 @@ function createMockRepositories(): Repositories {
     { patients, providers, appointments },
     currentUser,
   );
+  const joinRequestsStore = col(
+    "clinic-join-requests",
+    seed.seedClinicJoinRequests,
+  );
   const clinicJoinRequests = new MockClinicJoinRequestRepository(
-    col("clinic-join-requests", seed.seedClinicJoinRequests),
+    joinRequestsStore,
     providersStore,
     clinics,
     currentUser,
@@ -208,6 +215,19 @@ function createMockRepositories(): Repositories {
     ),
     providerRoster,
     clinicJoinRequests,
+    summaries: createMockSummaryRepository(
+      {
+        patients: { list: async () => patientsStore.read() },
+        providers: { list: async () => providersStore.read() },
+        clinics: { list: async () => clinicsStore.read() },
+        appointments: { list: async () => appointmentsStore.read() },
+        allergies: { list: async () => patientAllergiesStore.read() },
+        allergyTypes: { list: async () => allergyTypesStore.read() },
+        joinRequests: { list: async () => joinRequestsStore.read() },
+        settings: MOCK_APPOINTMENT_SETTINGS,
+      },
+      currentUser,
+    ),
   };
 }
 
@@ -231,6 +251,7 @@ function createRestRepositories(baseUrl: string): Repositories {
     appointmentAvailability: new RestAppointmentAvailabilityRepository(http),
     providerRoster: new RestProviderRosterRepository(http),
     clinicJoinRequests: new RestClinicJoinRequestRepository(http),
+    summaries: new RestSummaryRepository(http),
   };
 }
 
@@ -284,16 +305,16 @@ export function createContainer(config: ContainerConfig): Container {
     authService: new AuthService(r.auth),
     glanceService: new GlanceService(
       {
+        summaries: r.summaries,
         patients: patientService,
         patientAllergies: patientAllergyService,
         appointments: appointmentService,
         providers: providerService,
-        clinics: clinicService,
-        clinicJoins: clinicJoinService,
         configuration: configurationService,
       },
       () => r.auth.getCurrentUser(),
     ),
+    searchService: new SearchService(r.summaries),
     authPersonas: isRest ? [] : MOCK_PERSONAS,
   };
 }

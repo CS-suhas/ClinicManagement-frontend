@@ -2,43 +2,38 @@ import { hasRole } from "@/application/auth/permissions";
 import type { CurrentUser } from "@/domain/auth";
 import {
   type AppointmentSettings,
-  type AppointmentStatus,
   clockToMinutes,
   isWithinClinicHours,
   minutesToClock,
   overlapsBusyStart,
+  type Provider,
+  patientFullName,
 } from "@/domain/entities";
-import { ForbiddenError } from "@/domain/errors";
+import { ForbiddenError, NotFoundError } from "@/domain/errors";
 import { addDays, toOffsetDateTime } from "@/domain/local-time";
 import type {
   AppointmentListItem,
   ProviderDirectoryEntry,
+  SummaryRepository,
+  SummaryVisit,
 } from "@/domain/repositories";
 import type {
-  AllergyEntry,
   AllergyUsage,
   ClinicDoctorPreview,
   ClinicDoctorRef,
   ClinicSummary,
   PatientSummary,
   ProviderSummary,
-  VisitCounts,
   VisitFact,
 } from "@/domain/repositories/glance";
 import type { AppointmentService } from "./appointment-service";
-import type { ClinicJoinService } from "./clinic-join-service";
-import type { ClinicService } from "./clinic-service";
 import type { ConfigurationService } from "./configuration-service";
 import type { PatientAllergyService } from "./patient-allergy-service";
 import type { PatientService } from "./patient-service";
 import type { ProviderService } from "./provider-service";
 
-/** Appointment pages read per summary; keeps a runaway backend from stalling a card. */
-const MAX_APPOINTMENT_PAGES = 5;
-const APPOINTMENT_PAGE_SIZE = 100;
 const DIRECTORY_PAGE_SIZE = 100;
 const MAX_DIRECTORY_PAGES = 5;
-const ALLERGY_PAGE_SIZE = 50;
 const SLOT_SEARCH_DAYS = 7;
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -47,66 +42,6 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export function localDayOf(ms: number): string {
   const d = new Date(ms);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-const timeOf = (iso: string) => Date.parse(iso);
-
-const isCancelledOrDeclined = (status: AppointmentStatus) =>
-  status === "CANCELLED" || status === "DECLINED";
-
-export function toVisitFact(item: AppointmentListItem): VisitFact {
-  return {
-    id: item.id,
-    appointmentDateTime: item.appointmentDateTime,
-    reasonForVisit: item.reasonForVisit,
-    patientId: item.patientId,
-    patientName: item.patientName,
-    providerId: item.providerId,
-    providerName: item.providerName,
-    status: item.status,
-  };
-}
-
-/**
- * Derives a patient's glance facts from their appointments. Pure: `now` is
- * passed in. Last and next visits ignore DECLINED and CANCELLED, as the roster does.
- */
-export function summarizeVisitFacts(
-  appointments: AppointmentListItem[],
-  now: number,
-): {
-  counts: VisitCounts;
-  lastVisit: VisitFact | null;
-  nextVisit: VisitFact | null;
-  recent: VisitFact[];
-} {
-  const newestFirst = [...appointments]
-    .sort(
-      (a, b) => timeOf(b.appointmentDateTime) - timeOf(a.appointmentDateTime),
-    )
-    .map(toVisitFact);
-  const counts: VisitCounts = {
-    total: appointments.length,
-    requested: 0,
-    confirmed: 0,
-    completed: 0,
-    cancelled: 0,
-    declined: 0,
-  };
-  for (const item of appointments) {
-    if (item.status === "REQUESTED") counts.requested++;
-    else if (item.status === "CONFIRMED") counts.confirmed++;
-    else if (item.status === "COMPLETED") counts.completed++;
-    else if (item.status === "CANCELLED") counts.cancelled++;
-    else if (item.status === "DECLINED") counts.declined++;
-  }
-  const counted = newestFirst.filter((v) => !isCancelledOrDeclined(v.status));
-  const lastVisit =
-    counted.find((v) => timeOf(v.appointmentDateTime) < now) ?? null;
-  const nextVisit =
-    [...counted].reverse().find((v) => timeOf(v.appointmentDateTime) >= now) ??
-    null;
-  return { counts, lastVisit, nextVisit, recent: newestFirst.slice(0, 3) };
 }
 
 /** Number of bookable slot starts in a day: from opening, stepping by the duration, within hours. */
@@ -143,23 +78,12 @@ export function freeSlotStarts(
     m += duration
   ) {
     const iso = toOffsetDateTime(`${day}T${minutesToClock(m)}`);
-    if (timeOf(iso) <= nowMs) continue;
+    if (Date.parse(iso) <= nowMs) continue;
     if (overlapsBusyStart(iso, duration, busyStarts)) continue;
     free.push(iso);
   }
   return free;
 }
-
-/** The patient-allergy record shape the glance needs, with the name resolved. */
-const toAllergyEntry = (record: {
-  allergyId: string;
-  allergyName?: string;
-  severity: string;
-}): AllergyEntry => ({
-  allergyId: record.allergyId,
-  name: record.allergyName ?? record.allergyId,
-  severity: record.severity,
-});
 
 /** Runs a read the caller may make. A 403 from the server omits the section; other errors propagate. */
 async function allowedRead<T>(
@@ -175,22 +99,52 @@ async function allowedRead<T>(
   }
 }
 
-/** Application-layer composition of the glance cards from existing services. */
+/**
+ * A summary read that the server refuses or cannot find. Both hide the card's
+ * facts, so both return null; other errors propagate.
+ */
+async function unlessDenied<T>(read: () => Promise<T>): Promise<T | null> {
+  try {
+    return await read();
+  } catch (e) {
+    if (e instanceof ForbiddenError || e instanceof NotFoundError) return null;
+    throw e;
+  }
+}
+
+/** Visit facts from a summary visit. The summary omits the patient and provider ids. */
+function toVisitFact(
+  visit: SummaryVisit,
+  patient: { id: string; firstName: string; lastName: string },
+): VisitFact {
+  return {
+    id: visit.id,
+    appointmentDateTime: visit.appointmentDateTime,
+    reasonForVisit: visit.reasonForVisit,
+    patientId: patient.id,
+    patientName: patientFullName(patient),
+    // The summary does not send the provider id, so it is left empty.
+    providerId: "",
+    providerName: visit.providerName,
+    status: visit.status,
+  };
+}
+
+/** Application-layer read models for the glance cards. */
 export interface GlanceDependencies {
+  summaries: SummaryRepository;
   patients: PatientService;
   patientAllergies: PatientAllergyService;
   appointments: AppointmentService;
   providers: ProviderService;
-  clinics: ClinicService;
-  clinicJoins: ClinicJoinService;
   configuration: ConfigurationService;
 }
 
 /**
- * The one place the glance cards read from. Each method composes existing
- * endpoints, checks the caller's role first so it never asks for something
- * the role may not read, and returns null for sections the server refuses.
- * When summary endpoints ship, replace a method's body with one request.
+ * The one place the glance cards read from. Patient, clinic and provider facts
+ * come from the server summaries. Sections the caller may not see are null.
+ * Other facts (roster count, today's slots, allergy usage, the directory) still
+ * come from existing endpoints.
  */
 export class GlanceService {
   constructor(
@@ -198,68 +152,45 @@ export class GlanceService {
     private readonly currentUser: () => Promise<CurrentUser | null>,
   ) {}
 
-  /** Every appointment matching the filter, up to MAX_APPOINTMENT_PAGES pages. */
-  private async allAppointments(filter: {
-    patientId?: string;
-    providerId?: string;
-    clinicId?: string;
-    from?: string;
-    to?: string;
-  }): Promise<AppointmentListItem[]> {
-    const items: AppointmentListItem[] = [];
-    for (let page = 1; page <= MAX_APPOINTMENT_PAGES; page++) {
-      const result = await this.deps.appointments.search({
-        ...filter,
-        page,
-        pageSize: APPOINTMENT_PAGE_SIZE,
-      });
-      items.push(...result.items);
-      if (result.items.length < APPOINTMENT_PAGE_SIZE) break;
-      if (items.length >= result.totalCount) break;
-    }
-    return items;
-  }
-
   /** Patient facts: record, allergies, visit counts and the nearest visits. */
   async getPatientSummary(patientId: string): Promise<PatientSummary> {
+    const hidden: PatientSummary = {
+      patient: null,
+      allergies: null,
+      lastVisit: null,
+      nextVisit: null,
+      counts: null,
+      recent: null,
+    };
     const user = await this.currentUser();
-    const canReadPatient =
-      !!user &&
-      (hasRole(user, "admin") ||
-        hasRole(user, "clinicadmin") ||
-        hasRole(user, "doctor") ||
-        user.patient?.id === patientId);
-    const [patient, allergies, appointments] = await Promise.all([
-      allowedRead(canReadPatient, () => this.deps.patients.get(patientId)),
-      allowedRead(canReadPatient, async () =>
-        (
-          await this.deps.patientAllergies.searchByPatient(patientId, {
-            page: 1,
-            pageSize: ALLERGY_PAGE_SIZE,
-          })
-        ).items.map(toAllergyEntry),
-      ),
-      allowedRead(!!user, () => this.allAppointments({ patientId })),
-    ]);
-    const visits = appointments
-      ? summarizeVisitFacts(appointments, Date.now())
-      : null;
+    if (!user) return hidden;
+    const data = await unlessDenied(() =>
+      this.deps.summaries.getPatientSummary(patientId),
+    );
+    if (!data) return hidden;
+    const patient = data.patient;
     return {
       patient,
-      allergies,
-      lastVisit: visits?.lastVisit ?? null,
-      nextVisit: visits?.nextVisit ?? null,
-      counts: visits?.counts ?? null,
-      recent: visits?.recent ?? null,
+      allergies: data.allergies.map((a) => ({
+        allergyId: a.allergyId,
+        name: a.name,
+        severity: a.severity,
+      })),
+      lastVisit: data.lastVisit ? toVisitFact(data.lastVisit, patient) : null,
+      nextVisit: data.nextVisit ? toVisitFact(data.nextVisit, patient) : null,
+      counts: data.counts,
+      recent: data.recent.map((v) => toVisitFact(v, patient)),
     };
   }
 
   /** Doctor facts: record, clinic, today's load, the next free slot and patient count. */
   async getProviderSummary(providerId: string): Promise<ProviderSummary> {
     const user = await this.currentUser();
-    const provider = await allowedRead(!!user, () =>
-      this.deps.providers.get(providerId),
+    const data = await unlessDenied(() =>
+      this.deps.summaries.getProviderSummary(providerId),
     );
+    const provider: Provider | null = data?.provider ?? null;
+    const clinic = data?.clinic ?? null;
     const clinicId = provider?.clinicId || null;
     const seesSchedule =
       !!user &&
@@ -267,22 +198,8 @@ export class GlanceService {
         (hasRole(user, "doctor") && user.provider?.id === providerId) ||
         (clinicId !== null && user.clinicAdminOf.includes(clinicId)));
     const now = Date.now();
-    const today = localDayOf(now);
-    const [clinic, todayCount, patientCount, availability] = await Promise.all([
-      allowedRead(!!user && clinicId !== null, () =>
-        this.deps.clinics.get(clinicId as string),
-      ),
-      allowedRead(seesSchedule, async () => {
-        const dayStart = toOffsetDateTime(`${today}T00:00`);
-        const result = await this.deps.appointments.search({
-          providerId,
-          from: dayStart,
-          to: toOffsetDateTime(`${addDays(today, 1)}T00:00`),
-          page: 1,
-          pageSize: 1,
-        });
-        return result.totalCount;
-      }),
+    const [todaySlots, patientCount, nextAvailableStart] = await Promise.all([
+      data ? this.todaySlots(providerId, localDayOf(now)) : null,
       allowedRead(
         seesSchedule,
         async () =>
@@ -294,56 +211,67 @@ export class GlanceService {
             })
           ).totalCount,
       ),
-      this.availability(providerId, now),
+      data ? this.nextFreeSlot(providerId, data.nextAvailableStart, now) : null,
     ]);
     return {
       provider,
       clinic,
-      todayAppointmentCount: todayCount,
-      todaySlots: availability.todaySlots,
-      nextAvailableStart: availability.nextAvailableStart,
+      todayAppointmentCount: seesSchedule
+        ? (data?.todayAppointmentCount ?? null)
+        : null,
+      todaySlots,
+      nextAvailableStart,
       patientCount,
     };
   }
 
-  /**
-   * Today's slot load and the next free start within a week. Uses the public
-   * availability read and the appointment settings. Any failure here only
-   * hides this section; the rest of the card still renders.
-   */
-  private async availability(
+  /** Busy and total slots for one day. Null when settings or busy slots are unavailable. */
+  private async todaySlots(
     providerId: string,
+    today: string,
+  ): Promise<{ busy: number; total: number } | null> {
+    try {
+      const settings = await this.deps.configuration.getAppointmentSettings();
+      const busy = await this.deps.appointments.busyStarts(providerId, today);
+      return { busy: busy.length, total: slotCount(settings) };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The server's nextAvailableStart when it has one. Otherwise a local walk over
+   * the next week, since the server uses UTC clinic hours and can miss slots
+   * that are free in Sri Lanka time. Any failure hides the value, not the card.
+   */
+  private async nextFreeSlot(
+    providerId: string,
+    serverHint: string | null,
     now: number,
-  ): Promise<{
-    todaySlots: { busy: number; total: number } | null;
-    nextAvailableStart: string | null;
-  }> {
+  ): Promise<string | null> {
+    if (serverHint) return serverHint;
     try {
       const settings = await this.deps.configuration.getAppointmentSettings();
       const today = localDayOf(now);
-      let todaySlots: { busy: number; total: number } | null = null;
-      let nextAvailableStart: string | null = null;
-      for (
-        let offset = 0;
-        offset < SLOT_SEARCH_DAYS && nextAvailableStart === null;
-        offset++
-      ) {
+      for (let offset = 0; offset < SLOT_SEARCH_DAYS; offset++) {
         const day = addDays(today, offset);
         const busy = await this.deps.appointments.busyStarts(providerId, day);
-        if (offset === 0)
-          todaySlots = { busy: busy.length, total: slotCount(settings) };
-        nextAvailableStart =
-          freeSlotStarts(settings, day, busy, now)[0] ?? null;
+        const free = freeSlotStarts(settings, day, busy, now)[0];
+        if (free) return free;
       }
-      return { todaySlots, nextAvailableStart };
+      return null;
     } catch {
-      return { todaySlots: null, nextAvailableStart: null };
+      return null;
     }
   }
 
   /** The next free slot only, for cards that need no other facts. */
   async getNextFreeSlot(providerId: string): Promise<string | null> {
-    return (await this.availability(providerId, Date.now())).nextAvailableStart;
+    const data = await unlessDenied(() =>
+      this.deps.summaries.getProviderSummary(providerId),
+    );
+    if (!data) return null;
+    return this.nextFreeSlot(providerId, data.nextAvailableStart, Date.now());
   }
 
   /** The doctor's next upcoming appointments, for the provider table expansion. Staff only. */
@@ -366,47 +294,34 @@ export class GlanceService {
         })
         .then((result) => result.items),
     );
-    return (items ?? []).map(toVisitFact);
+    return (items ?? []).map(toListVisitFact);
   }
 
   /** Clinic facts: record, verified doctors, specialties, and staff-only counts. */
   async getClinicSummary(clinicId: string): Promise<ClinicSummary> {
     const user = await this.currentUser();
+    const empty: ClinicSummary = {
+      clinic: null,
+      providerCount: 0,
+      providers: [],
+      topSpecialties: [],
+      todayAppointmentCount: null,
+      pendingJoinRequestCount: null,
+    };
+    if (!user) return empty;
+    const data = await unlessDenied(() =>
+      this.deps.summaries.getClinicSummary(clinicId),
+    );
+    if (!data) return empty;
     const isStaff =
-      !!user &&
-      (hasRole(user, "admin") || user.clinicAdminOf.includes(clinicId));
-    const [clinic, directory, todayCount, pending] = await Promise.all([
-      allowedRead(!!user, () => this.deps.clinics.get(clinicId)),
-      this.deps.providers.directory({
-        clinicId,
-        page: 1,
-        pageSize: DIRECTORY_PAGE_SIZE,
-      }),
-      allowedRead(isStaff, async () => {
-        const today = localDayOf(Date.now());
-        const result = await this.deps.appointments.search({
-          clinicId,
-          from: toOffsetDateTime(`${today}T00:00`),
-          to: toOffsetDateTime(`${addDays(today, 1)}T00:00`),
-          page: 1,
-          pageSize: 1,
-        });
-        return result.totalCount;
-      }),
-      allowedRead(
-        isStaff,
-        async () =>
-          (await this.deps.clinicJoins.listForClinic(clinicId, "PENDING"))
-            .length,
-      ),
-    ]);
+      hasRole(user, "admin") || user.clinicAdminOf.includes(clinicId);
     return {
-      clinic,
-      providerCount: directory.totalCount,
-      providers: directory.items.slice(0, 5).map(toDoctorRef),
-      topSpecialties: topSpecialties(directory.items),
-      todayAppointmentCount: todayCount,
-      pendingJoinRequestCount: pending,
+      clinic: data.clinic,
+      providerCount: data.providerCount,
+      providers: data.providers.slice(0, 5).map(toDoctorRef),
+      topSpecialties: data.topSpecialties,
+      todayAppointmentCount: isStaff ? data.todayAppointmentCount : null,
+      pendingJoinRequestCount: isStaff ? data.pendingJoinRequestCount : null,
     };
   }
 
@@ -469,6 +384,20 @@ export class GlanceService {
   }
 }
 
+/** A provider-table visit from the appointment list. */
+function toListVisitFact(item: AppointmentListItem): VisitFact {
+  return {
+    id: item.id,
+    appointmentDateTime: item.appointmentDateTime,
+    reasonForVisit: item.reasonForVisit,
+    patientId: item.patientId,
+    patientName: item.patientName,
+    providerId: item.providerId,
+    providerName: item.providerName,
+    status: item.status,
+  };
+}
+
 function toDoctorRef(entry: {
   id: string;
   firstName: string;
@@ -481,18 +410,4 @@ function toDoctorRef(entry: {
     lastName: entry.lastName,
     specialty: entry.specialty,
   };
-}
-
-function topSpecialties(
-  entries: { specialty: string }[],
-): { specialty: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const { specialty } of entries) {
-    const key = specialty.trim();
-    if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-  return [...counts]
-    .map(([specialty, count]) => ({ specialty, count }))
-    .sort((a, b) => b.count - a.count || a.specialty.localeCompare(b.specialty))
-    .slice(0, 3);
 }

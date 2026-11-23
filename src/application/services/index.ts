@@ -10,3 +10,4 @@ export { GlanceService } from "./glance-service";
 export { PatientAllergyService } from "./patient-allergy-service";
 export { PatientService } from "./patient-service";
 export { ProviderService } from "./provider-service";
+export { SearchService } from "./search-service";

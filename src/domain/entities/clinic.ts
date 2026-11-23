@@ -6,9 +6,11 @@ export interface Clinic {
   name: string;
   location: string | null;
   phoneNumber: string;
+  /** Verified doctors. Optional: only list and search responses carry it. */
+  providerCount?: number;
 }
 
-export type ClinicInput = Omit<Clinic, "id">;
+export type ClinicInput = Omit<Clinic, "id" | "providerCount">;
 
 export function validateClinic(input: ClinicInput): FieldErrors {
   const errors: FieldErrors = {};
