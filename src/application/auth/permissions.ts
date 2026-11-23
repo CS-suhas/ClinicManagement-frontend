@@ -11,6 +11,8 @@ export const ROUTE_ROLES = {
   "/providers": ["admin"],
   "/patients": ["admin", "doctor"],
   "/allergies": ["admin"],
+  /** Any signed-in user may create their own patient profile. */
+  "/onboarding/patient": null,
 } as const satisfies Record<string, readonly Role[] | null>;
 
 export interface NavItem {
@@ -40,6 +42,13 @@ export function hasRole(
 ): boolean {
   if (!user) return false;
   return roles.some((role) => user.roles.includes(role));
+}
+
+/** Online booking is for patient accounts that have a linked patient record. */
+export function canBookOnline(
+  user: Pick<CurrentUser, "roles" | "patient"> | null,
+): boolean {
+  return user !== null && hasRole(user, "patient") && user.patient !== null;
 }
 
 /**

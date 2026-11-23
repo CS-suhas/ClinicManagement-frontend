@@ -1,4 +1,5 @@
 import type { AuthRepository, CurrentUser, MeResponse } from "@/domain/auth";
+import type { Patient, PatientInput } from "@/domain/entities";
 import { UnauthorizedError } from "@/domain/errors";
 import type { HttpClient } from "./http-client";
 
@@ -33,5 +34,14 @@ export class RestAuthRepository implements AuthRepository {
   /** TODO(keycloak): return the Keycloak access token. */
   async getAccessToken(): Promise<string | null> {
     return null;
+  }
+
+  /** The API links the new patient to the caller. A second call returns 409. */
+  async createPatientProfile(input: PatientInput): Promise<Patient> {
+    const created = await this.http.post<{ id: string }>("/me/patient", {
+      id: crypto.randomUUID(),
+      ...input,
+    });
+    return { ...input, id: created.id };
   }
 }

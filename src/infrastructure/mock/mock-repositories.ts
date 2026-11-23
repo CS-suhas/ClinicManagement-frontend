@@ -282,8 +282,10 @@ export class MockAppointmentRepository implements AppointmentRepository {
           ].some((value) => value.toLowerCase().includes(search))
         );
       })
-      .sort((a, b) =>
-        a.appointmentDateTime.localeCompare(b.appointmentDateTime),
+      // Compare instants, not text: public bookings carry an offset, admin entries do not.
+      .sort(
+        (a, b) =>
+          Date.parse(a.appointmentDateTime) - Date.parse(b.appointmentDateTime),
       );
     const start = (options.page - 1) * options.pageSize;
     return {

@@ -79,3 +79,22 @@ export function buildSlots(
   }
   return slots;
 }
+
+/**
+ * A slot's local `YYYY-MM-DDTHH:mm` as ISO-8601 with the browser's UTC offset,
+ * e.g. `2026-11-24T09:00:00+05:30`. Called from event handlers only.
+ */
+export function toOffsetDateTime(local: string): string {
+  const [year, month, day] = local.slice(0, 10).split("-").map(Number);
+  const [hours, minutes] = local.slice(11, 16).split(":").map(Number);
+  const offset = -new Date(
+    year,
+    month - 1,
+    day,
+    hours,
+    minutes,
+  ).getTimezoneOffset();
+  const magnitude = Math.abs(offset);
+  const sign = offset < 0 ? "-" : "+";
+  return `${local.slice(0, 16)}:00${sign}${pad(Math.floor(magnitude / 60))}:${pad(magnitude % 60)}`;
+}

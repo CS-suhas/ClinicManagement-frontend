@@ -6,32 +6,26 @@ import {
   Callout,
   Dialog,
   Flex,
-  Grid,
   IconButton,
+  Spinner,
   Text,
-  TextField,
+  TextArea,
 } from "@radix-ui/themes";
 import { type FormEvent, useEffect, useState } from "react";
-import type { FieldErrors } from "@/domain/errors";
+import { type Patient, patientFullName } from "@/domain/entities";
 import { FormField } from "@/presentation/components/form-field";
+import { PersonAvatar } from "@/presentation/components/ui/person-avatar";
 import { formatDateTime } from "@/presentation/lib/format";
 import { DoctorAvatar } from "./doctor-avatar";
 import type { BookingChoice, BookingDetails } from "./use-doctor-booking";
 
-const EMPTY: BookingDetails = {
-  firstName: "",
-  lastName: "",
-  dateOfBirth: "",
-  email: "",
-  phoneNumber: "",
-  reasonForVisit: "",
-};
-
 export interface BookingDetailsDialogProps {
   choice: BookingChoice | null;
+  /** The signed-in patient the booking is made under. */
+  patient: Patient | undefined;
+  patientError: string | null;
   confirmed: boolean;
   submitting: boolean;
-  fieldErrors: FieldErrors;
   formError: string | null;
   onBack: () => void;
   onSubmit: (details: BookingDetails) => void;
@@ -40,31 +34,25 @@ export interface BookingDetailsDialogProps {
 
 export function BookingDetailsDialog({
   choice,
+  patient,
+  patientError,
   confirmed,
   submitting,
-  fieldErrors,
   formError,
   onBack,
   onSubmit,
   onDone,
 }: BookingDetailsDialogProps) {
-  const [values, setValues] = useState<BookingDetails>(EMPTY);
+  const [reasonForVisit, setReasonForVisit] = useState("");
   const open = choice !== null;
 
   useEffect(() => {
-    if (!open) setValues(EMPTY);
+    if (!open) setReasonForVisit("");
   }, [open]);
-
-  const bind = (field: keyof BookingDetails) => ({
-    id: `booking-${field}`,
-    value: values[field],
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-      setValues((current) => ({ ...current, [field]: e.target.value })),
-  });
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    onSubmit(values);
+    onSubmit({ reasonForVisit });
   };
 
   return (
@@ -93,7 +81,7 @@ export function BookingDetailsDialog({
           choice && (
             <form onSubmit={submit} noValidate>
               <Flex justify="between" align="center" mb="4">
-                <Dialog.Title mb="0">Your details</Dialog.Title>
+                <Dialog.Title mb="0">Confirm your appointment</Dialog.Title>
                 <Dialog.Close>
                   <IconButton variant="ghost" color="gray" aria-label="Close">
                     <Cross2Icon />
@@ -105,7 +93,7 @@ export function BookingDetailsDialog({
                 align="center"
                 gap="3"
                 p="3"
-                mb="4"
+                mb="3"
                 className="rounded-xl"
                 style={{
                   background: "var(--mp-paper)",
@@ -123,71 +111,68 @@ export function BookingDetailsDialog({
                 </div>
               </Flex>
 
-              <Flex direction="column" gap="3">
-                <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-                  <FormField
-                    label="First name"
-                    htmlFor="booking-firstName"
-                    error={fieldErrors.firstName}
-                  >
-                    <TextField.Root
-                      {...bind("firstName")}
-                      autoComplete="given-name"
-                    />
-                  </FormField>
-                  <FormField
-                    label="Last name"
-                    htmlFor="booking-lastName"
-                    error={fieldErrors.lastName}
-                  >
-                    <TextField.Root
-                      {...bind("lastName")}
-                      autoComplete="family-name"
-                    />
-                  </FormField>
-                </Grid>
-                <FormField
-                  label="Date of birth"
-                  htmlFor="booking-dateOfBirth"
-                  error={fieldErrors.dateOfBirth}
-                >
-                  <TextField.Root
-                    {...bind("dateOfBirth")}
-                    type="date"
-                    autoComplete="bday"
-                  />
-                </FormField>
-                <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-                  <FormField
-                    label="Email"
-                    htmlFor="booking-email"
-                    error={fieldErrors.email}
-                  >
-                    <TextField.Root
-                      {...bind("email")}
-                      type="email"
-                      autoComplete="email"
-                    />
-                  </FormField>
-                  <FormField
-                    label="Phone number"
-                    htmlFor="booking-phoneNumber"
-                    error={fieldErrors.phoneNumber}
-                  >
-                    <TextField.Root
-                      {...bind("phoneNumber")}
-                      type="tel"
-                      autoComplete="tel"
-                    />
-                  </FormField>
-                </Grid>
-                <FormField
-                  label="Reason for visit (optional)"
-                  htmlFor="booking-reasonForVisit"
-                >
-                  <TextField.Root {...bind("reasonForVisit")} />
-                </FormField>
+              <Flex
+                direction="column"
+                gap="2"
+                p="3"
+                mb="4"
+                className="rounded-xl bg-white"
+                style={{
+                  border: "1px solid var(--mp-paper-deep)",
+                  color: "var(--mp-ink)",
+                }}
+              >
+                <Text size="1" color="gray">
+                  Booking for
+                </Text>
+                {patient ? (
+                  <Flex align="center" gap="3">
+                    <PersonAvatar name={patientFullName(patient)} size={40} />
+                    <div className="min-w-0">
+                      <Text as="p" weight="bold">
+                        {patientFullName(patient)}
+                      </Text>
+                      <Text
+                        as="p"
+                        size="2"
+                        style={{ color: "var(--mp-muted)" }}
+                      >
+                        {patient.email}
+                      </Text>
+                      <Text
+                        as="p"
+                        size="2"
+                        style={{ color: "var(--mp-muted)" }}
+                      >
+                        {patient.phoneNumber}
+                      </Text>
+                    </div>
+                  </Flex>
+                ) : patientError ? (
+                  <Callout.Root color="red" role="alert" size="1">
+                    <Callout.Text>{patientError}</Callout.Text>
+                  </Callout.Root>
+                ) : (
+                  <Flex align="center" gap="2">
+                    <Spinner />
+                    <Text size="2" color="gray">
+                      Loading your details…
+                    </Text>
+                  </Flex>
+                )}
               </Flex>
+
+              <FormField
+                label="Reason for visit (optional)"
+                htmlFor="booking-reasonForVisit"
+              >
+                <TextArea
+                  id="booking-reasonForVisit"
+                  rows={3}
+                  value={reasonForVisit}
+                  onChange={(e) => setReasonForVisit(e.target.value)}
+                />
+              </FormField>
 
               {formError && (
                 <Callout.Root color="red" role="alert" size="1" mt="4">
@@ -206,7 +191,12 @@ export function BookingDetailsDialog({
                 >
                   Back
                 </Button>
-                <Button type="submit" color="teal" loading={submitting}>
+                <Button
+                  type="submit"
+                  color="teal"
+                  loading={submitting}
+                  disabled={!patient}
+                >
                   Book appointment
                 </Button>
               </Flex>

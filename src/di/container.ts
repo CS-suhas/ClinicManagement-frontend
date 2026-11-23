@@ -156,12 +156,13 @@ export function createContainer(config: ContainerConfig): Container {
   // The REST clients read their token from the auth repository on each request.
   const getToken = (): Promise<string | null> =>
     authRepository.getAccessToken();
-  const authRepository: AuthRepository = isRest
-    ? new RestAuthRepository(new HttpClient(config.apiBaseUrl, getToken))
-    : new MockAuthRepository();
   const r = isRest
     ? createRestRepositories(config.apiBaseUrl, getToken)
     : createMockRepositories();
+  // The mock session creates patient profiles in the same store as PatientService.
+  const authRepository: AuthRepository = isRest
+    ? new RestAuthRepository(new HttpClient(config.apiBaseUrl, getToken))
+    : new MockAuthRepository(r.patients);
 
   return {
     clinicService: new ClinicService(r.clinics, r.providers),

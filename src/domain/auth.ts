@@ -1,3 +1,5 @@
+import type { Patient, PatientInput } from "./entities";
+
 /** Roles understood by the API. A user can hold several at once. */
 export const ROLES = ["patient", "doctor", "admin", "clinicadmin"] as const;
 export type Role = (typeof ROLES)[number];
@@ -32,4 +34,6 @@ export interface AuthRepository {
   signOut(): Promise<void>;
   /** Bearer token for API calls, or null when there is none. */
   getAccessToken(): Promise<string | null>;
+  /** Creates the signed-in user's own patient record and links it to their account. */
+  createPatientProfile(input: PatientInput): Promise<Patient>;
 }

@@ -1,7 +1,12 @@
 import type { AuthPersona, AuthRepository, CurrentUser } from "@/domain/auth";
+import type { Patient, PatientInput } from "@/domain/entities";
+import { ConflictError, UnauthorizedError } from "@/domain/errors";
+import type { PatientRepository } from "@/domain/repositories";
 import { delay } from "./local-storage-collection";
 
 const STORAGE_KEY = "clinic-admin:auth-persona";
+/** Patient profiles created through onboarding, keyed by persona id. */
+const PATIENT_LINKS_KEY = "clinic-admin:auth-patient-links";
 const DEFAULT_PERSONA_ID = "admin";
 
 /**
@@ -82,6 +87,19 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       provider: { id: "pr2", verificationStatus: "VERIFIED" },
     },
   },
+  {
+    id: "new-user",
+    label: "New user",
+    description:
+      "No roles and no patient record. Create one through onboarding. Signing in again clears it.",
+    user: {
+      subject: "mock-new-user",
+      displayName: "Jordan Lee",
+      roles: [],
+      patient: null,
+      provider: null,
+    },
+  },
 ];
 
 function readPersonaId(): string | null {
@@ -105,20 +123,74 @@ function findPersona(id: string | null): AuthPersona | undefined {
   return MOCK_PERSONAS.find((persona) => persona.id === id);
 }
 
+/** persona id -> patient id, for profiles created through onboarding. */
+function readPatientLinks(): Record<string, string> {
+  try {
+    const raw = window.localStorage.getItem(PATIENT_LINKS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePatientLinks(links: Record<string, string>): void {
+  try {
+    window.localStorage.setItem(PATIENT_LINKS_KEY, JSON.stringify(links));
+  } catch {
+    // storage unavailable: the link lasts for this page load only
+  }
+}
+
+/** The persona's user, with the patient profile it created through onboarding. */
+function currentUserFor(persona: AuthPersona): CurrentUser {
+  const user = structuredClone(persona.user);
+  const patientId: string | undefined = readPatientLinks()[persona.id];
+  if (!patientId || user.patient) return user;
+  return {
+    ...user,
+    roles: user.roles.includes("patient")
+      ? user.roles
+      : [...user.roles, "patient"],
+    patient: { id: patientId },
+  };
+}
+
 /** Mock session: the chosen persona id is kept in localStorage. */
 export class MockAuthRepository implements AuthRepository {
+  /** Patient profiles live in the same store the patients pages use. */
+  constructor(private readonly patients: PatientRepository) {}
+
   async getCurrentUser(): Promise<CurrentUser | null> {
     await delay();
     const persona = findPersona(readPersonaId());
-    return persona ? structuredClone(persona.user) : null;
+    return persona ? currentUserFor(persona) : null;
   }
 
   async signIn(personaId: string = DEFAULT_PERSONA_ID): Promise<CurrentUser> {
     await delay();
     const persona = findPersona(personaId);
     if (!persona) throw new Error(`Unknown mock persona "${personaId}"`);
+    // Signing in again drops this persona's onboarding link, so its patient
+    // profile can be created again. Seeded patient links are not affected.
+    writePatientLinks(
+      Object.fromEntries(
+        Object.entries(readPatientLinks()).filter(([id]) => id !== persona.id),
+      ),
+    );
     writePersonaId(persona.id);
-    return structuredClone(persona.user);
+    return currentUserFor(persona);
+  }
+
+  /** Creates the patient in the patients store and links it to the current persona. */
+  async createPatientProfile(input: PatientInput): Promise<Patient> {
+    await delay();
+    const persona = findPersona(readPersonaId());
+    if (!persona) throw new UnauthorizedError();
+    if (currentUserFor(persona).patient)
+      throw new ConflictError("This account already has a patient profile.");
+    const patient = await this.patients.create(input);
+    writePatientLinks({ ...readPatientLinks(), [persona.id]: patient.id });
+    return patient;
   }
 
   async signOut(): Promise<void> {

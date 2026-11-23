@@ -12,13 +12,7 @@ import { PublicNavbar } from "@/presentation/components/public-navbar";
 import { PersonAvatar } from "@/presentation/components/ui/person-avatar";
 import { Surface } from "@/presentation/components/ui/surface";
 import { getErrorMessage } from "@/presentation/lib/errors";
-
-/** Only same-app paths are accepted, so ?next= cannot send people off-site. */
-function safeNext(value: string | null): string {
-  if (!value || !value.startsWith("/")) return "/dashboard";
-  if (value.startsWith("//") || value.startsWith("/\\")) return "/dashboard";
-  return value;
-}
+import { safeNext } from "@/presentation/lib/safe-next";
 
 function LoginContent() {
   const router = useRouter();
