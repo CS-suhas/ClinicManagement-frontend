@@ -17,6 +17,15 @@ export class HttpClient {
   get<T>(path: string) {
     return this.request<T>("GET", path);
   }
+  /** Like `get`, but resolves to null when the resource does not exist. */
+  async getOrNull<T>(path: string): Promise<T | null> {
+    try {
+      return await this.get<T>(path);
+    } catch (e) {
+      if (e instanceof NotFoundError) return null;
+      throw e;
+    }
+  }
   post<T>(path: string, body: unknown) {
     return this.request<T>("POST", path, body);
   }
