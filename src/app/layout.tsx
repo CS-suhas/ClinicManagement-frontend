@@ -4,6 +4,7 @@ import "@radix-ui/themes/styles.css";
 import { Theme } from "@radix-ui/themes";
 import { ContainerProvider } from "@/di/container-provider";
 import { AppShell } from "@/presentation/components/app-shell";
+import { NotificationProvider } from "@/presentation/components/notifications";
 
 export const metadata: Metadata = {
   title: "Clinic Admin",
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <Theme accentColor="teal" grayColor="slate" radius="medium">
           <ContainerProvider>
-            <AppShell>{children}</AppShell>
+            <NotificationProvider>
+              <AppShell>{children}</AppShell>
+            </NotificationProvider>
           </ContainerProvider>
         </Theme>
       </body>
