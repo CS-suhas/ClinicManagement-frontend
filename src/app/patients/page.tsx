@@ -1,15 +1,15 @@
 "use client";
 
 import { ExclamationTriangleIcon, PlusIcon } from "@radix-ui/react-icons";
-import { Button, Flex, IconButton, Table, Tooltip } from "@radix-ui/themes";
+import { Button, Flex, IconButton, Tooltip } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import { type Patient, patientFullName } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
+import { type Column, DataTable } from "@/presentation/components/data-table";
 import { PageHeader } from "@/presentation/components/page-header";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
-import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
 import { PatientAllergiesDialog } from "@/presentation/features/patients/patient-allergies-dialog";
 import { PatientFormDialog } from "@/presentation/features/patients/patient-form-dialog";
@@ -18,6 +18,13 @@ import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
 import { formatDate } from "@/presentation/lib/format";
 
 const PAGE_SIZE = 20;
+
+const columns: Column<Patient>[] = [
+  { header: "Name", cell: patientFullName },
+  { header: "Date of birth", cell: (p) => formatDate(p.dateOfBirth) },
+  { header: "Email", cell: (p) => p.email },
+  { header: "Phone", cell: (p) => p.phoneNumber },
+];
 
 export default function Page() {
   const patientService = useService("patientService");
@@ -80,52 +87,26 @@ export default function Page() {
         }
         onRetry={reload}
       >
-        <Table.Root variant="surface">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Date of birth</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Email</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Phone</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell justify="end">
-                Actions
-              </Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rows.map((p) => {
-              const name = patientFullName(p);
-              return (
-                <Table.Row key={p.id} align="center">
-                  <Table.RowHeaderCell>{name}</Table.RowHeaderCell>
-                  <Table.Cell>{formatDate(p.dateOfBirth)}</Table.Cell>
-                  <Table.Cell>{p.email}</Table.Cell>
-                  <Table.Cell>{p.phoneNumber}</Table.Cell>
-                  <Table.Cell justify="end">
-                    <RowActions
-                      label={name}
-                      onEdit={() => openEdit(p)}
-                      onDelete={() => setDeleting(p)}
-                      extra={
-                        <Tooltip content="Allergies">
-                          <IconButton
-                            size="1"
-                            variant="soft"
-                            color="amber"
-                            aria-label={`Allergies for ${name}`}
-                            onClick={() => openAllergies(p)}
-                          >
-                            <ExclamationTriangleIcon />
-                          </IconButton>
-                        </Tooltip>
-                      }
-                    />
-                  </Table.Cell>
-                </Table.Row>
-              );
-            })}
-          </Table.Body>
-        </Table.Root>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowLabel={patientFullName}
+          onEdit={openEdit}
+          onDelete={setDeleting}
+          extraActions={(p) => (
+            <Tooltip content="Allergies">
+              <IconButton
+                size="1"
+                variant="soft"
+                color="amber"
+                aria-label={`Allergies for ${patientFullName(p)}`}
+                onClick={() => openAllergies(p)}
+              >
+                <ExclamationTriangleIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+        />
       </AsyncContent>
       {data && (
         <PaginationControls

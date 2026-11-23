@@ -1,15 +1,15 @@
 "use client";
 
 import { PlusIcon } from "@radix-ui/react-icons";
-import { Button, Flex, SegmentedControl, Table, Text } from "@radix-ui/themes";
+import { Button, Flex, SegmentedControl, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import type { AppointmentListItem } from "@/domain/repositories";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
+import { type Column, DataTable } from "@/presentation/components/data-table";
 import { PageHeader } from "@/presentation/components/page-header";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
-import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
 import { AppointmentFormDialog } from "@/presentation/features/appointments/appointment-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
@@ -18,6 +18,25 @@ import { formatDateTime } from "@/presentation/lib/format";
 
 type Range = "upcoming" | "past" | "all";
 const PAGE_SIZE = 20;
+
+const columns: Column<AppointmentListItem>[] = [
+  { header: "Date & time", cell: (a) => formatDateTime(a.appointmentDateTime) },
+  { header: "Patient", cell: (a) => a.patientName },
+  {
+    header: "Provider",
+    cell: (a) => (
+      <Flex direction="column">
+        <Text>{a.providerName}</Text>
+        {a.clinicName && (
+          <Text size="1" color="gray">
+            {a.clinicName}
+          </Text>
+        )}
+      </Flex>
+    ),
+  },
+  { header: "Reason", cell: (a) => a.reasonForVisit },
+];
 
 export default function Page() {
   const appointmentService = useService("appointmentService");
@@ -99,50 +118,13 @@ export default function Page() {
         emptyText={emptyText}
         onRetry={reload}
       >
-        <Table.Root variant="surface">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Date & time</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Patient</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Provider</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Reason</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell justify="end">
-                Actions
-              </Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rows.map((a) => {
-              const patient = a.patientName;
-              return (
-                <Table.Row key={a.id} align="center">
-                  <Table.RowHeaderCell>
-                    {formatDateTime(a.appointmentDateTime)}
-                  </Table.RowHeaderCell>
-                  <Table.Cell>{patient}</Table.Cell>
-                  <Table.Cell>
-                    <Flex direction="column">
-                      <Text>{a.providerName}</Text>
-                      {a.clinicName && (
-                        <Text size="1" color="gray">
-                          {a.clinicName}
-                        </Text>
-                      )}
-                    </Flex>
-                  </Table.Cell>
-                  <Table.Cell>{a.reasonForVisit}</Table.Cell>
-                  <Table.Cell justify="end">
-                    <RowActions
-                      label={`appointment for ${patient}`}
-                      onEdit={() => openEdit(a)}
-                      onDelete={() => setDeleting(a)}
-                    />
-                  </Table.Cell>
-                </Table.Row>
-              );
-            })}
-          </Table.Body>
-        </Table.Root>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowLabel={(a) => `appointment for ${a.patientName}`}
+          onEdit={openEdit}
+          onDelete={setDeleting}
+        />
       </AsyncContent>
       {data && (
         <PaginationControls

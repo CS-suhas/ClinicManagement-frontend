@@ -1,21 +1,27 @@
 "use client";
 
 import { PlusIcon } from "@radix-ui/react-icons";
-import { Button, Flex, Table } from "@radix-ui/themes";
+import { Button, Flex } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import type { Clinic } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
+import { type Column, DataTable } from "@/presentation/components/data-table";
 import { PageHeader } from "@/presentation/components/page-header";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
-import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
 import { ClinicFormDialog } from "@/presentation/features/clinics/clinic-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
 
 const PAGE_SIZE = 20;
+
+const columns: Column<Clinic>[] = [
+  { header: "Name", cell: (c) => c.name },
+  { header: "Location", cell: (c) => c.location ?? "" },
+  { header: "Phone", cell: (c) => c.phoneNumber },
+];
 
 export default function Page() {
   const clinicService = useService("clinicService");
@@ -70,34 +76,13 @@ export default function Page() {
         emptyText={query ? "No clinics match your search." : "No clinics yet."}
         onRetry={reload}
       >
-        <Table.Root variant="surface">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Location</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Phone</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell justify="end">
-                Actions
-              </Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rows.map((c) => (
-              <Table.Row key={c.id} align="center">
-                <Table.RowHeaderCell>{c.name}</Table.RowHeaderCell>
-                <Table.Cell>{c.location ?? ""}</Table.Cell>
-                <Table.Cell>{c.phoneNumber}</Table.Cell>
-                <Table.Cell justify="end">
-                  <RowActions
-                    label={c.name}
-                    onEdit={() => openEdit(c)}
-                    onDelete={() => setDeleting(c)}
-                  />
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowLabel={(c) => c.name}
+          onEdit={openEdit}
+          onDelete={setDeleting}
+        />
       </AsyncContent>
       {data && (
         <PaginationControls

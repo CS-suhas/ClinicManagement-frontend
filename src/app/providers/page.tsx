@@ -1,7 +1,7 @@
 "use client";
 
 import { PlusIcon } from "@radix-ui/react-icons";
-import { Button, Flex, Select, Table } from "@radix-ui/themes";
+import { Button, Flex, Select } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import {
@@ -11,10 +11,10 @@ import {
 } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
+import { type Column, DataTable } from "@/presentation/components/data-table";
 import { ErrorCallout } from "@/presentation/components/error-callout";
 import { PageHeader } from "@/presentation/components/page-header";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
-import { RowActions } from "@/presentation/components/row-actions";
 import { SearchField } from "@/presentation/components/search-field";
 import { ProviderFormDialog } from "@/presentation/features/providers/provider-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
@@ -51,7 +51,11 @@ export default function Page() {
   const providers = data?.items ?? [];
   const clinics = clinicData?.items ?? [];
   const clinicName = (id: string) => clinics.find((c) => c.id === id)?.name;
-  const rows = providers;
+  const columns: Column<Provider>[] = [
+    { header: "Name", cell: providerFullName },
+    { header: "Specialty", cell: (p) => p.specialty },
+    { header: "Clinic", cell: (p) => clinicName(p.clinicId) ?? "—" },
+  ];
 
   const openCreate = () => {
     setEditing(null);
@@ -109,7 +113,7 @@ export default function Page() {
       <AsyncContent
         loading={loading}
         error={error}
-        isEmpty={rows.length === 0}
+        isEmpty={providers.length === 0}
         emptyText={
           query || clinicFilter !== ALL_CLINICS
             ? "No providers match your filters."
@@ -117,34 +121,13 @@ export default function Page() {
         }
         onRetry={reload}
       >
-        <Table.Root variant="surface">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Specialty</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Clinic</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell justify="end">
-                Actions
-              </Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rows.map((p) => (
-              <Table.Row key={p.id} align="center">
-                <Table.RowHeaderCell>{providerFullName(p)}</Table.RowHeaderCell>
-                <Table.Cell>{p.specialty}</Table.Cell>
-                <Table.Cell>{clinicName(p.clinicId) ?? "—"}</Table.Cell>
-                <Table.Cell justify="end">
-                  <RowActions
-                    label={providerFullName(p)}
-                    onEdit={() => openEdit(p)}
-                    onDelete={() => setDeleting(p)}
-                  />
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+        <DataTable
+          columns={columns}
+          rows={providers}
+          rowLabel={providerFullName}
+          onEdit={openEdit}
+          onDelete={setDeleting}
+        />
       </AsyncContent>
       {data && (
         <PaginationControls
