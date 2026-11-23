@@ -1,12 +1,15 @@
 "use client";
 
-import { TextArea, TextField } from "@radix-ui/themes";
+import { TextField } from "@radix-ui/themes";
 import { patientFullName, providerFullName } from "@/domain/entities";
 import type { AppointmentListItem } from "@/domain/repositories";
 import { ErrorCallout } from "@/presentation/components/error-callout";
 import { FormDialog } from "@/presentation/components/form-dialog";
 import { FormField } from "@/presentation/components/form-field";
-import { SearchSelectField } from "@/presentation/components/form-fields";
+import {
+  SearchSelectField,
+  TextAreaFormField,
+} from "@/presentation/components/form-fields";
 import { useAppointmentForm } from "./use-appointment-form";
 
 /** Create when `appointment` is null, edit otherwise. */
@@ -99,17 +102,13 @@ export function AppointmentFormDialog({
         />
       </FormField>
 
-      <FormField
+      <TextAreaFormField
         label="Reason for visit (optional)"
-        htmlFor="appointment-reason"
+        id="appointment-reason"
         error={fieldErrors.reasonForVisit}
-      >
-        <TextArea
-          id="appointment-reason"
-          value={values.reasonForVisit}
-          onChange={(e) => form.setValue("reasonForVisit", e.target.value)}
-        />
-      </FormField>
+        value={values.reasonForVisit}
+        onChange={(e) => form.setValue("reasonForVisit", e.target.value)}
+      />
     </FormDialog>
   );
 }
