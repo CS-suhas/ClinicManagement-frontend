@@ -13,8 +13,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+/** Public pages render without the admin sidebar. */
+const PUBLIC_ROUTES = ["/", "/doctors"];
+
 const NAV = [
-  { href: "/", label: "Dashboard", icon: DashboardIcon },
+  { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
   { href: "/clinics", label: "Clinics", icon: HomeIcon },
   { href: "/providers", label: "Providers", icon: IdCardIcon },
   { href: "/patients", label: "Patients", icon: PersonIcon },
@@ -24,8 +27,9 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href: string) => pathname.startsWith(href);
+
+  if (PUBLIC_ROUTES.includes(pathname)) return <>{children}</>;
 
   return (
     <Flex className="min-h-screen flex-col md:flex-row">
@@ -36,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <aside>
           <Box p="4">
-            <Heading size="4">Clinic Admin</Heading>
+            <Heading size="4">MediPulse Life</Heading>
             <Text size="1" color="gray">
               Management console
             </Text>

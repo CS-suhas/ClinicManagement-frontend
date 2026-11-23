@@ -7,7 +7,7 @@ import { AppShell } from "@/presentation/components/app-shell";
 import { NotificationProvider } from "@/presentation/components/notifications";
 
 export const metadata: Metadata = {
-  title: "Clinic Admin",
+  title: "MediPulse Life",
   description:
     "Admin console for clinics, providers, patients and appointments",
 };

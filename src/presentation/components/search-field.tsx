@@ -7,10 +7,14 @@ export function SearchField({
   value,
   onChange,
   placeholder = "Search…",
+  size = "2",
+  fullWidth = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  size?: "1" | "2" | "3";
+  fullWidth?: boolean;
 }) {
   return (
     <TextField.Root
@@ -18,7 +22,8 @@ export function SearchField({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       aria-label={placeholder}
-      style={{ minWidth: 240 }}
+      size={size}
+      style={fullWidth ? undefined : { minWidth: 240 }}
     >
       <TextField.Slot>
         <MagnifyingGlassIcon />
