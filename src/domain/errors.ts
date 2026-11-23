@@ -26,3 +26,11 @@ export class NotFoundError extends Error {
 export function assertValid(errors: FieldErrors): void {
   if (Object.keys(errors).length > 0) throw new ValidationError(errors);
 }
+
+/** Blocks a delete while other records still reference the entity. */
+export function assertNoDependents(
+  count: number,
+  message: (count: number) => string,
+): void {
+  if (count > 0) throw new ConflictError(message(count));
+}
