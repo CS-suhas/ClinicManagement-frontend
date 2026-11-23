@@ -19,7 +19,7 @@ export const ROUTE_ROLES = {
   "/approvals": ["admin"],
   "/join-requests": ["admin", "clinicadmin"],
   "/my-clinic": ["doctor"],
-  /** Public directory; the shell does not require a sign-in here. */
+  /** Public directory: no sign-in needed unless the deployment sets PUBLIC_DOCTORS=false. */
   "/doctors": null,
   /** Any signed-in user may create their own patient profile or registration. */
   "/onboarding": null,
@@ -153,6 +153,7 @@ export function isOnboardingExempt(pathname: string): boolean {
     matchesRoute("/my-clinic", pathname) ||
     matchesRoute("/clinics/[id]", pathname) ||
     pathname === "/" ||
-    pathname === "/login"
+    pathname === "/login" ||
+    pathname === "/login/callback"
   );
 }

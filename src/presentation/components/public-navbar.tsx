@@ -3,6 +3,7 @@
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import { Button } from "@radix-ui/themes";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Fragment } from "react";
 import { useAuth } from "@/presentation/auth/auth-provider";
 import { Wordmark } from "./ui/wordmark";
@@ -16,7 +17,13 @@ export interface Crumb {
 /** White top strip of the public pages: logo, breadcrumbs and login. */
 export function PublicNavbar({ crumbs }: { crumbs: Crumb[] }) {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
   const signedIn = !loading && user !== null;
+  // Anonymous visitors come back to the page they were on after signing in.
+  const loginHref =
+    pathname.startsWith("/login") || pathname === "/"
+      ? "/login"
+      : `/login?next=${encodeURIComponent(pathname)}`;
 
   return (
     <div
@@ -61,7 +68,7 @@ export function PublicNavbar({ crumbs }: { crumbs: Crumb[] }) {
       </div>
 
       <Button asChild color="teal">
-        <Link href={signedIn ? "/dashboard" : "/login"}>
+        <Link href={signedIn ? "/dashboard" : loginHref}>
           {signedIn ? "Go to dashboard" : "Log in"}
         </Link>
       </Button>

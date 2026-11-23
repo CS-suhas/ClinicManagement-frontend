@@ -12,7 +12,12 @@ import {
   ProviderService,
   SearchService,
 } from "@/application/services";
-import type { AuthPersona, AuthRepository, CurrentUser } from "@/domain/auth";
+import type {
+  AuthPersona,
+  AuthRepository,
+  CurrentUser,
+  PublicAccess,
+} from "@/domain/auth";
 import type {
   AllergyTypeRepository,
   AppointmentAvailabilityRepository,
@@ -28,6 +33,7 @@ import type {
   ProviderVerificationRepository,
   SummaryRepository,
 } from "@/domain/repositories";
+import { RuntimeConfigClient } from "@/infrastructure/config/runtime-config";
 import { resolveApiBaseUrl } from "@/infrastructure/http/api-base-url";
 import { type BaseUrl, HttpClient } from "@/infrastructure/http/http-client";
 import { RestAuthRepository } from "@/infrastructure/http/rest-auth-repository";
@@ -73,6 +79,7 @@ import { createMockProviderRosterRepository } from "@/infrastructure/mock/mock-p
 import { MockPatientAllergyRepository } from "@/infrastructure/mock/mock-repositories";
 import { createMockSummaryRepository } from "@/infrastructure/mock/mock-summary-repository";
 import * as seed from "@/infrastructure/mock/seed";
+import { OidcSession } from "@/infrastructure/oidc/oidc-session";
 
 export type DataSource = "mock" | "rest";
 
@@ -100,6 +107,8 @@ export interface Container {
   searchService: SearchService;
   /** Demo identities for the sign-in picker. Empty when sign-in is Keycloak-backed. */
   authPersonas: AuthPersona[];
+  /** What anonymous visitors may open, from the runtime config (PUBLIC_DOCTORS). */
+  getPublicAccess: () => Promise<PublicAccess>;
 }
 
 interface Repositories {
@@ -233,10 +242,16 @@ function createMockRepositories(): Repositories {
   };
 }
 
-function createRestRepositories(baseUrl: BaseUrl): Repositories {
+function createRestRepositories(
+  baseUrl: BaseUrl,
+  runtimeConfig: RuntimeConfigClient,
+): Repositories {
   // The REST clients read their token from the auth repository on each request.
   const http: HttpClient = new HttpClient(baseUrl, () => auth.getAccessToken());
-  const auth: RestAuthRepository = new RestAuthRepository(http);
+  const auth: RestAuthRepository = new RestAuthRepository(
+    http,
+    new OidcSession(() => runtimeConfig.keycloak()),
+  );
   const clinics = new RestClinicRepository(http);
   const providers = new RestProviderRepository(http);
   return {
@@ -260,8 +275,10 @@ function createRestRepositories(baseUrl: BaseUrl): Repositories {
 /** Composition root: the only place that knows concrete implementations. */
 export function createContainer(config: ContainerConfig): Container {
   const isRest = config.dataSource === "rest";
+  // Per-deployment settings, read by the browser at runtime from /runtime-config.
+  const runtimeConfig = new RuntimeConfigClient();
   const r = isRest
-    ? createRestRepositories(config.apiBaseUrl)
+    ? createRestRepositories(config.apiBaseUrl, runtimeConfig)
     : createMockRepositories();
   const getToken = (): Promise<string | null> => r.auth.getAccessToken();
 
@@ -319,6 +336,7 @@ export function createContainer(config: ContainerConfig): Container {
     ),
     searchService: new SearchService(r.summaries),
     authPersonas: isRest ? [] : MOCK_PERSONAS,
+    getPublicAccess: () => runtimeConfig.publicAccess(),
   };
 }
 

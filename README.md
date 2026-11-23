@@ -30,8 +30,40 @@ No API URL is baked into the build, so one image runs on any host:
 | --- | --- | --- |
 | `API_INTERNAL_URL` | Runtime (server) | API base URL for server-side code, e.g. `http://api:8080/api` in Docker. In `npm run dev` it is also where `/api/*` is forwarded. |
 | `NEXT_PUBLIC_DATA_SOURCE` | Build time | `rest` to use the API, `mock` (default) for in-browser sample data. The Docker image is built with `rest`. |
+| `KEYCLOAK_URL` | Runtime (served to the browser) | Keycloak base URL including its relative path, e.g. `http://localhost:8081/auth`. Default (unset or empty): same origin, `<page origin>/auth`. |
+| `KEYCLOAK_REALM` | Runtime (served to the browser) | Keycloak realm. Default `clinic`. |
+| `KEYCLOAK_CLIENT_ID` | Runtime (served to the browser) | Public OIDC client used for sign-in. Default `clinic-spa`. |
+| `PUBLIC_DOCTORS` | Runtime (served to the browser) | `true` (default): `/doctors` and `/doctors/[id]` open without sign-in. `false`: they redirect to sign-in like every other page. |
 
 Copy `.env.example` to `.env` to get started.
+
+## Sign-in (Keycloak) and runtime settings
+
+In `rest` mode sign-in uses Keycloak with the Authorization Code flow and PKCE
+(S256) against the public client `clinic-spa`, via
+[`oidc-client-ts`](https://github.com/authts/oidc-client-ts). The access token is
+sent as `Authorization: Bearer` on every API call, refreshed with the refresh
+token shortly before it expires, and kept in `sessionStorage` (per tab).
+Sign-out also ends the Keycloak session (RP-initiated logout). "Create account"
+on `/login` opens Keycloak's registration form. Keycloak sends the browser back
+to `/login/callback` and, after sign-out, to `/`; both must be allowed for the
+`clinic-spa` client in the realm.
+
+The browser reads the Keycloak and public-page settings at runtime from
+`GET /runtime-config`, which this app renders from its environment on every
+request (`KEYCLOAK_*` and `PUBLIC_DOCTORS` in the table above). Nothing
+host-specific is inlined at build time, so one image runs on any host; change
+a value and restart the container.
+
+Served over plain HTTP on a non-localhost address the page is not a "secure
+context", so browsers hide `crypto.subtle` and `crypto.randomUUID`. The app then
+fills in just SHA-256 (for PKCE) and UUID generation
+(`src/infrastructure/oidc/insecure-context-crypto.ts`). Serve the app over
+HTTPS in production; the shim then does nothing.
+
+For `npm run dev` against a Keycloak on another port, set e.g.
+`KEYCLOAK_URL=http://localhost:8081/auth` in `.env`; `http://localhost:3000` must
+be an allowed redirect origin of `clinic-spa` (it is in the deploy realm by default).
 
 **Local development:** `npm run dev` forwards `/api/*` to `API_INTERNAL_URL`
 (a dev-only rewrite in `next.config.ts`), so the browser reaches a local API on

@@ -19,6 +19,9 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 # API_INTERNAL_URL: base URL server-side code uses to reach the API. Read at
 # runtime, so override it per deployment (docker run -e / compose environment).
+# Also read at runtime and served to browsers at /runtime-config (see README):
+# KEYCLOAK_URL (unset: <page origin>/auth), KEYCLOAK_REALM (clinic),
+# KEYCLOAK_CLIENT_ID (clinic-spa), PUBLIC_DOCTORS (true).
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \

@@ -49,20 +49,7 @@ function LoginContent() {
     );
 
   // No demo personas means the real sign-in provider is in use (rest mode).
-  if (personas.length === 0)
-    return (
-      <Surface padding="lg">
-        <Flex direction="column" gap="3" align="start">
-          <Text style={{ color: "var(--mp-muted)" }}>
-            Sign-in is handled by Keycloak, which is not configured in this
-            build yet.
-          </Text>
-          <Button color="teal" size="3" disabled>
-            Sign in with Keycloak (not configured)
-          </Button>
-        </Flex>
-      </Surface>
-    );
+  if (personas.length === 0) return <KeycloakSignIn next={next} />;
 
   return (
     <Flex direction="column" gap="4">
@@ -114,6 +101,77 @@ function LoginContent() {
         ))}
       </div>
     </Flex>
+  );
+}
+
+/**
+ * Keycloak sign-in: both buttons leave the app for Keycloak (sign-in form or
+ * registration form) and come back through /login/callback, then on to `next`.
+ */
+function KeycloakSignIn({ next }: { next: string }) {
+  const { user, signIn } = useAuth();
+  const [pending, setPending] = useState<"signIn" | "register" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function redirect(mode: "signIn" | "register") {
+    setPending(mode);
+    setError(null);
+    try {
+      // Resolves only if the redirect could not start.
+      await signIn(undefined, {
+        returnTo: next,
+        register: mode === "register",
+      });
+    } catch (e) {
+      setError(getErrorMessage(e));
+      setPending(null);
+    }
+  }
+
+  if (user)
+    return (
+      <Surface padding="lg">
+        <Flex direction="column" gap="3" align="start">
+          <Text style={{ color: "var(--mp-ink)" }}>
+            You are signed in as <strong>{user.displayName}</strong>.
+          </Text>
+          <RoleBadges roles={user.roles} />
+          <Button asChild color="teal">
+            <Link href={next}>Continue</Link>
+          </Button>
+        </Flex>
+      </Surface>
+    );
+
+  return (
+    <Surface padding="lg">
+      <Flex direction="column" gap="4" align="start">
+        <Text style={{ color: "var(--mp-muted)" }}>
+          Sign in with your MediPulse Life account. New here? Create an account
+          to book appointments or apply as a doctor.
+        </Text>
+        {error && <ErrorCallout message={error} />}
+        <Flex gap="3" wrap="wrap">
+          <Button
+            color="teal"
+            size="3"
+            disabled={pending !== null}
+            onClick={() => void redirect("signIn")}
+          >
+            {pending === "signIn" ? "Redirecting..." : "Sign in"}
+          </Button>
+          <Button
+            color="teal"
+            size="3"
+            variant="outline"
+            disabled={pending !== null}
+            onClick={() => void redirect("register")}
+          >
+            {pending === "register" ? "Redirecting..." : "Create account"}
+          </Button>
+        </Flex>
+      </Flex>
+    </Surface>
   );
 }
 

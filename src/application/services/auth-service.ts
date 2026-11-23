@@ -1,4 +1,4 @@
-import type { CurrentUser } from "@/domain/auth";
+import type { CurrentUser, SignInOptions } from "@/domain/auth";
 import {
   type Patient,
   type PatientInput,
@@ -17,8 +17,13 @@ export class AuthService {
     return this.repo.getCurrentUser();
   }
 
-  signIn(personaId?: string): Promise<CurrentUser> {
-    return this.repo.signIn(personaId);
+  signIn(personaId?: string, options?: SignInOptions): Promise<CurrentUser> {
+    return this.repo.signIn(personaId, options);
+  }
+
+  /** Finishes a redirect sign-in on the callback page. */
+  completeSignIn(): Promise<{ returnTo: string | null }> {
+    return this.repo.completeSignIn();
   }
 
   signOut(): Promise<void> {
@@ -27,6 +32,10 @@ export class AuthService {
 
   getAccessToken(): Promise<string | null> {
     return this.repo.getAccessToken();
+  }
+
+  onSessionExpired(listener: () => void): () => void {
+    return this.repo.onSessionExpired(listener);
   }
 
   /** Validates the details, then creates the signed-in user's patient profile. */

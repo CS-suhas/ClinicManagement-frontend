@@ -18,8 +18,10 @@ import {
   needsOnboarding,
 } from "@/application/auth/permissions";
 import { useService } from "@/di/container-provider";
+import type { PublicAccess } from "@/domain/auth";
 import { useAuth } from "@/presentation/auth/auth-provider";
 import { RoleBadges } from "@/presentation/auth/role-badges";
+import { usePublicAccess } from "@/presentation/auth/use-public-access";
 import { CommandPalette } from "@/presentation/features/command-palette/command-palette";
 import { NotificationBell } from "@/presentation/features/notification-bell/notification-bell";
 import { useMyDashboard } from "@/presentation/features/notification-bell/use-my-dashboard";
@@ -32,14 +34,29 @@ import { Wordmark } from "./ui/wordmark";
 
 const PAGE_BACKGROUND = "#f3f8f7";
 
-/** Public pages render without the admin navbar and need no sign-in. */
-function isPublicPath(pathname: string): boolean {
-  return (
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname === "/doctors" ||
-    pathname.startsWith("/doctors/")
-  );
+const isLoginPath = (pathname: string) =>
+  pathname === "/login" || pathname === "/login/callback";
+
+const isDoctorsPath = (pathname: string) =>
+  pathname === "/doctors" || pathname.startsWith("/doctors/");
+
+/** Pages that bring their own header and render without the admin navbar. */
+function hasOwnLayout(pathname: string): boolean {
+  return pathname === "/" || isLoginPath(pathname) || isDoctorsPath(pathname);
+}
+
+/**
+ * Whether anonymous visitors may open the page. The doctor directory is public
+ * unless the deployment turns it off (PUBLIC_DOCTORS=false); null while that
+ * runtime setting is still loading.
+ */
+function allowsAnonymous(
+  pathname: string,
+  publicAccess: PublicAccess | null,
+): boolean | null {
+  if (pathname === "/" || isLoginPath(pathname)) return true;
+  if (isDoctorsPath(pathname)) return publicAccess?.doctors ?? null;
+  return false;
 }
 
 /** Pathname plus query string, so a redirect can bring the user back exactly. */
@@ -84,17 +101,19 @@ function ShellFrame({ children }: { children: ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { data: mine } = useMyDashboard(user?.subject ?? null);
   const isActive = (href: string) => pathname.startsWith(href);
-  const isPublic = isPublicPath(pathname);
+  const publicAccess = usePublicAccess();
+  const anonymousAllowed = allowsAnonymous(pathname, publicAccess);
+  const ownLayout = hasOwnLayout(pathname);
   const signedIn = user !== null;
   const gated =
     user !== null && needsOnboarding(user) && !isOnboardingExempt(pathname);
 
   useEffect(() => {
-    if (isPublic || loading || signedIn) return;
+    if (anonymousAllowed !== false || loading || signedIn) return;
     router.replace(
       `/login?next=${encodeURIComponent(currentTarget(pathname))}`,
     );
-  }, [isPublic, loading, signedIn, pathname, router]);
+  }, [anonymousAllowed, loading, signedIn, pathname, router]);
 
   // A user who has not finished setting up goes to onboarding, keeping where they were headed.
   useEffect(() => {
@@ -104,7 +123,8 @@ function ShellFrame({ children }: { children: ReactNode }) {
     );
   }, [gated, pathname, router]);
 
-  if (isPublic) return <>{children}</>;
+  if (ownLayout)
+    return anonymousAllowed || signedIn ? children : <LoadingScreen />;
   // Only a missing user shows the spinner: a session refresh keeps the page mounted.
   if (!user || gated) return <LoadingScreen />;
 

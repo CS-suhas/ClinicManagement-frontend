@@ -293,4 +293,14 @@ export class MockAuthRepository implements AuthRepository {
     const persona = findPersona(readPersonaId());
     return persona ? `mock-token-${persona.id}` : null;
   }
+
+  /** Mock sign-in never leaves the page, so there is nothing to finish. */
+  async completeSignIn(): Promise<{ returnTo: string | null }> {
+    return { returnTo: null };
+  }
+
+  /** Mock sessions do not expire. */
+  onSessionExpired(): () => void {
+    return () => {};
+  }
 }

@@ -1,4 +1,9 @@
-import type { AuthRepository, CurrentUser, MeResponse } from "@/domain/auth";
+import type {
+  AuthRepository,
+  CurrentUser,
+  MeResponse,
+  SignInOptions,
+} from "@/domain/auth";
 import type {
   Patient,
   PatientInput,
@@ -6,18 +11,22 @@ import type {
   ProviderRegistrationInput,
 } from "@/domain/entities";
 import { UnauthorizedError } from "@/domain/errors";
+import type { OidcSession } from "@/infrastructure/oidc/oidc-session";
 import type { HttpClient } from "./http-client";
 
 /**
- * Session backed by the API's GET /api/me. Sign-in is not wired yet.
- * TODO(keycloak): add the Keycloak client (e.g. keycloak-js or an OIDC library),
- * implement signIn/signOut with the redirect flow, and return the access token
- * from getAccessToken so HttpClient sends it as a Bearer header.
+ * Keycloak-backed session. Sign-in, sign-out and tokens come from the OIDC
+ * session (Authorization Code + PKCE); who the user is comes from GET /api/me.
  */
 export class RestAuthRepository implements AuthRepository {
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly session: OidcSession,
+  ) {}
 
   async getCurrentUser(): Promise<CurrentUser | null> {
+    // No tokens means signed out; skip the /me round trip that would only 401.
+    if (!(await this.session.hasSession())) return null;
     try {
       const me = await this.http.get<MeResponse>("/me");
       return {
@@ -27,22 +36,38 @@ export class RestAuthRepository implements AuthRepository {
         clinicAdminOf: me.clinicAdminOf ?? [],
       };
     } catch (e) {
-      if (e instanceof UnauthorizedError) return null;
+      if (e instanceof UnauthorizedError) {
+        // The API rejected the token (e.g. revoked); drop it so the user can sign in again.
+        await this.session.clear();
+        return null;
+      }
       throw e;
     }
   }
 
-  async signIn(): Promise<CurrentUser> {
-    throw new Error("Keycloak sign-in not configured");
+  /** Redirects to Keycloak; the page unloads, so the promise never resolves. */
+  async signIn(
+    _personaId?: string,
+    options: SignInOptions = {},
+  ): Promise<CurrentUser> {
+    await this.session.signIn(options);
+    return new Promise<CurrentUser>(() => {});
   }
 
-  async signOut(): Promise<void> {
-    throw new Error("Keycloak sign-in not configured");
+  completeSignIn(): Promise<{ returnTo: string | null }> {
+    return this.session.completeSignIn();
   }
 
-  /** TODO(keycloak): return the Keycloak access token. */
-  async getAccessToken(): Promise<string | null> {
-    return null;
+  signOut(): Promise<void> {
+    return this.session.signOut();
+  }
+
+  getAccessToken(): Promise<string | null> {
+    return this.session.getAccessToken();
+  }
+
+  onSessionExpired(listener: () => void): () => void {
+    return this.session.onSessionExpired(listener);
   }
 
   /** The API links the new patient to the caller. A second call returns 409. */
