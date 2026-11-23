@@ -20,6 +20,7 @@ export default function Page() {
   const clinicService = useService("clinicService");
   const [clinicFilter, setClinicFilter] = useState<string>(ALL_FILTER);
   const crud = useCrudPage(useService("providerService"), {
+    entityName: "provider",
     extraOptions: () => ({
       clinicId: clinicFilter === ALL_FILTER ? undefined : clinicFilter,
     }),
@@ -92,7 +93,7 @@ export default function Page() {
         onOpenChange={crud.form.onOpenChange}
         provider={crud.form.editing}
         clinics={clinics}
-        onSaved={crud.reload}
+        onSave={crud.save}
       />
       <ConfirmDeleteDialog
         {...crud.deleteDialog}

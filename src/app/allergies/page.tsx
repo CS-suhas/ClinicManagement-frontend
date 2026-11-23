@@ -13,7 +13,9 @@ const columns: Column<AllergyType>[] = [
 ];
 
 export default function Page() {
-  const crud = useCrudPage(useService("allergyTypeService"));
+  const crud = useCrudPage(useService("allergyTypeService"), {
+    entityName: "allergy",
+  });
 
   return (
     <>
@@ -39,7 +41,7 @@ export default function Page() {
         open={crud.form.open}
         onOpenChange={crud.form.onOpenChange}
         allergyType={crud.form.editing}
-        onSaved={crud.reload}
+        onSave={crud.save}
       />
       <ConfirmDeleteDialog
         {...crud.deleteDialog}

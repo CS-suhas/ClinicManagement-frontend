@@ -1,6 +1,5 @@
 "use client";
 
-import { useService } from "@/di/container-provider";
 import type { AllergyType, AllergyTypeInput } from "@/domain/entities";
 import { FormDialog } from "@/presentation/components/form-dialog";
 import { TextFormField } from "@/presentation/components/form-fields";
@@ -13,22 +12,21 @@ export function AllergyTypeFormDialog({
   open,
   onOpenChange,
   allergyType,
-  onSaved,
+  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allergyType: AllergyType | null;
-  onSaved: () => void;
+  onSave: (input: AllergyTypeInput, editing: AllergyType | null) => void;
 }) {
   const form = useEntityForm({
     entityName: "allergy",
     idPrefix: "allergy",
     open,
     onOpenChange,
-    onSaved,
+    onSave,
     entity: allergyType,
     empty: EMPTY,
-    service: useService("allergyTypeService"),
   });
 
   return (

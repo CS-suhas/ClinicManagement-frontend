@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useService } from "@/di/container-provider";
 import {
   type AppointmentInput,
+  patientFullName,
+  providerFullName,
   validateAppointmentSchedule,
 } from "@/domain/entities";
 import { assertValid } from "@/domain/errors";
@@ -28,19 +30,25 @@ const EMPTY: AppointmentFormValues = {
 
 const OPTIONS_PAGE = { page: 1, pageSize: 100 };
 
+export interface UseAppointmentFormOptions {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  appointment: AppointmentListItem | null;
+  /** Receives the input plus the joined names the list row needs. */
+  onSave: (
+    input: AppointmentInput,
+    editing: AppointmentListItem | null,
+    overrides: Partial<AppointmentListItem>,
+  ) => void;
+}
+
 /** State and rules of the appointment dialog; the component only renders. */
 export function useAppointmentForm({
   open,
   onOpenChange,
   appointment,
-  onSaved,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  appointment: AppointmentListItem | null;
-  onSaved: () => void;
-}) {
-  const appointmentService = useService("appointmentService");
+  onSave,
+}: UseAppointmentFormOptions) {
   const patientService = useService("patientService");
   const providerService = useService("providerService");
   const clinicService = useService("clinicService");
@@ -143,13 +151,27 @@ export function useAppointmentForm({
       else if (!provider || provider.clinicId !== values.clinicId)
         errors.providerId = "Select a provider from the selected clinic";
       assertValid(errors);
-      if (appointment) await appointmentService.update(appointment.id, input);
-      else await appointmentService.create(input);
+      const patient = patients.items.find((p) => p.id === values.patientId);
+      const clinic = clinics.items.find((c) => c.id === values.clinicId);
+      const unchanged = (field: "patientId" | "clinicId") =>
+        appointment?.[field] === values[field];
+      onSave(input, appointment, {
+        patientName: patient
+          ? patientFullName(patient)
+          : unchanged("patientId")
+            ? appointment?.patientName
+            : "",
+        providerName: provider ? providerFullName(provider) : "",
+        providerSpecialty: provider?.specialty ?? "",
+        clinicId: values.clinicId,
+        clinicName: clinic
+          ? clinic.name
+          : unchanged("clinicId")
+            ? appointment?.clinicName
+            : "",
+      });
     });
-    if (ok) {
-      onOpenChange(false);
-      onSaved();
-    }
+    if (ok) onOpenChange(false);
   };
 
   const date = values.appointmentDateTime.slice(0, 10);

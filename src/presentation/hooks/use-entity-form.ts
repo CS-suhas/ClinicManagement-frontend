@@ -18,20 +18,21 @@ interface UseEntityFormOptions<
   idPrefix: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  /**
+   * Saves the values (create when `entity` is null). Should throw
+   * ValidationError for invalid input and otherwise return immediately: the
+   * dialog closes as soon as it returns.
+   */
+  onSave: (values: TValues, entity: TEntity | null) => void;
   /** Create when null, edit otherwise. */
   entity: TEntity | null;
   /** Initial values for create; its keys decide which fields an edit copies. */
   empty: TValues;
-  service: {
-    create(input: TValues): Promise<unknown>;
-    update(id: string, input: TValues): Promise<unknown>;
-  };
 }
 
 /**
  * Form state for a create/edit dialog: resets when the dialog opens, tracks
- * values, saves through the service, and maps validation errors to fields.
+ * values, hands them to `onSave`, and maps validation errors to fields.
  */
 export function useEntityForm<
   TEntity extends TValues & { id: string },
@@ -41,10 +42,9 @@ export function useEntityForm<
   idPrefix,
   open,
   onOpenChange,
-  onSaved,
+  onSave,
   entity,
   empty,
-  service,
 }: UseEntityFormOptions<TEntity, TValues>) {
   const { submitting, fieldErrors, formError, run, reset } = useFormSubmit();
   const [values, setValues] = useState<TValues>(empty);
@@ -58,13 +58,8 @@ export function useEntityForm<
   }, [open, entity, empty, reset]);
 
   const submit = async () => {
-    const saved = await run(() =>
-      entity ? service.update(entity.id, values) : service.create(values),
-    );
-    if (saved) {
-      onOpenChange(false);
-      onSaved();
-    }
+    const saved = await run(async () => onSave(values, entity));
+    if (saved) onOpenChange(false);
   };
 
   const base = (name: StringKey<TValues>) => ({

@@ -1,6 +1,5 @@
 "use client";
 
-import { useService } from "@/di/container-provider";
 import type { Clinic, ClinicInput } from "@/domain/entities";
 import { FormDialog } from "@/presentation/components/form-dialog";
 import { TextFormField } from "@/presentation/components/form-fields";
@@ -13,22 +12,21 @@ export function ClinicFormDialog({
   open,
   onOpenChange,
   clinic,
-  onSaved,
+  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clinic: Clinic | null;
-  onSaved: () => void;
+  onSave: (input: ClinicInput, editing: Clinic | null) => void;
 }) {
   const form = useEntityForm({
     entityName: "clinic",
     idPrefix: "clinic",
     open,
     onOpenChange,
-    onSaved,
+    onSave,
     entity: clinic,
     empty: EMPTY,
-    service: useService("clinicService"),
   });
 
   return (

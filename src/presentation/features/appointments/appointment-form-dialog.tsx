@@ -10,21 +10,24 @@ import {
   SearchSelectField,
   TextAreaFormField,
 } from "@/presentation/components/form-fields";
-import { useAppointmentForm } from "./use-appointment-form";
+import {
+  type UseAppointmentFormOptions,
+  useAppointmentForm,
+} from "./use-appointment-form";
 
 /** Create when `appointment` is null, edit otherwise. */
 export function AppointmentFormDialog({
   open,
   onOpenChange,
   appointment,
-  onSaved,
+  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointment: AppointmentListItem | null;
-  onSaved: () => void;
+  onSave: UseAppointmentFormOptions["onSave"];
 }) {
-  const form = useAppointmentForm({ open, onOpenChange, appointment, onSaved });
+  const form = useAppointmentForm({ open, onOpenChange, appointment, onSave });
   const { values, fieldErrors, settings, patients, clinics, providers } = form;
 
   return (

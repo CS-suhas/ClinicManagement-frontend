@@ -57,6 +57,7 @@ const columns: Column<AppointmentListItem>[] = [
 export default function Page() {
   const [range, setRange] = useState<Range>("upcoming");
   const crud = useCrudPage(useService("appointmentService"), {
+    entityName: "appointment",
     extraOptions: () => rangeOptions(range),
     extraKey: range,
   });
@@ -102,7 +103,7 @@ export default function Page() {
         open={crud.form.open}
         onOpenChange={crud.form.onOpenChange}
         appointment={crud.form.editing}
-        onSaved={crud.reload}
+        onSave={crud.save}
       />
       <ConfirmDeleteDialog
         {...crud.deleteDialog}

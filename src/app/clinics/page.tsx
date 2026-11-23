@@ -15,7 +15,9 @@ const columns: Column<Clinic>[] = [
 ];
 
 export default function Page() {
-  const crud = useCrudPage(useService("clinicService"));
+  const crud = useCrudPage(useService("clinicService"), {
+    entityName: "clinic",
+  });
 
   return (
     <>
@@ -41,7 +43,7 @@ export default function Page() {
         open={crud.form.open}
         onOpenChange={crud.form.onOpenChange}
         clinic={crud.form.editing}
-        onSaved={crud.reload}
+        onSave={crud.save}
       />
       <ConfirmDeleteDialog
         {...crud.deleteDialog}

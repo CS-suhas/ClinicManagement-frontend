@@ -1,7 +1,6 @@
 "use client";
 
 import { Grid } from "@radix-ui/themes";
-import { useService } from "@/di/container-provider";
 import type { Patient, PatientInput } from "@/domain/entities";
 import { FormDialog } from "@/presentation/components/form-dialog";
 import { TextFormField } from "@/presentation/components/form-fields";
@@ -20,22 +19,21 @@ export function PatientFormDialog({
   open,
   onOpenChange,
   patient,
-  onSaved,
+  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient: Patient | null;
-  onSaved: () => void;
+  onSave: (input: PatientInput, editing: Patient | null) => void;
 }) {
   const form = useEntityForm({
     entityName: "patient",
     idPrefix: "patient",
     open,
     onOpenChange,
-    onSaved,
+    onSave,
     entity: patient,
     empty: EMPTY,
-    service: useService("patientService"),
   });
 
   return (

@@ -21,7 +21,9 @@ const columns: Column<Patient>[] = [
 ];
 
 export default function Page() {
-  const crud = useCrudPage(useService("patientService"));
+  const crud = useCrudPage(useService("patientService"), {
+    entityName: "patient",
+  });
   const [allergiesOpen, setAllergiesOpen] = useState(false);
   const [allergyPatient, setAllergyPatient] = useState<Patient | null>(null);
 
@@ -67,7 +69,7 @@ export default function Page() {
         open={crud.form.open}
         onOpenChange={crud.form.onOpenChange}
         patient={crud.form.editing}
-        onSaved={crud.reload}
+        onSave={crud.save}
       />
       <PatientAllergiesDialog
         open={allergiesOpen}

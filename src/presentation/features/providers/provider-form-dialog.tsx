@@ -1,6 +1,5 @@
 "use client";
 
-import { useService } from "@/di/container-provider";
 import type { Clinic, Provider, ProviderInput } from "@/domain/entities";
 import { FormDialog } from "@/presentation/components/form-dialog";
 import {
@@ -22,23 +21,22 @@ export function ProviderFormDialog({
   onOpenChange,
   provider,
   clinics,
-  onSaved,
+  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   provider: Provider | null;
   clinics: Clinic[];
-  onSaved: () => void;
+  onSave: (input: ProviderInput, editing: Provider | null) => void;
 }) {
   const form = useEntityForm({
     entityName: "provider",
     idPrefix: "provider",
     open,
     onOpenChange,
-    onSaved,
+    onSave,
     entity: provider,
     empty: EMPTY,
-    service: useService("providerService"),
   });
 
   return (

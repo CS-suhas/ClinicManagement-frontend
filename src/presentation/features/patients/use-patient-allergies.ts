@@ -2,9 +2,16 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useService } from "@/di/container-provider";
-import type { Patient, PatientAllergy, Severity } from "@/domain/entities";
+import type {
+  AllergyType,
+  Patient,
+  PatientAllergy,
+  Severity,
+} from "@/domain/entities";
+import type { PagedResult } from "@/domain/repositories";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { useFormSubmit } from "@/presentation/hooks/use-form-submit";
+import { useOptimisticMutations } from "@/presentation/hooks/use-optimistic-mutations";
 
 interface AllergyForm {
   allergyId: string;
@@ -12,10 +19,19 @@ interface AllergyForm {
   notes: string;
 }
 
+interface Loaded {
+  allergies: PatientAllergy[];
+  severities: string[];
+}
+
 const EMPTY_FORM: AllergyForm = { allergyId: "", severity: "", notes: "" };
 const OPTIONS_PAGE = { page: 1, pageSize: 100 };
 
-/** Loading, editing and removing of one patient's recorded allergies. */
+/**
+ * Loading, editing and removing of one patient's recorded allergies. Changes
+ * show up at once and are sent in the background; failures roll back and
+ * show a popup.
+ */
 export function usePatientAllergies({
   open,
   patient,
@@ -28,14 +44,15 @@ export function usePatientAllergies({
   const { submitting, fieldErrors, formError, run, reset } = useFormSubmit();
 
   const patientId = patient?.id;
-  const { data, loading, error, reload } = useAsyncData(async () => {
-    if (!patientId) return { allergies: [], severities: [] as string[] };
-    const [allergyPage, severities] = await Promise.all([
-      patientAllergyService.searchByPatient(patientId, OPTIONS_PAGE),
-      configurationService.getAllergySeverities(),
-    ]);
-    return { allergies: allergyPage.items, severities };
-  }, `${open}|${patientId}`);
+  const { data, loading, error, reload, refresh, mutate } =
+    useAsyncData<Loaded>(async () => {
+      if (!patientId) return { allergies: [], severities: [] };
+      const [allergyPage, severities] = await Promise.all([
+        patientAllergyService.searchByPatient(patientId, OPTIONS_PAGE),
+        configurationService.getAllergySeverities(),
+      ]);
+      return { allergies: allergyPage.items, severities };
+    }, `${open}|${patientId}`);
 
   const [editing, setEditing] = useState<PatientAllergy | null>(null);
   const [form, setForm] = useState<AllergyForm>(EMPTY_FORM);
@@ -52,6 +69,8 @@ export function usePatientAllergies({
     data: options,
     error: optionsError,
     reload: reloadOptions,
+    refresh: refreshOptions,
+    mutate: mutateOptions,
   } = useAsyncData(
     () =>
       open && patientId
@@ -63,6 +82,11 @@ export function usePatientAllergies({
     `${open}|${patientId}|${editing?.allergyId ?? ""}`,
   );
 
+  const runOptimistic = useOptimisticMutations(() => {
+    void refresh();
+    void refreshOptions();
+  });
+
   const allergies = data?.allergies ?? [];
   const severities = data?.severities ?? [];
   const selectable = options?.items ?? [];
@@ -70,6 +94,28 @@ export function usePatientAllergies({
     allergies.find((item) => item.allergyId === allergyId)?.allergyName ??
     selectable.find((item) => item.id === allergyId)?.name ??
     allergyId;
+
+  const editAllergies = (
+    change: (items: PatientAllergy[]) => PatientAllergy[],
+  ) =>
+    mutate(
+      (current) =>
+        current && { ...current, allergies: change(current.allergies) },
+    );
+
+  /** Keeps the "choose an allergy" list in step with what is recorded. */
+  const editOptions = (
+    change: (items: AllergyType[]) => AllergyType[],
+    countChange: number,
+  ) =>
+    mutateOptions(
+      (current): PagedResult<AllergyType> | undefined =>
+        current && {
+          ...current,
+          items: change(current.items),
+          totalCount: Math.max(0, current.totalCount + countChange),
+        },
+    );
 
   const cancelEdit = () => {
     setEditing(null);
@@ -89,6 +135,48 @@ export function usePatientAllergies({
     reset();
   };
 
+  const sameAllergy = (a: { allergyId: string }, id: string) =>
+    a.allergyId === id;
+
+  const saveRecord = (record: PatientAllergy) => {
+    if (editing) {
+      const previous = editing;
+      const updated = { ...previous, ...record };
+      runOptimistic({
+        apply: () =>
+          editAllergies((items) =>
+            items.map((i) => (sameAllergy(i, record.allergyId) ? updated : i)),
+          ),
+        rollback: () =>
+          editAllergies((items) =>
+            items.map((i) => (sameAllergy(i, record.allergyId) ? previous : i)),
+          ),
+        request: () => patientAllergyService.update(record),
+        failureMessage: "Could not update allergy",
+      });
+      return;
+    }
+    const type = selectable.find((t) => t.id === record.allergyId);
+    const added = { ...record, allergyName: type?.name };
+    runOptimistic({
+      apply: () => {
+        editAllergies((items) => [...items, added]);
+        editOptions(
+          (items) => items.filter((t) => t.id !== record.allergyId),
+          -1,
+        );
+      },
+      rollback: () => {
+        editAllergies((items) =>
+          items.filter((i) => !sameAllergy(i, record.allergyId)),
+        );
+        if (type) editOptions((items) => [...items, type], 1);
+      },
+      request: () => patientAllergyService.add(record),
+      failureMessage: "Could not add allergy",
+    });
+  };
+
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!patient) return;
@@ -98,17 +186,39 @@ export function usePatientAllergies({
       severity: form.severity,
       notes: form.notes.trim(),
     };
-    const ok = await run(() =>
-      editing
-        ? patientAllergyService.update(record)
-        : patientAllergyService.add(record),
-    );
-    if (ok) {
-      const wasEditing = editing !== null;
-      cancelEdit();
-      void reload();
-      if (!wasEditing) void reloadOptions();
-    }
+    const saved = await run(async () => {
+      patientAllergyService.validateInput(record);
+      saveRecord(record);
+    });
+    if (saved) cancelEdit();
+  };
+
+  const remove = (pa: PatientAllergy) => {
+    if (!patient) return;
+    if (editing && sameAllergy(editing, pa.allergyId)) cancelEdit();
+    const type: AllergyType = {
+      id: pa.allergyId,
+      name: typeName(pa.allergyId),
+    };
+    let index = -1;
+    runOptimistic({
+      apply: () => {
+        editAllergies((items) => {
+          index = items.findIndex((i) => sameAllergy(i, pa.allergyId));
+          return items.filter((i) => !sameAllergy(i, pa.allergyId));
+        });
+        editOptions((items) => [...items, type], 1);
+      },
+      rollback: () => {
+        editAllergies((items) => {
+          const at = index < 0 ? items.length : index;
+          return [...items.slice(0, at), pa, ...items.slice(at)];
+        });
+        editOptions((items) => items.filter((t) => t.id !== pa.allergyId), -1);
+      },
+      request: () => patientAllergyService.remove(patient.id, pa.allergyId),
+      failureMessage: "Could not remove allergy",
+    });
   };
 
   return {
@@ -140,20 +250,7 @@ export function usePatientAllergies({
     removeDialog: {
       open: removing !== null,
       onOpenChange: (isOpen: boolean) => !isOpen && setRemoving(null),
-      onConfirm: () =>
-        removing && patient
-          ? patientAllergyService.remove(patient.id, removing.allergyId)
-          : Promise.resolve(),
-      onDeleted: () => {
-        const wasEditing =
-          editing !== null &&
-          removing !== null &&
-          editing.allergyId === removing.allergyId;
-        if (wasEditing) cancelEdit();
-        setRemoving(null);
-        void reload();
-        if (!wasEditing) void reloadOptions();
-      },
+      onConfirm: () => removing && remove(removing),
     },
   };
 }
