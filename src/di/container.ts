@@ -22,7 +22,6 @@ import type {
   AllergyTypeRepository,
   AppointmentRepository,
   ClinicRepository,
-  DashboardRepository,
   PatientAllergyRepository,
   PatientRepository,
   ProviderRepository,
@@ -38,6 +37,7 @@ import {
 } from "@/infrastructure/http/rest-repositories";
 import { LocalStorageCollection } from "@/infrastructure/mock/local-storage-collection";
 import { MockConfigurationRepository } from "@/infrastructure/mock/mock-configuration-repository";
+import { createMockDashboardRepository } from "@/infrastructure/mock/mock-dashboard-repository";
 import {
   MockAppointmentRepository,
   MockCrudRepository,
@@ -133,57 +133,6 @@ function createRestRepositories(baseUrl: string): Repositories {
     allergyTypes: new RestCrudRepository(http, "/allergy-types"),
     patientAllergies: new RestPatientAllergyRepository(http),
     appointments: new RestAppointmentRepository(http),
-  };
-}
-
-function createMockDashboardRepository(
-  repositories: Repositories,
-): DashboardRepository {
-  return {
-    async getDashboard() {
-      const [clinics, providers, patients, allergyTypes, appointments] =
-        await Promise.all([
-          repositories.clinics.list(),
-          repositories.providers.list(),
-          repositories.patients.list(),
-          repositories.allergyTypes.list(),
-          repositories.appointments.list(),
-        ]);
-      const patientById = new Map(patients.map((item) => [item.id, item]));
-      const providerById = new Map(providers.map((item) => [item.id, item]));
-      const clinicById = new Map(clinics.map((item) => [item.id, item]));
-      const upcomingAppointments = appointments
-        .filter((item) => Date.parse(item.appointmentDateTime) >= Date.now())
-        .sort((a, b) =>
-          a.appointmentDateTime.localeCompare(b.appointmentDateTime),
-        )
-        .slice(0, 5)
-        .map((item) => {
-          const provider = providerById.get(item.providerId);
-          const patient = patientById.get(item.patientId);
-          const clinic = provider ? clinicById.get(provider.clinicId) : null;
-          return {
-            ...item,
-            patientName: patient
-              ? `${patient.firstName} ${patient.lastName}`.trim()
-              : "",
-            providerName: provider
-              ? `${provider.firstName} ${provider.lastName}`.trim()
-              : "",
-            providerSpecialty: provider?.specialty ?? "",
-            clinicId: provider?.clinicId ?? "",
-            clinicName: clinic?.name ?? "",
-          };
-        });
-      return {
-        clinics: clinics.length,
-        providers: providers.length,
-        patients: patients.length,
-        allergyTypes: allergyTypes.length,
-        appointments: appointments.length,
-        upcomingAppointments,
-      };
-    },
   };
 }
 
