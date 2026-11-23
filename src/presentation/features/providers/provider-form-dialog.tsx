@@ -1,6 +1,12 @@
 "use client";
 
-import type { Clinic, Provider, ProviderInput } from "@/domain/entities";
+import {
+  type Clinic,
+  PROVIDER_GENDER_LABELS,
+  PROVIDER_GENDERS,
+  type Provider,
+  type ProviderInput,
+} from "@/domain/entities";
 import { FormDialog } from "@/presentation/components/form-dialog";
 import {
   SelectFormField,
@@ -13,7 +19,19 @@ const EMPTY: ProviderInput = {
   firstName: "",
   lastName: "",
   specialty: "",
+  fee: null,
+  gender: null,
 };
+
+/** Radix selects cannot use "" as an item value, so "not set" gets a sentinel. */
+const NOT_SPECIFIED = "NOT_SPECIFIED";
+const GENDER_OPTIONS = [
+  { value: NOT_SPECIFIED, label: "Not specified" },
+  ...PROVIDER_GENDERS.map((g) => ({
+    value: g,
+    label: PROVIDER_GENDER_LABELS[g],
+  })),
+];
 
 /** Create when `provider` is null, edit otherwise. */
 export function ProviderFormDialog({
@@ -49,6 +67,18 @@ export function ProviderFormDialog({
         placeholder="Select a clinic"
         options={clinics.map((c) => ({ value: c.id, label: c.name }))}
         {...form.selectField("clinicId")}
+      />
+      <TextFormField
+        label="Fee"
+        type="number"
+        min={0}
+        step={0.01}
+        {...form.numberField("fee")}
+      />
+      <SelectFormField
+        label="Gender"
+        options={GENDER_OPTIONS}
+        {...form.nullableSelectField("gender", NOT_SPECIFIED)}
       />
     </FormDialog>
   );

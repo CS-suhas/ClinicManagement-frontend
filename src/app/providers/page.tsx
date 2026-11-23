@@ -3,7 +3,11 @@
 import { Flex } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
-import { type Provider, providerFullName } from "@/domain/entities";
+import {
+  PROVIDER_GENDER_LABELS,
+  type Provider,
+  providerFullName,
+} from "@/domain/entities";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
 import { ErrorCallout } from "@/presentation/components/error-callout";
@@ -15,6 +19,7 @@ import { ListPage } from "@/presentation/components/list-page";
 import { ProviderFormDialog } from "@/presentation/features/providers/provider-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
+import { formatFee } from "@/presentation/lib/format";
 
 export default function Page() {
   const clinicService = useService("clinicService");
@@ -39,6 +44,11 @@ export default function Page() {
     { header: "Name", cell: providerFullName },
     { header: "Specialty", cell: (p) => p.specialty },
     { header: "Clinic", cell: (p) => clinicName(p.clinicId) ?? "—" },
+    { header: "Fee", cell: (p) => formatFee(p.fee) },
+    {
+      header: "Gender",
+      cell: (p) => (p.gender ? PROVIDER_GENDER_LABELS[p.gender] : "—"),
+    },
   ];
   const hasFilters = crud.query !== "" || clinicFilter !== ALL_FILTER;
 

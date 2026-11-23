@@ -1,3 +1,4 @@
+import type { VerificationStatus } from "@/domain/auth";
 import type {
   AllergyType,
   Appointment,
@@ -5,6 +6,9 @@ import type {
   Clinic,
   ClinicInput,
   PatientAllergy,
+  Provider,
+  ProviderGender,
+  ProviderInput,
 } from "@/domain/entities";
 import type {
   AppointmentListItem,
@@ -131,6 +135,52 @@ const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
     phoneNumber: input.phoneNumber,
   }),
 };
+
+interface ProviderResponse {
+  id: string;
+  clinicId: string | null;
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  verificationStatus: VerificationStatus;
+  fee: number | null;
+  /** Always uppercase in responses. */
+  gender: ProviderGender | null;
+}
+
+const providerMapper: RestMapper<Provider, ProviderInput, ProviderResponse> = {
+  fromResponse: (provider) => ({
+    id: provider.id,
+    // A self-registered doctor may have no clinic yet; the form treats "" as unset.
+    clinicId: provider.clinicId ?? "",
+    firstName: provider.firstName,
+    lastName: provider.lastName,
+    specialty: provider.specialty,
+    verificationStatus: provider.verificationStatus,
+    fee: provider.fee,
+    gender: provider.gender,
+  }),
+  // PUT replaces the whole record, so null is sent explicitly to clear a value.
+  toRequest: (input) => ({
+    clinicId: input.clinicId,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    specialty: input.specialty,
+    fee: input.fee ?? null,
+    gender: input.gender ?? null,
+  }),
+};
+
+/** Providers are created and updated with fee and gender, and never send verificationStatus. */
+export class RestProviderRepository extends RestCrudRepository<
+  Provider,
+  ProviderInput,
+  ProviderResponse
+> {
+  constructor(http: HttpClient) {
+    super(http, "/providers", providerMapper);
+  }
+}
 
 /** Clinics are stored with `address`, which the domain calls `location`. */
 export class RestClinicRepository extends RestCrudRepository<

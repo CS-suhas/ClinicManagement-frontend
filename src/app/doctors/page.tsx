@@ -32,7 +32,10 @@ export default function DoctorsPage() {
       clinicService.list(),
     ]);
     const clinicById = new Map(clinics.map((c) => [c.id, c]));
-    return providers.map((p) => toDoctorProfile(p, clinicById.get(p.clinicId)));
+    // Mirror the backend directory: only verified doctors are public.
+    return providers
+      .filter((p) => (p.verificationStatus ?? "VERIFIED") === "VERIFIED")
+      .map((p) => toDoctorProfile(p, clinicById.get(p.clinicId)));
   });
 
   const doctors = useMemo(

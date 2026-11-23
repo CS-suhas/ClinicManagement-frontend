@@ -8,6 +8,7 @@ import { Badge, Button, Flex, Heading, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { IconCircle } from "@/presentation/components/ui/icon-circle";
 import { Surface } from "@/presentation/components/ui/surface";
+import { formatFee } from "@/presentation/lib/format";
 import { DoctorAvatar } from "./doctor-avatar";
 import type { DoctorProfile } from "./doctor-profile";
 
@@ -50,9 +51,9 @@ export function DoctorCard({
                 {doctor.qualifications}
               </Text>
             )}
-            {consultationFee !== undefined && (
+            {consultationFee != null && (
               <Text as="p" size="2" weight="medium">
-                ${consultationFee} consultation fee at clinic
+                {formatFee(consultationFee)} consultation fee at clinic
               </Text>
             )}
             {doctor.clinicName && (

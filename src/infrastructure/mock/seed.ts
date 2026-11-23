@@ -29,6 +29,9 @@ export const seedProviders: Provider[] = [
     firstName: "Alice",
     lastName: "Moreno",
     specialty: "General Practice",
+    fee: 80,
+    gender: "FEMALE",
+    verificationStatus: "VERIFIED",
   },
   {
     id: "pr2",
@@ -36,6 +39,9 @@ export const seedProviders: Provider[] = [
     firstName: "Ben",
     lastName: "Okafor",
     specialty: "Cardiology",
+    fee: 150.5,
+    gender: "MALE",
+    verificationStatus: "VERIFIED",
   },
   {
     id: "pr3",
@@ -43,6 +49,9 @@ export const seedProviders: Provider[] = [
     firstName: "Chen",
     lastName: "Li",
     specialty: "Pediatrics",
+    fee: null,
+    gender: null,
+    verificationStatus: "PENDING",
   },
 ];
 

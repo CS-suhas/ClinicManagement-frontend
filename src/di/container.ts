@@ -37,6 +37,7 @@ import {
   RestCrudRepository,
   RestDashboardRepository,
   RestPatientAllergyRepository,
+  RestProviderRepository,
 } from "@/infrastructure/http/rest-repositories";
 import { LocalStorageCollection } from "@/infrastructure/mock/local-storage-collection";
 import {
@@ -141,7 +142,7 @@ function createRestRepositories(
   const http = new HttpClient(baseUrl, getToken);
   return {
     clinics: new RestClinicRepository(http),
-    providers: new RestCrudRepository(http, "/providers"),
+    providers: new RestProviderRepository(http),
     patients: new RestCrudRepository(http, "/patients"),
     allergyTypes: new RestCrudRepository(http, "/allergy-types"),
     patientAllergies: new RestPatientAllergyRepository(http),

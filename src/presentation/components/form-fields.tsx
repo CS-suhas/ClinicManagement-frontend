@@ -11,6 +11,8 @@ export function TextFormField({
   value,
   onChange,
   type,
+  min,
+  step,
 }: {
   label: string;
   id: string;
@@ -18,10 +20,19 @@ export function TextFormField({
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   type?: ComponentProps<typeof TextField.Root>["type"];
+  min?: number;
+  step?: number;
 }) {
   return (
     <FormField label={label} htmlFor={id} error={error}>
-      <TextField.Root id={id} type={type} value={value} onChange={onChange} />
+      <TextField.Root
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        min={min}
+        step={step}
+      />
     </FormField>
   );
 }

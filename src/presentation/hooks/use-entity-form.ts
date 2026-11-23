@@ -8,6 +8,8 @@ type StringKey<T> = {
 }[keyof T] &
   string;
 
+type KeyOf<T> = Extract<keyof T, string>;
+
 interface UseEntityFormOptions<
   TEntity extends TValues & { id: string },
   TValues,
@@ -84,6 +86,28 @@ export function useEntityForm<
       ...base(name),
       onValueChange: (value: string) =>
         setValues((v) => ({ ...v, [name]: value })),
+    }),
+    /** Props for a select whose "not set" choice (`noneValue`) is stored as null. */
+    nullableSelectField: (name: KeyOf<TValues>, noneValue: string) => ({
+      id: `${idPrefix}-${name}`,
+      value: values[name] == null ? noneValue : String(values[name]),
+      error: fieldErrors[name],
+      onValueChange: (value: string) =>
+        setValues((v) => ({
+          ...v,
+          [name]: value === noneValue ? null : value,
+        })),
+    }),
+    /** Props for a number input; an empty box stores null. */
+    numberField: (name: KeyOf<TValues>) => ({
+      id: `${idPrefix}-${name}`,
+      value: values[name] == null ? "" : String(values[name]),
+      error: fieldErrors[name],
+      onChange: (e: ChangeEvent<HTMLInputElement>) =>
+        setValues((v) => ({
+          ...v,
+          [name]: e.target.value === "" ? null : Number(e.target.value),
+        })),
     }),
     /** Spread onto FormDialog. */
     dialogProps: {
