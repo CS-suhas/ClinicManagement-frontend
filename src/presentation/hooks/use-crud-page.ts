@@ -68,6 +68,12 @@ export function useCrudPage<
     },
     deleting,
     setDeleting,
-    confirmDelete: () => service.delete(deleting?.id ?? ""),
+    /** Spread onto ConfirmDeleteDialog; supply `title` and `description`. */
+    deleteDialog: {
+      open: deleting !== null,
+      onOpenChange: (open: boolean) => !open && setDeleting(null),
+      onConfirm: () => service.delete(deleting?.id ?? ""),
+      onDeleted: reload,
+    },
   };
 }
