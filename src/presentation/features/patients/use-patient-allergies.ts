@@ -35,9 +35,12 @@ const OPTIONS_PAGE = { page: 1, pageSize: 100 };
 export function usePatientAllergies({
   open,
   patient,
+  readOnly = false,
 }: {
   open: boolean;
   patient: Patient | null;
+  /** Lists the allergies without offering any change. Doctors see the record this way. */
+  readOnly?: boolean;
 }) {
   const patientAllergyService = useService("patientAllergyService");
   const configurationService = useService("configurationService");
@@ -73,7 +76,7 @@ export function usePatientAllergies({
     mutate: mutateOptions,
   } = useAsyncData(
     () =>
-      open && patientId
+      open && patientId && !readOnly
         ? patientAllergyService.allergyOptions(patientId, {
             ...OPTIONS_PAGE,
             selectedAllergyId: editing?.allergyId,
@@ -124,6 +127,7 @@ export function usePatientAllergies({
   };
 
   const startEdit = (pa: PatientAllergy) => {
+    if (readOnly) return;
     setEditing(pa);
     setForm({
       allergyId: pa.allergyId,
@@ -179,7 +183,7 @@ export function usePatientAllergies({
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!patient) return;
+    if (!patient || readOnly) return;
     const record: PatientAllergy = {
       patientId: patient.id,
       allergyId: form.allergyId,
@@ -194,7 +198,7 @@ export function usePatientAllergies({
   };
 
   const remove = (pa: PatientAllergy) => {
-    if (!patient) return;
+    if (!patient || readOnly) return;
     if (editing && sameAllergy(editing, pa.allergyId)) cancelEdit();
     const type: AllergyType = {
       id: pa.allergyId,
@@ -222,6 +226,7 @@ export function usePatientAllergies({
   };
 
   return {
+    readOnly,
     // recorded allergies (given an `id` so they fit DataTable)
     allergies: allergies.map((a) => ({ ...a, id: a.allergyId })),
     severities,

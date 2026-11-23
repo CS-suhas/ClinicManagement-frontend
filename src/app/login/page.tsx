@@ -4,6 +4,7 @@ import { Button, Flex, Heading, Spinner, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { needsOnboarding } from "@/application/auth/permissions";
 import { useService } from "@/di/container-provider";
 import { useAuth } from "@/presentation/auth/auth-provider";
 import { RoleBadges } from "@/presentation/auth/role-badges";
@@ -27,8 +28,13 @@ function LoginContent() {
     setPendingId(personaId);
     setError(null);
     try {
-      await signIn(personaId);
-      router.replace(next);
+      const signedIn = await signIn(personaId);
+      // Accounts that are not set up yet go through onboarding first, then on to `next`.
+      router.replace(
+        needsOnboarding(signedIn)
+          ? `/onboarding?next=${encodeURIComponent(next)}`
+          : next,
+      );
     } catch (e) {
       setError(getErrorMessage(e));
       setPendingId(null);

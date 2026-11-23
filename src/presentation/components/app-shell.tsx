@@ -1,18 +1,28 @@
 "use client";
 
-import { ExclamationTriangleIcon, ExitIcon } from "@radix-ui/react-icons";
+import {
+  ExclamationTriangleIcon,
+  ExitIcon,
+  MagnifyingGlassIcon,
+} from "@radix-ui/react-icons";
 import { Button, DropdownMenu, Spinner } from "@radix-ui/themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, Suspense, useEffect, useState } from "react";
 import {
   canAccessRoute,
   hasRole,
+  isOnboardingExempt,
   NAV_ITEMS,
+  type NavBadge,
+  needsOnboarding,
 } from "@/application/auth/permissions";
 import { useService } from "@/di/container-provider";
 import { useAuth } from "@/presentation/auth/auth-provider";
 import { RoleBadges } from "@/presentation/auth/role-badges";
+import { CommandPalette } from "@/presentation/features/command-palette/command-palette";
+import { NotificationBell } from "@/presentation/features/notification-bell/notification-bell";
+import { useMyDashboard } from "@/presentation/features/notification-bell/use-my-dashboard";
 import { getErrorMessage } from "../lib/errors";
 import { useNotify } from "./notifications";
 import { IconCircle } from "./ui/icon-circle";
@@ -20,28 +30,83 @@ import { PersonAvatar } from "./ui/person-avatar";
 import { Surface } from "./ui/surface";
 import { Wordmark } from "./ui/wordmark";
 
-/** Public pages render without the admin navbar and need no sign-in. */
-const PUBLIC_ROUTES = ["/", "/doctors", "/login"];
-
 const PAGE_BACKGROUND = "#f3f8f7";
 
+/** Public pages render without the admin navbar and need no sign-in. */
+function isPublicPath(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/doctors" ||
+    pathname.startsWith("/doctors/")
+  );
+}
+
+/** Pathname plus query string, so a redirect can bring the user back exactly. */
+function currentTarget(pathname: string): string {
+  return `${pathname}${window.location.search}`;
+}
+
+/** The count a nav badge shows, from the dashboard counts. */
+function badgeCount(
+  badge: NavBadge,
+  mine: ReturnType<typeof useMyDashboard>["data"],
+): number {
+  if (!mine) return 0;
+  if (badge === "approvals")
+    return mine.admin?.pendingProviderVerificationCount ?? 0;
+  return (
+    mine.admin?.pendingJoinRequestCount ??
+    mine.clinicAdmin?.pendingJoinRequestCount ??
+    0
+  );
+}
+
+/**
+ * The chrome around every page. The pathname hook sits inside Suspense so
+ * dynamic routes (/patients/[id], /clinics/[id]) can prerender their shell
+ * instead of blocking the build on a value only known at request time.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <ShellFrame>{children}</ShellFrame>
+    </Suspense>
+  );
+}
+
+function ShellFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const personas = useService("authPersonas");
   const notify = useNotify();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const { data: mine } = useMyDashboard(user?.subject ?? null);
   const isActive = (href: string) => pathname.startsWith(href);
-  const isPublic = PUBLIC_ROUTES.includes(pathname);
+  const isPublic = isPublicPath(pathname);
   const signedIn = user !== null;
+  const gated =
+    user !== null && needsOnboarding(user) && !isOnboardingExempt(pathname);
 
   useEffect(() => {
     if (isPublic || loading || signedIn) return;
-    router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    router.replace(
+      `/login?next=${encodeURIComponent(currentTarget(pathname))}`,
+    );
   }, [isPublic, loading, signedIn, pathname, router]);
 
+  // A user who has not finished setting up goes to onboarding, keeping where they were headed.
+  useEffect(() => {
+    if (!gated) return;
+    router.replace(
+      `/onboarding?next=${encodeURIComponent(currentTarget(pathname))}`,
+    );
+  }, [gated, pathname, router]);
+
   if (isPublic) return <>{children}</>;
-  if (loading || !user) return <LoadingScreen />;
+  // Only a missing user shows the spinner: a session refresh keeps the page mounted.
+  if (!user || gated) return <LoadingScreen />;
 
   const allowed = canAccessRoute(user, pathname);
   const navItems = NAV_ITEMS.filter(
@@ -59,6 +124,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen" style={{ background: PAGE_BACKGROUND }}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+        style={{ color: "var(--mp-ink)" }}
+      >
+        Skip to content
+      </a>
       <header
         className="flex flex-wrap items-stretch justify-between gap-x-6 bg-white px-6 md:px-12"
         style={{ borderBottom: "1px solid var(--mp-paper-deep)" }}
@@ -71,8 +143,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-label="Main"
           className="order-last -mx-6 flex w-[calc(100%+3rem)] min-w-0 items-stretch overflow-x-auto px-6 md:order-none md:mx-0 md:w-auto md:flex-1 md:px-0"
         >
-          {navItems.map(({ href, label }) => {
+          {navItems.map(({ href, label, badge }) => {
             const active = isActive(href);
+            const count = badge ? badgeCount(badge, mine) : 0;
             return (
               <Link
                 key={href}
@@ -85,6 +158,19 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }}
               >
                 {label}
+                {count > 0 && (
+                  <span
+                    className="ml-1.5 inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold"
+                    style={{
+                      background: "#fdf3dc",
+                      color: "#8a5a12",
+                      height: 20,
+                    }}
+                  >
+                    {count}
+                    <span className="sr-only"> pending</span>
+                  </span>
+                )}
                 {active && (
                   <span
                     aria-hidden="true"
@@ -97,7 +183,23 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="flex items-center py-3">
+        <div className="flex items-center gap-1 py-3">
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            aria-label="Search (Ctrl K)"
+            className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border-0 bg-transparent px-2 text-sm"
+            style={{ color: "var(--mp-muted)" }}
+          >
+            <MagnifyingGlassIcon width={18} height={18} aria-hidden="true" />
+            <kbd
+              className="hidden rounded border px-1.5 text-xs md:inline"
+              style={{ borderColor: "var(--mp-paper-deep)" }}
+            >
+              Ctrl K
+            </kbd>
+          </button>
+          <NotificationBell mine={mine} user={user} />
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               <button
@@ -136,7 +238,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="px-6 py-8 md:px-12">
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        user={user}
+      />
+
+      <main id="main-content" className="px-6 py-8 md:px-12">
         {allowed ? (
           children
         ) : (

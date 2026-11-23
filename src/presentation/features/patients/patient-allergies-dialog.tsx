@@ -14,17 +14,22 @@ import {
 import { SeverityBadge, severityLabel } from "./severity-badge";
 import { usePatientAllergies } from "./use-patient-allergies";
 
-/** Lists and edits the allergies recorded for one patient. */
+/**
+ * Lists and edits the allergies recorded for one patient. With `readOnly` the
+ * list shows without edit, delete or add, for roles that may only read it.
+ */
 export function PatientAllergiesDialog({
   open,
   onOpenChange,
   patient,
+  readOnly = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient: Patient | null;
+  readOnly?: boolean;
 }) {
-  const state = usePatientAllergies({ open, patient });
+  const state = usePatientAllergies({ open, patient, readOnly });
   const { form, editing, fieldErrors } = state;
 
   const columns: Column<(typeof state.allergies)[number]>[] = [
@@ -44,7 +49,9 @@ export function PatientAllergiesDialog({
             Allergies — {patient ? patientFullName(patient) : ""}
           </Dialog.Title>
           <Dialog.Description size="2" color="gray" mb="4">
-            Record known allergies, their severity and notes.
+            {readOnly
+              ? "Recorded allergies, their severity and notes. Read only."
+              : "Record known allergies, their severity and notes."}
           </Dialog.Description>
 
           <Flex direction="column" gap="4">
@@ -59,88 +66,92 @@ export function PatientAllergiesDialog({
                 columns={columns}
                 rows={state.allergies}
                 rowLabel={(pa) => state.typeName(pa.allergyId)}
-                onEdit={state.startEdit}
-                onDelete={state.setRemoving}
+                onEdit={readOnly ? undefined : state.startEdit}
+                onDelete={readOnly ? undefined : state.setRemoving}
               />
             </AsyncContent>
 
-            <form onSubmit={state.submit} noValidate>
-              <Flex direction="column" gap="3">
-                <Text size="2" weight="bold">
-                  {editing ? "Edit allergy" : "Add allergy"}
-                </Text>
-                {state.formError && <ErrorCallout message={state.formError} />}
-                {state.optionsError && (
-                  <ErrorCallout
-                    message={state.optionsError}
-                    onRetry={() => void state.reloadOptions()}
-                  />
-                )}
-                <Grid columns="2" gap="3">
-                  <SelectFormField
-                    label="Allergy"
-                    id="allergy-select"
-                    placeholder="Choose an allergy…"
-                    error={fieldErrors.allergyId}
-                    disabled={editing !== null}
-                    value={form.allergyId}
-                    onValueChange={(v) => state.setField("allergyId", v)}
-                    options={state.selectable.map((t) => ({
-                      value: t.id,
-                      label: t.name,
-                    }))}
-                  />
-                  <SelectFormField
-                    label="Severity"
-                    id="allergy-severity"
-                    error={fieldErrors.severity}
-                    value={form.severity}
-                    onValueChange={(v) => state.setField("severity", v)}
-                    options={state.severities.map((s) => ({
-                      value: s,
-                      label: severityLabel(s),
-                    }))}
-                  />
-                </Grid>
-                {state.allAllergiesRecorded && (
-                  <Text size="1" color="gray">
-                    Every allergy type is already recorded for this patient.
+            {!readOnly && (
+              <form onSubmit={state.submit} noValidate>
+                <Flex direction="column" gap="3">
+                  <Text size="2" weight="bold">
+                    {editing ? "Edit allergy" : "Add allergy"}
                   </Text>
-                )}
-                <TextAreaFormField
-                  label="Notes"
-                  id="allergy-notes"
-                  value={form.notes}
-                  onChange={(e) => state.setField("notes", e.target.value)}
-                />
-                <Flex gap="2" justify="end">
-                  {editing && (
-                    <Button
-                      type="button"
-                      variant="soft"
-                      color="gray"
-                      disabled={state.submitting}
-                      onClick={state.cancelEdit}
-                    >
-                      Cancel edit
-                    </Button>
+                  {state.formError && (
+                    <ErrorCallout message={state.formError} />
                   )}
-                  <Button
-                    type="submit"
-                    loading={state.submitting}
-                    disabled={!patient}
-                  >
-                    {editing ? (
-                      "Save changes"
-                    ) : (
-                      <>
-                        <PlusIcon /> Add allergy
-                      </>
+                  {state.optionsError && (
+                    <ErrorCallout
+                      message={state.optionsError}
+                      onRetry={() => void state.reloadOptions()}
+                    />
+                  )}
+                  <Grid columns="2" gap="3">
+                    <SelectFormField
+                      label="Allergy"
+                      id="allergy-select"
+                      placeholder="Choose an allergy…"
+                      error={fieldErrors.allergyId}
+                      disabled={editing !== null}
+                      value={form.allergyId}
+                      onValueChange={(v) => state.setField("allergyId", v)}
+                      options={state.selectable.map((t) => ({
+                        value: t.id,
+                        label: t.name,
+                      }))}
+                    />
+                    <SelectFormField
+                      label="Severity"
+                      id="allergy-severity"
+                      error={fieldErrors.severity}
+                      value={form.severity}
+                      onValueChange={(v) => state.setField("severity", v)}
+                      options={state.severities.map((s) => ({
+                        value: s,
+                        label: severityLabel(s),
+                      }))}
+                    />
+                  </Grid>
+                  {state.allAllergiesRecorded && (
+                    <Text size="1" color="gray">
+                      Every allergy type is already recorded for this patient.
+                    </Text>
+                  )}
+                  <TextAreaFormField
+                    label="Notes"
+                    id="allergy-notes"
+                    value={form.notes}
+                    onChange={(e) => state.setField("notes", e.target.value)}
+                  />
+                  <Flex gap="2" justify="end">
+                    {editing && (
+                      <Button
+                        type="button"
+                        variant="soft"
+                        color="gray"
+                        disabled={state.submitting}
+                        onClick={state.cancelEdit}
+                      >
+                        Cancel edit
+                      </Button>
                     )}
-                  </Button>
+                    <Button
+                      type="submit"
+                      loading={state.submitting}
+                      disabled={!patient}
+                    >
+                      {editing ? (
+                        "Save changes"
+                      ) : (
+                        <>
+                          <PlusIcon /> Add allergy
+                        </>
+                      )}
+                    </Button>
+                  </Flex>
                 </Flex>
-              </Flex>
-            </form>
+              </form>
+            )}
 
             <Flex justify="end">
               <Dialog.Close>
