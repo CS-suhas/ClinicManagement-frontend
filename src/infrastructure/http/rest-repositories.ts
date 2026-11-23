@@ -527,24 +527,17 @@ export class RestAppointmentAvailabilityRepository
   constructor(private readonly http: HttpClient) {}
 
   async getBusyStarts(providerId: string, date: string): Promise<string[]> {
-    // TODO(contract): confirm the busy-slots response shape with the backend.
-    // string[] is assumed; {items} and {busyStarts} are also accepted.
-    const raw = await this.http.get<unknown>(
+    // `date` is a UTC day on the API; a Sri Lanka clinic day (08:00-16:00
+    // +05:30) falls inside the same UTC date, so the local day is passed as is.
+    // Times come back in UTC; callers compare instants, so no conversion here.
+    const raw = await this.http.get<{ busyStartTimes?: unknown }>(
       `/providers/${encodeURIComponent(providerId)}/busy-slots?${queryString({ date })}`,
     );
-    return parseBusyStarts(raw);
+    const list = raw?.busyStartTimes;
+    if (!Array.isArray(list) || !list.every((s) => typeof s === "string"))
+      throw new Error("The API returned invalid busy slots.");
+    return list;
   }
-}
-
-function parseBusyStarts(raw: unknown): string[] {
-  const list: unknown =
-    Array.isArray(raw) || !raw || typeof raw !== "object"
-      ? raw
-      : ((raw as { items?: unknown }).items ??
-        (raw as { busyStarts?: unknown }).busyStarts);
-  if (!Array.isArray(list) || !list.every((s) => typeof s === "string"))
-    throw new Error("The API returned invalid busy slots.");
-  return list;
 }
 
 /** Clinic join requests. Each path follows the API contract in the backend notes. */
