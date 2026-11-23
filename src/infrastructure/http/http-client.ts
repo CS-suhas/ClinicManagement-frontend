@@ -16,11 +16,14 @@ export class HttpError extends Error {
   }
 }
 
+/** A fixed base URL, or a function resolved on every request (see `resolveApiBaseUrl`). */
+export type BaseUrl = string | (() => string);
+
 /** Thin fetch wrapper that maps HTTP failures onto domain errors. */
 export class HttpClient {
   /** `getToken` supplies the bearer token; requests omit the header when it is null. */
   constructor(
-    private readonly baseUrl: string,
+    private readonly baseUrl: BaseUrl,
     private readonly getToken?: () => Promise<string | null>,
   ) {}
 
@@ -56,7 +59,9 @@ export class HttpClient {
     const token = await this.getToken?.();
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}${path}`, {
+    const baseUrl =
+      typeof this.baseUrl === "function" ? this.baseUrl() : this.baseUrl;
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}${path}`, {
       method,
       headers: Object.keys(headers).length > 0 ? headers : undefined,
       body: body !== undefined ? JSON.stringify(body) : undefined,

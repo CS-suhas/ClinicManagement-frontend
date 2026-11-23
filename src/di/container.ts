@@ -28,7 +28,8 @@ import type {
   ProviderVerificationRepository,
   SummaryRepository,
 } from "@/domain/repositories";
-import { HttpClient } from "@/infrastructure/http/http-client";
+import { resolveApiBaseUrl } from "@/infrastructure/http/api-base-url";
+import { type BaseUrl, HttpClient } from "@/infrastructure/http/http-client";
 import { RestAuthRepository } from "@/infrastructure/http/rest-auth-repository";
 import {
   RestAppointmentAvailabilityRepository,
@@ -77,7 +78,8 @@ export type DataSource = "mock" | "rest";
 
 export interface ContainerConfig {
   dataSource: DataSource;
-  apiBaseUrl: string;
+  /** Usually `resolveApiBaseUrl`, so the URL is picked per request (browser vs. server). */
+  apiBaseUrl: BaseUrl;
 }
 
 /** Everything the presentation layer is allowed to depend on. */
@@ -231,7 +233,7 @@ function createMockRepositories(): Repositories {
   };
 }
 
-function createRestRepositories(baseUrl: string): Repositories {
+function createRestRepositories(baseUrl: BaseUrl): Repositories {
   // The REST clients read their token from the auth repository on each request.
   const http: HttpClient = new HttpClient(baseUrl, () => auth.getAccessToken());
   const auth: RestAuthRepository = new RestAuthRepository(http);
@@ -284,8 +286,9 @@ export function createContainer(config: ContainerConfig): Container {
   const clinicJoinService = new ClinicJoinService(r.clinicJoinRequests);
   const configurationService = new ConfigurationService(
     isRest
-      ? // Served by the Next.js rewrites in next.config.ts, hence no base URL.
-        new RestConfigurationRepository(new HttpClient("", getToken))
+      ? new RestConfigurationRepository(
+          new HttpClient(config.apiBaseUrl, getToken),
+        )
       : new MockConfigurationRepository(),
   );
 
@@ -323,6 +326,7 @@ export function configFromEnv(): ContainerConfig {
   return {
     dataSource:
       process.env.NEXT_PUBLIC_DATA_SOURCE === "rest" ? "rest" : "mock",
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api",
+    // Resolved at request time: "/api" in the browser, API_INTERNAL_URL on the server.
+    apiBaseUrl: resolveApiBaseUrl,
   };
 }

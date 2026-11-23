@@ -18,13 +18,41 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## API configuration
 
-The frontend reads API settings from `NEXT_PUBLIC_API_URL` (default:
-`http://localhost:8080/api`). It requests `GET /allergy-severities` for the
-available allergy severity values and `GET /appointment-settings` for
+No API URL is baked into the build, so one image runs on any host:
+
+- **Browser code** always calls the API on the same origin at the relative
+  path `/api` (e.g. `/api/clinics`). No CORS is involved.
+- **Server-side code** (server components, route handlers, SSR) cannot use a
+  relative URL, so it calls `API_INTERNAL_URL`, read from the environment at
+  request time (default: `http://localhost:8080/api`).
+
+| Variable | When it is read | Purpose |
+| --- | --- | --- |
+| `API_INTERNAL_URL` | Runtime (server) | API base URL for server-side code, e.g. `http://api:8080/api` in Docker. In `npm run dev` it is also where `/api/*` is forwarded. |
+| `NEXT_PUBLIC_DATA_SOURCE` | Build time | `rest` to use the API, `mock` (default) for in-browser sample data. The Docker image is built with `rest`. |
+
+Copy `.env.example` to `.env` to get started.
+
+**Local development:** `npm run dev` forwards `/api/*` to `API_INTERNAL_URL`
+(a dev-only rewrite in `next.config.ts`), so the browser reaches a local API on
+`http://localhost:8080/api` without a proxy.
+
+**Production:** a reverse proxy on the same origin must route `/api/` to the
+API and everything else to this app, for example with nginx:
+
+```nginx
+location /api/ { proxy_pass http://api:8080; }   # path kept: /api/clinics -> api:8080/api/clinics
+location /     { proxy_pass http://frontend:3000; }
+```
+
+and run the container with `API_INTERNAL_URL=http://api:8080/api` (the image's
+default). Every `/api/*` path belongs to the API, so this app serves no routes
+under `/api`.
+
+The app requests `GET /api/allergy-severities` for the available allergy
+severity values and `GET /api/appointment-settings` for
 `appointmentDurationMinutes`, `clinicOpeningTime`, and `clinicClosingTime`.
-These API values drive the allergy form and appointment scheduling controls,
-including when entity CRUD is using mock data. Next.js proxies these requests
-through the same origin to avoid browser CORS restrictions.
+These values drive the allergy form and appointment scheduling controls.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

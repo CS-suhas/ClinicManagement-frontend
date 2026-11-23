@@ -216,11 +216,11 @@ export class RestConfigurationRepository implements ConfigurationRepository {
   constructor(private readonly http: HttpClient) {}
 
   getAllergySeverities() {
-    return this.http.get<unknown>("/api/config/allergy-severities");
+    return this.http.get<unknown>("/allergy-severities");
   }
 
   getAppointmentSettings() {
-    return this.http.get<unknown>("/api/config/appointment-settings");
+    return this.http.get<unknown>("/appointment-settings");
   }
 }
 
