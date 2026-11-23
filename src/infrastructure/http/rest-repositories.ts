@@ -6,12 +6,10 @@ import type {
   ClinicInput,
   PatientAllergy,
 } from "@/domain/entities";
-import { NotFoundError } from "@/domain/errors";
 import type {
   AppointmentListItem,
   AppointmentRepository,
   AppointmentSearchOptions,
-  ClinicRepository,
   ConfigurationRepository,
   CrudRepository,
   DashboardData,
@@ -22,66 +20,90 @@ import type {
   SearchOptions,
 } from "@/domain/repositories";
 import type { HttpClient } from "./http-client";
+import { queryString } from "./query-string";
+
+/** Translates between the API's JSON and the domain's shapes. */
+interface RestMapper<T, TInput, TResponse> {
+  fromResponse(response: TResponse): T;
+  toRequest(input: TInput): object;
+}
+
+const identityMapper = {
+  fromResponse: (response: unknown) => response,
+  toRequest: (input: unknown) => input as object,
+};
 
 /**
  * REST adapter. Expected API shape (camelCase JSON):
  *   GET    {resource}        -> T[]
+ *   GET    {resource}/search -> PagedResult<T>
  *   GET    {resource}/:id    -> T
  *   POST   {resource}        -> T
  *   PUT    {resource}/:id    -> T
  *   DELETE {resource}/:id
+ * Pass a `mapper` when the API's JSON differs from the domain entity.
  */
-export class RestCrudRepository<T extends { id: string }, TInput>
+export class RestCrudRepository<T extends { id: string }, TInput, TResponse = T>
   implements CrudRepository<T, TInput>
 {
   constructor(
     private readonly http: HttpClient,
     private readonly resource: string,
+    private readonly mapper: RestMapper<
+      T,
+      TInput,
+      TResponse
+    > = identityMapper as unknown as RestMapper<T, TInput, TResponse>,
   ) {}
 
-  list() {
-    return this.http.get<T[]>(this.resource);
+  private url(id: string) {
+    return `${this.resource}/${encodeURIComponent(id)}`;
   }
 
-  search(options: SearchOptions | ProviderSearchOptions) {
-    const params = new URLSearchParams();
-    if (options.search) params.set("Search", options.search);
-    params.set("Page", String(options.page));
-    params.set("PageSize", String(options.pageSize));
-    if ("clinicId" in options && options.clinicId)
-      params.set("clinicId", options.clinicId);
-    return this.http.get<PagedResult<T>>(
-      `${this.resource}/search?${params.toString()}`,
+  async list() {
+    const items = await this.http.get<TResponse[]>(this.resource);
+    return items.map((item) => this.mapper.fromResponse(item));
+  }
+
+  async search(options: SearchOptions | ProviderSearchOptions) {
+    const query = queryString({
+      Search: options.search,
+      Page: options.page,
+      PageSize: options.pageSize,
+      clinicId: "clinicId" in options ? options.clinicId : undefined,
+    });
+    const result = await this.http.get<PagedResult<TResponse>>(
+      `${this.resource}/search?${query}`,
     );
+    return {
+      ...result,
+      items: result.items.map((item) => this.mapper.fromResponse(item)),
+    };
   }
 
   async getById(id: string) {
-    try {
-      return await this.http.get<T>(
-        `${this.resource}/${encodeURIComponent(id)}`,
-      );
-    } catch (e) {
-      if (e instanceof NotFoundError) return null;
-      throw e;
-    }
+    const item = await this.http.getOrNull<TResponse>(this.url(id));
+    return item && this.mapper.fromResponse(item);
   }
 
-  create(input: TInput) {
-    return this.http.post<T>(this.resource, {
-      ...input,
+  async create(input: TInput) {
+    const item = await this.http.post<TResponse>(this.resource, {
+      ...this.mapper.toRequest(input),
       id: crypto.randomUUID(),
     });
+    return this.mapper.fromResponse(item);
   }
 
-  update(id: string, input: TInput) {
-    return this.http.put<T>(`${this.resource}/${encodeURIComponent(id)}`, {
-      ...input,
+  async update(id: string, input: TInput) {
+    const item = await this.http.put<TResponse>(this.url(id), {
+      ...this.mapper.toRequest(input),
       id,
     });
+    return this.mapper.fromResponse(item);
   }
 
   delete(id: string) {
-    return this.http.delete(`${this.resource}/${encodeURIComponent(id)}`);
+    return this.http.delete(this.url(id));
   }
 }
 
@@ -96,75 +118,28 @@ type AppointmentListResponse = Omit<AppointmentListItem, "reasonForVisit"> & {
   reasonForVisit: string | null;
 };
 
-export class RestClinicRepository implements ClinicRepository {
-  constructor(private readonly http: HttpClient) {}
+const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
+  fromResponse: (clinic) => ({
+    id: clinic.id,
+    name: clinic.name,
+    location: clinic.address,
+    phoneNumber: clinic.phoneNumber ?? "",
+  }),
+  toRequest: (input) => ({
+    name: input.name,
+    address: input.location,
+    phoneNumber: input.phoneNumber,
+  }),
+};
 
-  async list() {
-    const clinics = await this.http.get<ClinicResponse[]>("/clinics");
-    return clinics.map((clinic) => this.fromResponse(clinic));
-  }
-
-  async search(options: SearchOptions) {
-    const params = new URLSearchParams();
-    if (options.search) params.set("Search", options.search);
-    params.set("Page", String(options.page));
-    params.set("PageSize", String(options.pageSize));
-    const result = await this.http.get<PagedResult<ClinicResponse>>(
-      `/clinics/search?${params.toString()}`,
-    );
-    return {
-      ...result,
-      items: result.items.map((clinic) => this.fromResponse(clinic)),
-    };
-  }
-
-  async getById(id: string) {
-    try {
-      const clinic = await this.http.get<ClinicResponse>(
-        `/clinics/${encodeURIComponent(id)}`,
-      );
-      return this.fromResponse(clinic);
-    } catch (e) {
-      if (e instanceof NotFoundError) return null;
-      throw e;
-    }
-  }
-
-  async create(input: ClinicInput) {
-    const clinic = await this.http.post<ClinicResponse>("/clinics", {
-      ...this.toRequest(input),
-      id: crypto.randomUUID(),
-    });
-    return this.fromResponse(clinic);
-  }
-
-  async update(id: string, input: ClinicInput) {
-    const clinic = await this.http.put<ClinicResponse>(
-      `/clinics/${encodeURIComponent(id)}`,
-      { ...this.toRequest(input), id },
-    );
-    return this.fromResponse(clinic);
-  }
-
-  delete(id: string) {
-    return this.http.delete(`/clinics/${encodeURIComponent(id)}`);
-  }
-
-  private fromResponse(clinic: ClinicResponse): Clinic {
-    return {
-      id: clinic.id,
-      name: clinic.name,
-      location: clinic.address,
-      phoneNumber: clinic.phoneNumber ?? "",
-    };
-  }
-
-  private toRequest(input: ClinicInput) {
-    return {
-      name: input.name,
-      address: input.location,
-      phoneNumber: input.phoneNumber,
-    };
+/** Clinics are stored with `address`, which the domain calls `location`. */
+export class RestClinicRepository extends RestCrudRepository<
+  Clinic,
+  ClinicInput,
+  ClinicResponse
+> {
+  constructor(http: HttpClient) {
+    super(http, "/clinics", clinicMapper);
   }
 }
 
@@ -230,10 +205,11 @@ export class RestPatientAllergyRepository implements PatientAllergyRepository {
   }
 
   async searchByPatient(patientId: string, options: SearchOptions) {
-    const params = new URLSearchParams();
-    if (options.search) params.set("Search", options.search);
-    params.set("Page", String(options.page));
-    params.set("PageSize", String(options.pageSize));
+    const query = queryString({
+      Search: options.search,
+      Page: options.page,
+      PageSize: options.pageSize,
+    });
     const result = await this.http.get<
       PagedResult<{
         id: string;
@@ -242,9 +218,7 @@ export class RestPatientAllergyRepository implements PatientAllergyRepository {
         severity: string;
         notes: string | null;
       }>
-    >(
-      `/patients/${encodeURIComponent(patientId)}/allergies/search?${params.toString()}`,
-    );
+    >(`/patients/${encodeURIComponent(patientId)}/allergies/search?${query}`);
     return {
       ...result,
       items: result.items.map((item) => ({
@@ -261,14 +235,14 @@ export class RestPatientAllergyRepository implements PatientAllergyRepository {
     patientId: string,
     options: SearchOptions & { selectedAllergyId?: string },
   ) {
-    const params = new URLSearchParams();
-    if (options.search) params.set("Search", options.search);
-    if (options.selectedAllergyId)
-      params.set("selectedAllergyId", options.selectedAllergyId);
-    params.set("Page", String(options.page));
-    params.set("PageSize", String(options.pageSize));
+    const query = queryString({
+      Search: options.search,
+      selectedAllergyId: options.selectedAllergyId,
+      Page: options.page,
+      PageSize: options.pageSize,
+    });
     return this.http.get<PagedResult<AllergyType>>(
-      `/patients/${encodeURIComponent(patientId)}/allergy-options?${params.toString()}`,
+      `/patients/${encodeURIComponent(patientId)}/allergy-options?${query}`,
     );
   }
 
@@ -339,17 +313,18 @@ export class RestAppointmentRepository implements AppointmentRepository {
   }
 
   async search(options: AppointmentSearchOptions) {
-    const params = new URLSearchParams();
-    if (options.search) params.set("Search", options.search);
-    if (options.from) params.set("From", options.from);
-    if (options.to) params.set("To", options.to);
-    if (options.clinicId) params.set("ClinicId", options.clinicId);
-    if (options.providerId) params.set("ProviderId", options.providerId);
-    if (options.patientId) params.set("PatientId", options.patientId);
-    params.set("Page", String(options.page));
-    params.set("PageSize", String(options.pageSize));
+    const query = queryString({
+      Search: options.search,
+      From: options.from,
+      To: options.to,
+      ClinicId: options.clinicId,
+      ProviderId: options.providerId,
+      PatientId: options.patientId,
+      Page: options.page,
+      PageSize: options.pageSize,
+    });
     const result = await this.http.get<PagedResult<AppointmentListResponse>>(
-      `/appointments/search?${params.toString()}`,
+      `/appointments/search?${query}`,
     );
     return {
       ...result,
