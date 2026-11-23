@@ -2,17 +2,22 @@ import {
   type Appointment,
   type Patient,
   type PatientInput,
-  patientFullName,
   validatePatient,
 } from "@/domain/entities";
 import { assertNoDependents } from "@/domain/errors";
 import type {
   AppointmentListItem,
   AppointmentRepository,
+  PagedResult,
   PatientAllergyRepository,
   PatientRepository,
+  PatientRosterRow,
+  ProviderRosterRepository,
+  SearchOptions,
 } from "@/domain/repositories";
 import { CrudService } from "./crud-service";
+
+export type { PatientRosterRow } from "@/domain/repositories";
 
 /** The provider behind a patient's latest appointment, as the appointment list reports it. */
 export interface RosterProvider {
@@ -26,16 +31,16 @@ export interface PatientVisits {
   /** Most recent appointment on the books, past or upcoming. */
   latestVisit?: AppointmentListItem;
   /** Most recent appointment before `now`. */
-  lastVisit?: Appointment;
+  lastVisit?: AppointmentListItem;
   /** Soonest appointment at or after `now`. */
-  nextVisit?: Appointment;
+  nextVisit?: AppointmentListItem;
 }
 
-/** One line of the patients roster. */
-export interface PatientRosterRow {
+/** One line of the admin patients page, with visits across every provider. */
+export interface PatientVisitRow {
   patient: Patient;
-  lastVisit?: Appointment;
-  nextVisit?: Appointment;
+  lastVisit?: AppointmentListItem;
+  nextVisit?: AppointmentListItem;
   /** Most recent appointment on the books; supplies the reason and provider. */
   latestVisit?: AppointmentListItem;
   provider?: RosterProvider;
@@ -43,7 +48,7 @@ export interface PatientRosterRow {
 
 const APPOINTMENT_PAGE_SIZE = 200;
 
-const timeOf = (appointment: Appointment) =>
+const timeOf = (appointment: Pick<Appointment, "appointmentDateTime">) =>
   Date.parse(appointment.appointmentDateTime);
 
 /** Derives the latest, last and next visits from one patient's appointments. */
@@ -64,7 +69,7 @@ export function summarizeVisits(
 export function toRosterRow(
   patient: Patient,
   visits?: PatientVisits,
-): PatientRosterRow {
+): PatientVisitRow {
   const latest = visits?.latestVisit;
   return {
     patient,
@@ -86,6 +91,7 @@ export class PatientService extends CrudService<Patient, PatientInput> {
     patientRepo: PatientRepository,
     private readonly appointments: AppointmentRepository,
     private readonly patientAllergies: PatientAllergyRepository,
+    private readonly providerRoster: ProviderRosterRepository,
   ) {
     super(patientRepo, "Patient");
   }
@@ -131,7 +137,7 @@ export class PatientService extends CrudService<Patient, PatientInput> {
   }
 
   /**
-   * Visit facts per patient. `patientIds` limits the result to those patients;
+   * Visit facts per patient for the admin page. `patientIds` limits the result to those patients;
    * `providerId` counts only that provider's appointments.
    */
   async visitsByPatient(options: {
@@ -156,22 +162,15 @@ export class PatientService extends CrudService<Patient, PatientInput> {
   }
 
   /**
-   * Patients who have at least one appointment with `providerId`, with visit
-   * facts counted from that provider's appointments only. Sorted by name.
+   * A provider's patients, paged and searched by the API. The provider is the
+   * caller for the doctor's own roster; the API checks access.
    */
-  async listRoster(options: {
-    providerId: string;
-    now: number;
-  }): Promise<PatientRosterRow[]> {
-    const visits = await this.visitsByPatient(options);
-    const patients = await Promise.all(
-      [...visits.keys()].map((id) => this.repo.getById(id)),
-    );
-    return patients
-      .filter((patient): patient is Patient => patient !== null)
-      .map((patient) => toRosterRow(patient, visits.get(patient.id)))
-      .sort((a, b) =>
-        patientFullName(a.patient).localeCompare(patientFullName(b.patient)),
-      );
+  listRoster({
+    providerId,
+    ...options
+  }: SearchOptions & { providerId: string }): Promise<
+    PagedResult<PatientRosterRow>
+  > {
+    return this.providerRoster.searchProviderRoster(providerId, options);
   }
 }

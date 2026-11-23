@@ -149,7 +149,7 @@ export function DayCalendar({
                       return (
                         <div
                           key={item.id}
-                          title={`${item.patientName} · ${item.reasonForVisit}`}
+                          title={`${item.patientName} · ${item.reasonForVisit ?? ""}`}
                           className="absolute overflow-hidden rounded-md px-1.5 py-0.5"
                           style={style}
                         >
@@ -162,7 +162,7 @@ export function DayCalendar({
                         type="button"
                         onClick={() => onEdit(item)}
                         aria-label={`Edit appointment for ${item.patientName}`}
-                        title={`${item.patientName} · ${item.reasonForVisit}`}
+                        title={`${item.patientName} · ${item.reasonForVisit ?? ""}`}
                         className="absolute cursor-pointer overflow-hidden rounded-md px-1.5 py-0.5 text-left transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-1"
                         style={{ ...style, outlineColor: "var(--mp-ink)" }}
                       >

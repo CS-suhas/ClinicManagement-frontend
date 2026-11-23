@@ -2,6 +2,7 @@ import type { VerificationStatus } from "@/domain/auth";
 import type {
   AllergyType,
   Appointment,
+  AppointmentAction,
   AppointmentInput,
   Clinic,
   ClinicInput,
@@ -18,8 +19,11 @@ import type {
   CrudRepository,
   DashboardData,
   DashboardRepository,
+  MeDashboard,
   PagedResult,
   PatientAllergyRepository,
+  PatientRosterRow,
+  ProviderRosterRepository,
   ProviderSearchOptions,
   SearchOptions,
 } from "@/domain/repositories";
@@ -118,10 +122,6 @@ interface ClinicResponse {
   phoneNumber: string | null;
 }
 
-type AppointmentListResponse = Omit<AppointmentListItem, "reasonForVisit"> & {
-  reasonForVisit: string | null;
-};
-
 const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
   fromResponse: (clinic) => ({
     id: clinic.id,
@@ -208,19 +208,12 @@ export class RestConfigurationRepository implements ConfigurationRepository {
 export class RestDashboardRepository implements DashboardRepository {
   constructor(private readonly http: HttpClient) {}
 
-  async getDashboard() {
-    const data = await this.http.get<
-      Omit<DashboardData, "upcomingAppointments"> & {
-        upcomingAppointments: AppointmentListResponse[];
-      }
-    >("/dashboard");
-    return {
-      ...data,
-      upcomingAppointments: data.upcomingAppointments.map((item) => ({
-        ...item,
-        reasonForVisit: item.reasonForVisit ?? "",
-      })),
-    };
+  getDashboard() {
+    return this.http.get<DashboardData>("/dashboard");
+  }
+
+  getMine() {
+    return this.http.get<MeDashboard>("/me/dashboard");
   }
 }
 
@@ -362,26 +355,61 @@ export class RestAppointmentRepository implements AppointmentRepository {
     return this.crud.delete(id);
   }
 
-  async search(options: AppointmentSearchOptions) {
+  search(options: AppointmentSearchOptions) {
     const query = queryString({
-      Search: options.search,
-      From: options.from,
-      To: options.to,
-      ClinicId: options.clinicId,
-      ProviderId: options.providerId,
-      PatientId: options.patientId,
-      Page: options.page,
-      PageSize: options.pageSize,
+      search: options.search,
+      from: options.from,
+      to: options.to,
+      clinicId: options.clinicId,
+      providerId: options.providerId,
+      providerIds: options.providerIds,
+      patientId: options.patientId,
+      status: options.status,
+      page: options.page,
+      pageSize: options.pageSize,
     });
-    const result = await this.http.get<PagedResult<AppointmentListResponse>>(
+    return this.http.get<PagedResult<AppointmentListItem>>(
       `/appointments/search?${query}`,
     );
-    return {
-      ...result,
-      items: result.items.map((item) => ({
-        ...item,
-        reasonForVisit: item.reasonForVisit ?? "",
-      })),
-    };
+  }
+
+  confirm(id: string) {
+    return this.transition(id, "confirm");
+  }
+
+  decline(id: string) {
+    return this.transition(id, "decline");
+  }
+
+  complete(id: string) {
+    return this.transition(id, "complete");
+  }
+
+  cancel(id: string) {
+    return this.transition(id, "cancel");
+  }
+
+  /** POST /appointments/:id/{action}, answered with 204. */
+  private transition(id: string, action: AppointmentAction) {
+    return this.http.post<void>(
+      `/appointments/${encodeURIComponent(id)}/${action}`,
+      undefined,
+    );
+  }
+}
+
+/** GET /providers/:id/patients. The API limits access to the doctor, an admin, or a clinic admin of that doctor's clinic. */
+export class RestProviderRosterRepository implements ProviderRosterRepository {
+  constructor(private readonly http: HttpClient) {}
+
+  searchProviderRoster(providerId: string, options: SearchOptions) {
+    const query = queryString({
+      search: options.search,
+      page: options.page,
+      pageSize: options.pageSize,
+    });
+    return this.http.get<PagedResult<PatientRosterRow>>(
+      `/providers/${encodeURIComponent(providerId)}/patients?${query}`,
+    );
   }
 }

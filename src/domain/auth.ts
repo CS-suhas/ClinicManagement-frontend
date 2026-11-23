@@ -12,9 +12,14 @@ export interface MeResponse {
   roles: Role[];
   patient: { id: string } | null;
   provider: { id: string; verificationStatus: VerificationStatus } | null;
+  /** Null when the API has no display name for the user. */
+  displayName: string | null;
+  /** Clinics the user administers. Empty unless the user holds the clinicadmin role. */
+  clinicAdminOf: string[];
 }
 
-export interface CurrentUser extends MeResponse {
+export interface CurrentUser extends Omit<MeResponse, "displayName"> {
+  /** Falls back to the subject when the API has no display name. */
   displayName: string;
 }
 

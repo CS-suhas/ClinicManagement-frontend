@@ -24,6 +24,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       roles: ["admin"],
       patient: null,
       provider: null,
+      clinicAdminOf: [],
     },
   },
   {
@@ -36,6 +37,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       roles: ["clinicadmin"],
       patient: null,
       provider: null,
+      clinicAdminOf: ["c1"],
     },
   },
   {
@@ -48,6 +50,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       roles: ["doctor"],
       patient: null,
       provider: { id: "pr1", verificationStatus: "VERIFIED" },
+      clinicAdminOf: [],
     },
   },
   {
@@ -61,6 +64,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       roles: [],
       patient: null,
       provider: { id: "pr3", verificationStatus: "PENDING" },
+      clinicAdminOf: [],
     },
   },
   {
@@ -73,6 +77,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       roles: ["patient"],
       patient: { id: "p1" },
       provider: null,
+      clinicAdminOf: [],
     },
   },
   {
@@ -85,6 +90,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       roles: ["patient", "doctor"],
       patient: { id: "p2" },
       provider: { id: "pr2", verificationStatus: "VERIFIED" },
+      clinicAdminOf: [],
     },
   },
   {
@@ -98,6 +104,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       roles: [],
       patient: null,
       provider: null,
+      clinicAdminOf: [],
     },
   },
 ];

@@ -3,8 +3,8 @@
 import { MobileIcon } from "@radix-ui/react-icons";
 import { Flex, Table, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
-import type { PatientRosterRow } from "@/application/services/patient-service";
-import { patientFullName } from "@/domain/entities";
+import type { RosterProvider } from "@/application/services/patient-service";
+import { type Patient, patientFullName } from "@/domain/entities";
 import { PersonAvatar } from "@/presentation/components/ui/person-avatar";
 import { ContactButton } from "./contact-button";
 import { PatientHoverCard } from "./patient-hover-card";
@@ -16,6 +16,23 @@ import {
 } from "./patient-roster-format";
 
 const muted = { color: "var(--mp-muted)" } as const;
+
+interface VisitFacts {
+  appointmentDateTime: string;
+  reasonForVisit?: string | null;
+}
+
+/**
+ * A roster line as the table reads it. The doctor's roster has the last and
+ * next visits; the admin page also passes the latest visit and provider.
+ */
+export interface PatientTableRow {
+  patient: Patient;
+  lastVisit?: VisitFacts | null;
+  nextVisit?: VisitFacts | null;
+  latestVisit?: { reasonForVisit: string | null } | null;
+  provider?: RosterProvider;
+}
 
 /** Date on one line, time muted underneath; a dash when there is no visit. */
 function VisitCell({ iso }: { iso: string | undefined }) {
@@ -38,10 +55,10 @@ export function PatientRosterTable({
   now,
   rowMenu,
 }: {
-  rows: PatientRosterRow[];
+  rows: PatientTableRow[];
   /** Epoch ms, or null before mount. */
   now: number | null;
-  rowMenu?: (row: PatientRosterRow) => ReactNode;
+  rowMenu?: (row: PatientTableRow) => ReactNode;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -69,7 +86,10 @@ export function PatientRosterTable({
             const name = patientFullName(patient);
             const age =
               now === null ? null : ageInYears(patient.dateOfBirth, now);
-            const reason = row.latestVisit?.reasonForVisit;
+            const reason =
+              row.latestVisit?.reasonForVisit ??
+              row.nextVisit?.reasonForVisit ??
+              row.lastVisit?.reasonForVisit;
             return (
               <Table.Row key={patient.id} align="center">
                 <Table.RowHeaderCell>
@@ -106,7 +126,7 @@ export function PatientRosterTable({
                   <Text
                     size="2"
                     className="block max-w-[16rem] truncate"
-                    title={reason}
+                    title={reason ?? undefined}
                   >
                     {reason || EMPTY_CELL}
                   </Text>

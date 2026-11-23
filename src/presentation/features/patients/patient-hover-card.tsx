@@ -7,11 +7,7 @@ import {
 } from "@radix-ui/react-icons";
 import { Flex, HoverCard, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
-import {
-  type Appointment,
-  type Patient,
-  patientFullName,
-} from "@/domain/entities";
+import { type Patient, patientFullName } from "@/domain/entities";
 import { PersonAvatar } from "@/presentation/components/ui/person-avatar";
 import { formatDateTime } from "@/presentation/lib/format";
 import { ContactButton } from "./contact-button";
@@ -25,7 +21,7 @@ export function PatientHoverCard({
   children,
 }: {
   patient: Patient;
-  nextVisit?: Appointment;
+  nextVisit?: { appointmentDateTime: string } | null;
   /** Epoch ms, or null before mount. */
   now: number | null;
   /** The trigger element, rendered as-is. */

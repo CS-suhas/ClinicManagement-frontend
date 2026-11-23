@@ -115,7 +115,7 @@ export function useAppointmentForm({
             appointmentDateTime: toDateTimeLocal(
               appointment.appointmentDateTime,
             ),
-            reasonForVisit: appointment.reasonForVisit,
+            reasonForVisit: appointment.reasonForVisit ?? "",
           }
         : { ...EMPTY, appointmentDateTime: defaultDateTime ?? "" },
     );

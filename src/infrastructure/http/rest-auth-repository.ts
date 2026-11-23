@@ -15,8 +15,12 @@ export class RestAuthRepository implements AuthRepository {
   async getCurrentUser(): Promise<CurrentUser | null> {
     try {
       const me = await this.http.get<MeResponse>("/me");
-      // The API does not return a display name yet, so the subject stands in.
-      return { ...me, displayName: me.subject };
+      return {
+        ...me,
+        // Without a display name, the subject stands in.
+        displayName: me.displayName ?? me.subject,
+        clinicAdminOf: me.clinicAdminOf ?? [],
+      };
     } catch (e) {
       if (e instanceof UnauthorizedError) return null;
       throw e;

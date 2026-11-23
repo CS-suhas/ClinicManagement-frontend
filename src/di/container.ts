@@ -9,7 +9,7 @@ import {
   PatientService,
   ProviderService,
 } from "@/application/services";
-import type { AuthPersona, AuthRepository } from "@/domain/auth";
+import type { AuthPersona, AuthRepository, CurrentUser } from "@/domain/auth";
 import type {
   AllergyType,
   AllergyTypeInput,
@@ -27,6 +27,7 @@ import type {
   PatientAllergyRepository,
   PatientRepository,
   ProviderRepository,
+  ProviderRosterRepository,
 } from "@/domain/repositories";
 import { HttpClient } from "@/infrastructure/http/http-client";
 import { RestAuthRepository } from "@/infrastructure/http/rest-auth-repository";
@@ -38,16 +39,18 @@ import {
   RestDashboardRepository,
   RestPatientAllergyRepository,
   RestProviderRepository,
+  RestProviderRosterRepository,
 } from "@/infrastructure/http/rest-repositories";
 import { LocalStorageCollection } from "@/infrastructure/mock/local-storage-collection";
+import { MockAppointmentRepository } from "@/infrastructure/mock/mock-appointment-repository";
 import {
   MOCK_PERSONAS,
   MockAuthRepository,
 } from "@/infrastructure/mock/mock-auth-repository";
 import { MockConfigurationRepository } from "@/infrastructure/mock/mock-configuration-repository";
 import { createMockDashboardRepository } from "@/infrastructure/mock/mock-dashboard-repository";
+import { createMockProviderRosterRepository } from "@/infrastructure/mock/mock-provider-roster-repository";
 import {
-  MockAppointmentRepository,
   MockCrudRepository,
   MockPatientAllergyRepository,
 } from "@/infrastructure/mock/mock-repositories";
@@ -82,11 +85,14 @@ interface Repositories {
   allergyTypes: AllergyTypeRepository;
   patientAllergies: PatientAllergyRepository;
   appointments: AppointmentRepository;
+  providerRoster: ProviderRosterRepository;
 }
 
 const STORAGE_PREFIX = "clinic-admin:";
 
-function createMockRepositories(): Repositories {
+function createMockRepositories(
+  currentUser: () => Promise<CurrentUser | null>,
+): Repositories {
   const col = <T>(key: string, data: T[]) =>
     new LocalStorageCollection<T>(STORAGE_PREFIX + key, data);
   const clinics = new MockCrudRepository<Clinic, ClinicInput>(
@@ -110,8 +116,9 @@ function createMockRepositories(): Repositories {
     col("patient-allergies", seed.seedPatientAllergies),
     allergyTypesStore,
   );
+  // Versioned key: stored appointments from before statuses existed are not reused.
   const appointments = new MockAppointmentRepository(
-    col("appointments", seed.seedAppointments),
+    col("appointments-v2", seed.seedAppointments),
     async () => {
       const [patientList, providerList, clinicList] = await Promise.all([
         patients.list(),
@@ -124,6 +131,11 @@ function createMockRepositories(): Repositories {
         clinics: clinicList,
       };
     },
+    currentUser,
+  );
+  const providerRoster = createMockProviderRosterRepository(
+    { patients, providers, appointments },
+    currentUser,
   );
   return {
     clinics,
@@ -132,6 +144,7 @@ function createMockRepositories(): Repositories {
     allergyTypes,
     patientAllergies,
     appointments,
+    providerRoster,
   };
 }
 
@@ -147,6 +160,7 @@ function createRestRepositories(
     allergyTypes: new RestCrudRepository(http, "/allergy-types"),
     patientAllergies: new RestPatientAllergyRepository(http),
     appointments: new RestAppointmentRepository(http),
+    providerRoster: new RestProviderRosterRepository(http),
   };
 }
 
@@ -156,9 +170,12 @@ export function createContainer(config: ContainerConfig): Container {
   // The REST clients read their token from the auth repository on each request.
   const getToken = (): Promise<string | null> =>
     authRepository.getAccessToken();
+  // The mock adapters read the caller from the mock session to apply API scoping.
+  const currentUser = (): Promise<CurrentUser | null> =>
+    authRepository.getCurrentUser();
   const r = isRest
     ? createRestRepositories(config.apiBaseUrl, getToken)
-    : createMockRepositories();
+    : createMockRepositories(currentUser);
   // The mock session creates patient profiles in the same store as PatientService.
   const authRepository: AuthRepository = isRest
     ? new RestAuthRepository(new HttpClient(config.apiBaseUrl, getToken))
@@ -171,6 +188,7 @@ export function createContainer(config: ContainerConfig): Container {
       r.patients,
       r.appointments,
       r.patientAllergies,
+      r.providerRoster,
     ),
     allergyTypeService: new AllergyTypeService(
       r.allergyTypes,
@@ -189,7 +207,7 @@ export function createContainer(config: ContainerConfig): Container {
         ? new RestDashboardRepository(
             new HttpClient(config.apiBaseUrl, getToken),
           )
-        : createMockDashboardRepository(r),
+        : createMockDashboardRepository(r, currentUser),
     ),
     authService: new AuthService(authRepository),
     authPersonas: isRest ? [] : MOCK_PERSONAS,

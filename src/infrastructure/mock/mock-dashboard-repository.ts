@@ -1,58 +1,65 @@
-import {
-  type AllergyType,
-  type Appointment,
-  type Clinic,
-  type Patient,
-  type Provider,
-  patientFullName,
-  providerFullName,
+import type { CurrentUser } from "@/domain/auth";
+import type {
+  AllergyType,
+  Appointment,
+  Clinic,
+  Patient,
+  Provider,
 } from "@/domain/entities";
-import type { DashboardData, DashboardRepository } from "@/domain/repositories";
+import { UnauthorizedError } from "@/domain/errors";
+import type {
+  AdminDashboard,
+  AppointmentListItem,
+  ClinicAdminDashboard,
+  DashboardData,
+  DashboardRepository,
+  DoctorDashboard,
+  MeDashboard,
+  PatientDashboard,
+} from "@/domain/repositories";
+import { toAppointmentListItems } from "./mock-appointment-view";
 
 interface Listable<T> {
   list(): Promise<T[]>;
 }
 
+const DAY_MS = 86_400_000;
+const CANCELLED_OR_DECLINED = new Set(["DECLINED", "CANCELLED"]);
+
 /** Derives dashboard totals and the next appointments from the mock stores. */
-export function createMockDashboardRepository(repositories: {
-  clinics: Listable<Clinic>;
-  providers: Listable<Provider>;
-  patients: Listable<Patient>;
-  allergyTypes: Listable<AllergyType>;
-  appointments: Listable<Appointment>;
-}): DashboardRepository {
+export function createMockDashboardRepository(
+  repositories: {
+    clinics: Listable<Clinic>;
+    providers: Listable<Provider>;
+    patients: Listable<Patient>;
+    allergyTypes: Listable<AllergyType>;
+    appointments: Listable<Appointment>;
+  },
+  currentUser: () => Promise<CurrentUser | null>,
+): DashboardRepository {
+  const loadAll = () =>
+    Promise.all([
+      repositories.clinics.list(),
+      repositories.providers.list(),
+      repositories.patients.list(),
+      repositories.allergyTypes.list(),
+      repositories.appointments.list(),
+    ]);
+
   return {
     async getDashboard(): Promise<DashboardData> {
       const [clinics, providers, patients, allergyTypes, appointments] =
-        await Promise.all([
-          repositories.clinics.list(),
-          repositories.providers.list(),
-          repositories.patients.list(),
-          repositories.allergyTypes.list(),
-          repositories.appointments.list(),
-        ]);
-      const patientById = new Map(patients.map((item) => [item.id, item]));
-      const providerById = new Map(providers.map((item) => [item.id, item]));
-      const clinicById = new Map(clinics.map((item) => [item.id, item]));
-      const upcomingAppointments = appointments
+        await loadAll();
+      const upcomingAppointments = toAppointmentListItems(appointments, {
+        patients,
+        providers,
+        clinics,
+      })
         .filter((item) => Date.parse(item.appointmentDateTime) >= Date.now())
         .sort((a, b) =>
           a.appointmentDateTime.localeCompare(b.appointmentDateTime),
         )
-        .slice(0, 5)
-        .map((item) => {
-          const provider = providerById.get(item.providerId);
-          const patient = patientById.get(item.patientId);
-          const clinic = provider ? clinicById.get(provider.clinicId) : null;
-          return {
-            ...item,
-            patientName: patient ? patientFullName(patient) : "",
-            providerName: provider ? providerFullName(provider) : "",
-            providerSpecialty: provider?.specialty ?? "",
-            clinicId: provider?.clinicId ?? "",
-            clinicName: clinic?.name ?? "",
-          };
-        });
+        .slice(0, 5);
       return {
         clinics: clinics.length,
         providers: providers.length,
@@ -61,6 +68,117 @@ export function createMockDashboardRepository(repositories: {
         appointments: appointments.length,
         upcomingAppointments,
       };
+    },
+
+    async getMine(): Promise<MeDashboard> {
+      const user = await currentUser();
+      if (!user) throw new UnauthorizedError();
+      const [clinics, providers, patients, , appointments] = await loadAll();
+      const items = toAppointmentListItems(appointments, {
+        patients,
+        providers,
+        clinics,
+      });
+
+      // "Today" is the UTC calendar day; "week" is seven days from its midnight.
+      const now = Date.now();
+      const todayStart = (() => {
+        const d = new Date(now);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      })();
+      const inToday = (item: AppointmentListItem) => {
+        const t = Date.parse(item.appointmentDateTime);
+        return t >= todayStart && t < todayStart + DAY_MS;
+      };
+      const inWeek = (item: AppointmentListItem) => {
+        const t = Date.parse(item.appointmentDateTime);
+        return t >= todayStart && t < todayStart + 7 * DAY_MS;
+      };
+      const counts = (item: AppointmentListItem) =>
+        !CANCELLED_OR_DECLINED.has(item.status);
+      const upcoming = (item: AppointmentListItem) =>
+        (item.status === "REQUESTED" || item.status === "CONFIRMED") &&
+        Date.parse(item.appointmentDateTime) >= now;
+      const soonestFirst = (a: AppointmentListItem, b: AppointmentListItem) =>
+        Date.parse(a.appointmentDateTime) - Date.parse(b.appointmentDateTime);
+
+      const isAdmin = user.roles.includes("admin");
+      const isClinicAdmin = user.roles.includes("clinicadmin");
+      const isDoctor = user.roles.includes("doctor") && !!user.provider;
+      const isPatient = user.roles.includes("patient") && !!user.patient;
+
+      // Admin: the whole system.
+      let admin: AdminDashboard | null = null;
+      if (isAdmin)
+        admin = {
+          clinicCount: clinics.length,
+          providerCount: providers.length,
+          patientCount: patients.length,
+          pendingProviderVerificationCount: providers.filter(
+            (p) => p.verificationStatus === "PENDING",
+          ).length,
+          todayAppointmentCount: items.filter(
+            (item) => counts(item) && inToday(item),
+          ).length,
+        };
+
+      // Clinic admin: scoped to the caller's clinics. Patients are those with an appointment there.
+      let clinicAdmin: ClinicAdminDashboard | null = null;
+      if (isClinicAdmin) {
+        const mine = new Set(user.clinicAdminOf);
+        const myProviders = providers.filter(
+          (p) => !!p.clinicId && mine.has(p.clinicId),
+        );
+        const myProviderIds = new Set(myProviders.map((p) => p.id));
+        const myItems = items.filter((item) =>
+          myProviderIds.has(item.providerId),
+        );
+        clinicAdmin = {
+          clinicCount: clinics.filter((c) => mine.has(c.id)).length,
+          providerCount: myProviders.length,
+          patientCount: new Set(myItems.map((item) => item.patientId)).size,
+          pendingProviderVerificationCount: myProviders.filter(
+            (p) => p.verificationStatus === "PENDING",
+          ).length,
+          todayAppointmentCount: myItems.filter(
+            (item) => counts(item) && inToday(item),
+          ).length,
+          // Join requests are not modelled in the mock, so none are ever pending.
+          pendingJoinRequestCount: 0,
+        };
+      }
+
+      // Doctor: the caller's own appointments.
+      let doctor: DoctorDashboard | null = null;
+      if (isDoctor && user.provider) {
+        const providerId = user.provider.id;
+        const own = items.filter((item) => item.providerId === providerId);
+        doctor = {
+          todayAppointmentCount: own.filter(
+            (item) => counts(item) && inToday(item),
+          ).length,
+          weekAppointmentCount: own.filter(
+            (item) => counts(item) && inWeek(item),
+          ).length,
+          distinctPatientCount: new Set(own.map((item) => item.patientId)).size,
+          nextAppointment: own.filter(upcoming).sort(soonestFirst)[0] ?? null,
+        };
+      }
+
+      // Patient: the caller's own appointments.
+      let patient: PatientDashboard | null = null;
+      if (isPatient && user.patient) {
+        const patientId = user.patient.id;
+        const mine = items.filter(
+          (item) => item.patientId === patientId && upcoming(item),
+        );
+        patient = {
+          nextAppointment: mine.sort(soonestFirst)[0] ?? null,
+          upcomingAppointmentCount: mine.length,
+        };
+      }
+
+      return { admin, clinicAdmin, doctor, patient };
     },
   };
 }

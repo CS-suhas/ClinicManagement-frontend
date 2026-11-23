@@ -1,6 +1,7 @@
 import type {
   AllergyType,
   Appointment,
+  AppointmentStatus,
   Clinic,
   Patient,
   PatientAllergy,
@@ -111,6 +112,7 @@ const fixedAppointments: Appointment[] = [
     providerId: "pr1",
     appointmentDateTime: "2026-11-20T09:30",
     reasonForVisit: "Annual check-up",
+    status: "COMPLETED",
   },
   {
     id: "ap2",
@@ -118,6 +120,7 @@ const fixedAppointments: Appointment[] = [
     providerId: "pr2",
     appointmentDateTime: "2026-11-21T14:00",
     reasonForVisit: "Chest pain follow-up",
+    status: "COMPLETED",
   },
   {
     id: "ap3",
@@ -125,6 +128,7 @@ const fixedAppointments: Appointment[] = [
     providerId: "pr3",
     appointmentDateTime: "2026-11-24T10:15",
     reasonForVisit: "Vaccination",
+    status: "REQUESTED",
   },
 ];
 
@@ -144,10 +148,14 @@ function dayKey(offset: number): string {
 function onDay(
   offset: number,
   time: string,
-  appointment: Omit<Appointment, "appointmentDateTime">,
+  appointment: Omit<Appointment, "appointmentDateTime" | "status"> & {
+    status?: AppointmentStatus;
+  },
 ): Appointment {
   return {
     ...appointment,
+    // Most seeded appointments are confirmed; exceptions name their status.
+    status: appointment.status ?? "CONFIRMED",
     get appointmentDateTime() {
       return `${dayKey(offset)}T${time}`;
     },
@@ -164,6 +172,7 @@ const relativeAppointments: Appointment[] = [
   }),
   onDay(0, "08:30", {
     id: "ap5",
+    status: "REQUESTED",
     patientId: "p2",
     providerId: "pr2",
     reasonForVisit: "Chest pain follow-up",
@@ -188,6 +197,7 @@ const relativeAppointments: Appointment[] = [
   }),
   onDay(0, "13:00", {
     id: "ap9",
+    status: "DECLINED",
     patientId: "p2",
     providerId: "pr1",
     reasonForVisit: "Medication review",
@@ -207,6 +217,7 @@ const relativeAppointments: Appointment[] = [
   // Tomorrow
   onDay(1, "09:00", {
     id: "ap12",
+    status: "REQUESTED",
     patientId: "p2",
     providerId: "pr1",
     reasonForVisit: "Diabetes review",
@@ -219,6 +230,7 @@ const relativeAppointments: Appointment[] = [
   }),
   onDay(1, "10:30", {
     id: "ap14",
+    status: "CANCELLED",
     patientId: "p3",
     providerId: "pr3",
     reasonForVisit: "Ear infection",
@@ -276,12 +288,14 @@ const relativeAppointments: Appointment[] = [
   // Yesterday
   onDay(-1, "10:00", {
     id: "ap23",
+    status: "COMPLETED",
     patientId: "p1",
     providerId: "pr1",
     reasonForVisit: "Follow-up visit",
   }),
   onDay(-1, "12:00", {
     id: "ap24",
+    status: "COMPLETED",
     patientId: "p2",
     providerId: "pr2",
     reasonForVisit: "Echo results",

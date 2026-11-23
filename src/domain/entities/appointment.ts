@@ -1,6 +1,16 @@
+import type { CurrentUser } from "../auth";
 import type { FieldErrors } from "../errors";
 import { isBlank, isValidDate } from "../validation";
 import type { AppointmentSettings } from "./configuration";
+
+export const APPOINTMENT_STATUSES = [
+  "REQUESTED",
+  "CONFIRMED",
+  "DECLINED",
+  "CANCELLED",
+  "COMPLETED",
+] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
 export interface Appointment {
   id: string;
@@ -9,9 +19,74 @@ export interface Appointment {
   /** ISO date-time string */
   appointmentDateTime: string;
   reasonForVisit: string;
+  /** Set by the API. New appointments start as REQUESTED. */
+  status: AppointmentStatus;
 }
 
-export type AppointmentInput = Omit<Appointment, "id">;
+/** Status is changed through the confirm, decline, complete and cancel actions, never by a form. */
+export type AppointmentInput = Omit<Appointment, "id" | "status">;
+
+export const APPOINTMENT_ACTIONS = [
+  "confirm",
+  "decline",
+  "complete",
+  "cancel",
+] as const;
+export type AppointmentAction = (typeof APPOINTMENT_ACTIONS)[number];
+
+const ACTION_RULES: Record<
+  AppointmentAction,
+  { from: readonly AppointmentStatus[]; to: AppointmentStatus }
+> = {
+  confirm: { from: ["REQUESTED"], to: "CONFIRMED" },
+  decline: { from: ["REQUESTED"], to: "DECLINED" },
+  complete: { from: ["CONFIRMED"], to: "COMPLETED" },
+  cancel: { from: ["REQUESTED", "CONFIRMED"], to: "CANCELLED" },
+};
+
+/** The status an action leads to from `status`, or null when the action is invalid there. */
+export function nextAppointmentStatus(
+  status: AppointmentStatus,
+  action: AppointmentAction,
+): AppointmentStatus | null {
+  const rule = ACTION_RULES[action];
+  return rule.from.includes(status) ? rule.to : null;
+}
+
+/**
+ * Whether the user may take the action on this appointment, ignoring its status.
+ * Confirm, decline and complete need the appointment's own verified doctor.
+ * Cancel also allows the appointment's own patient.
+ */
+export function canActOnAppointment(
+  appointment: Pick<Appointment, "patientId" | "providerId">,
+  action: AppointmentAction,
+  user: Pick<CurrentUser, "roles" | "patient" | "provider"> | null,
+): boolean {
+  if (!user) return false;
+  const ownDoctor =
+    user.roles.includes("doctor") &&
+    user.provider?.id === appointment.providerId &&
+    user.provider.verificationStatus === "VERIFIED";
+  if (ownDoctor) return true;
+  return (
+    action === "cancel" &&
+    user.roles.includes("patient") &&
+    user.patient?.id === appointment.patientId
+  );
+}
+
+/** The actions the user may take on the appointment right now: status and caller rules together. */
+export function appointmentActionsFor(
+  appointment: Pick<Appointment, "patientId" | "providerId" | "status">,
+  user: Pick<CurrentUser, "roles" | "patient" | "provider"> | null,
+): AppointmentAction[] {
+  return APPOINTMENT_ACTIONS.filter(
+    (action) =>
+      nextAppointmentStatus(appointment.status, action) !== null &&
+      canActOnAppointment(appointment, action, user),
+  );
+}
 
 export function validateAppointment(input: AppointmentInput): FieldErrors {
   const errors: FieldErrors = {};
@@ -35,7 +110,10 @@ const clockMinutes = (time: string) => {
 export function validateAppointmentSchedule(
   input: AppointmentInput,
   settings: AppointmentSettings,
-  appointments: Appointment[],
+  appointments: Pick<
+    Appointment,
+    "id" | "providerId" | "appointmentDateTime"
+  >[],
   excludeAppointmentId?: string,
 ): FieldErrors {
   const errors = validateAppointment(input);
