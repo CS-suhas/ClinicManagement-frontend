@@ -1,25 +1,27 @@
 "use client";
 
-import { Flex, Select } from "@radix-ui/themes";
+import { Flex } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import { type Provider, providerFullName } from "@/domain/entities";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
 import { ErrorCallout } from "@/presentation/components/error-callout";
+import {
+  ALL_FILTER,
+  FilterSelect,
+} from "@/presentation/components/filter-select";
 import { ListPage } from "@/presentation/components/list-page";
 import { ProviderFormDialog } from "@/presentation/features/providers/provider-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 
-const ALL_CLINICS = "all";
-
 export default function Page() {
   const clinicService = useService("clinicService");
-  const [clinicFilter, setClinicFilter] = useState<string>(ALL_CLINICS);
+  const [clinicFilter, setClinicFilter] = useState<string>(ALL_FILTER);
   const crud = useCrudPage(useService("providerService"), {
     extraOptions: () => ({
-      clinicId: clinicFilter === ALL_CLINICS ? undefined : clinicFilter,
+      clinicId: clinicFilter === ALL_FILTER ? undefined : clinicFilter,
     }),
     extraKey: clinicFilter,
   });
@@ -37,7 +39,7 @@ export default function Page() {
     { header: "Specialty", cell: (p) => p.specialty },
     { header: "Clinic", cell: (p) => clinicName(p.clinicId) ?? "—" },
   ];
-  const hasFilters = crud.query !== "" || clinicFilter !== ALL_CLINICS;
+  const hasFilters = crud.query !== "" || clinicFilter !== ALL_FILTER;
 
   return (
     <>
@@ -64,23 +66,16 @@ export default function Page() {
           )
         }
         filters={
-          <Select.Root
+          <FilterSelect
+            label="Filter by clinic"
+            allLabel="All clinics"
             value={clinicFilter}
-            onValueChange={(value) => {
+            options={clinics.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={(value) => {
               setClinicFilter(value);
               crud.setPage(1);
             }}
-          >
-            <Select.Trigger aria-label="Filter by clinic" />
-            <Select.Content>
-              <Select.Item value={ALL_CLINICS}>All clinics</Select.Item>
-              {clinics.map((c) => (
-                <Select.Item key={c.id} value={c.id}>
-                  {c.name}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Root>
+          />
         }
       >
         <DataTable
