@@ -13,6 +13,16 @@ export interface Patient {
 
 export type PatientInput = Omit<Patient, "id">;
 
+/**
+ * A patient as the list endpoints return it. The allergy fields are optional
+ * because older responses lack them; `undefined` means unknown, not zero.
+ */
+export interface PatientListItem extends Patient {
+  allergyCount?: number;
+  /** Highest severity on record, or null when none is recorded. */
+  highestSeverity?: string | null;
+}
+
 export const patientFullName = (p: Pick<Patient, "firstName" | "lastName">) =>
   `${p.firstName} ${p.lastName}`.trim();
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { PlusIcon } from "@radix-ui/react-icons";
+import { Button } from "@radix-ui/themes";
 import { useState } from "react";
 import { toRosterRow } from "@/application/services/patient-service";
 import { useService } from "@/di/container-provider";
@@ -8,9 +10,10 @@ import { patientFullName } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
+import { EmptyState } from "@/presentation/components/ui/empty-state";
+import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
-import { useNow } from "@/presentation/hooks/use-now";
 import { PatientAllergiesDialog } from "./patient-allergies-dialog";
 import { PatientFormDialog } from "./patient-form-dialog";
 import { PatientRosterCard } from "./patient-roster-card";
@@ -21,7 +24,6 @@ import { PatientRowMenu } from "./patient-row-menu";
 export function AdminPatientsView() {
   const patientService = useService("patientService");
   const crud = useCrudPage(patientService, { entityName: "patient" });
-  const now = useNow();
 
   // Visit columns follow the rows on the current page; the key reloads them when that page changes.
   const pageIds = crud.rows.map((patient) => patient.id);
@@ -69,14 +71,40 @@ export function AdminPatientsView() {
           loading={crud.loading}
           error={crud.error}
           isEmpty={rows.length === 0}
-          emptyText={
-            crud.query ? "No patients match your search." : "No patients yet."
+          skeleton={
+            <TableSkeleton
+              columns={["chip", "short", "chip", "text", "text", "text"]}
+              selectable
+              expandable
+            />
+          }
+          empty={
+            <div className="p-4">
+              {crud.query ? (
+                <EmptyState
+                  variant="no-matches"
+                  title="No patients match"
+                  description="Try a different name, email or phone number."
+                  onClearFilters={() => crud.setQuery("")}
+                />
+              ) : (
+                <EmptyState
+                  title="No patients yet"
+                  description="Add a patient, or patients appear here once they book."
+                  action={
+                    <Button color="teal" onClick={crud.form.openCreate}>
+                      <PlusIcon /> Add Patient
+                    </Button>
+                  }
+                />
+              )}
+            </div>
           }
           onRetry={crud.reload}
         >
           <PatientRosterTable
             rows={rows}
-            now={now}
+            showProvider
             rowMenu={(row) => (
               <PatientRowMenu
                 name={patientFullName(row.patient)}

@@ -111,7 +111,14 @@ export class MockAppointmentRepository implements AppointmentRepository {
       )
     )
       throw new ConflictError("That time was just taken.");
-    const item: Appointment = { ...input, id, status: "REQUESTED" };
+    const now = new Date().toISOString();
+    const item: Appointment = {
+      ...input,
+      id,
+      status: "REQUESTED",
+      createdAtUtc: now,
+      statusChangedAtUtc: now,
+    };
     this.store.write([...items, item]);
     return item;
   }
@@ -217,7 +224,11 @@ export class MockAppointmentRepository implements AppointmentRepository {
       throw new ConflictError(
         `Cannot ${action} an appointment that is ${appointment.status.toLowerCase()}.`,
       );
-    items[index] = { ...appointment, status };
+    items[index] = {
+      ...appointment,
+      status,
+      statusChangedAtUtc: new Date().toISOString(),
+    };
     this.store.write(items);
   }
 }

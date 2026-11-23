@@ -198,6 +198,7 @@ function currentUserFor(
     ? {
         id: provider.id,
         verificationStatus: provider.verificationStatus ?? "PENDING",
+        clinicId: provider.clinicId || null,
       }
     : null;
 

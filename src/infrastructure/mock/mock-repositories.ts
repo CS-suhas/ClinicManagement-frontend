@@ -18,7 +18,7 @@ export class MockCrudRepository<T extends { id: string }, TInput>
   implements CrudRepository<T, TInput>
 {
   constructor(
-    private readonly store: LocalStorageCollection<T>,
+    protected readonly store: LocalStorageCollection<T>,
     private readonly entityName: string,
   ) {}
 

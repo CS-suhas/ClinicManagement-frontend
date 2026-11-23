@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { AsyncContent } from "./async-content";
 import { PaginationControls } from "./pagination-controls";
 import { SearchField } from "./search-field";
+import { EmptyState } from "./ui/empty-state";
 import { PageHeader } from "./ui/page-header";
 
 /** The slice of `useCrudPage` that ListPage renders. */
@@ -21,9 +22,19 @@ interface ListState {
   setPage: (page: number) => void;
 }
 
+/** A filter currently applied, shown as a removable chip when nothing matches. */
+export interface ActiveFilterChip {
+  id: string;
+  label: string;
+  onRemove: () => void;
+}
+
 /**
  * Standard list screen: header with create button, search + filters,
  * loading/empty/error states around `children` (the table), and pagination.
+ * With no rows it shows an EmptyState: "no matches" (with the active filters
+ * and Clear) while a search or filter is on, otherwise "no data yet" with a
+ * New button.
  */
 export function ListPage({
   title,
@@ -35,8 +46,11 @@ export function ListPage({
   onCreate,
   createDisabled,
   filters,
+  activeFilters,
+  onClearFilters,
   banner,
   emptyText,
+  skeleton,
   children,
 }: {
   title: string;
@@ -51,12 +65,47 @@ export function ListPage({
   createDisabled?: boolean;
   /** Extra controls next to the search field. */
   filters?: ReactNode;
+  /** Filters in effect, listed when a search finds nothing. */
+  activeFilters?: ActiveFilterChip[];
+  /** Also clears the search text. Defaults to clearing the search and every filter chip. */
+  onClearFilters?: () => void;
   /** Shown between the header and the toolbar. */
   banner?: ReactNode;
-  /** Overrides the default empty text. */
+  /** Replaces the default description under "No X match" / "No X yet". */
   emptyText?: string;
+  /** Placeholder rows for the first load, e.g. a TableSkeleton. */
+  skeleton?: ReactNode;
   children: ReactNode;
 }) {
+  const searching = list.query !== "" || (activeFilters?.length ?? 0) > 0;
+  const clearAll = () => {
+    list.setQuery("");
+    for (const filter of activeFilters ?? []) filter.onRemove();
+    onClearFilters?.();
+  };
+  const empty = searching ? (
+    <EmptyState
+      variant="no-matches"
+      title={`No ${entityPlural} match`}
+      description={emptyText ?? "Try a different search or clear the filters."}
+      filters={activeFilters?.map((f) => ({ id: f.id, label: f.label }))}
+      onRemoveFilter={(id) =>
+        activeFilters?.find((f) => f.id === id)?.onRemove()
+      }
+      onClearFilters={clearAll}
+    />
+  ) : (
+    <EmptyState
+      title={`No ${entityPlural} yet`}
+      description={emptyText ?? `Add the first ${entity} to see it here.`}
+      action={
+        <Button color="teal" onClick={onCreate} disabled={createDisabled}>
+          <PlusIcon /> New {entity}
+        </Button>
+      }
+    />
+  );
+
   return (
     <>
       <PageHeader
@@ -82,12 +131,8 @@ export function ListPage({
         loading={list.loading}
         error={list.error}
         isEmpty={list.rows.length === 0}
-        emptyText={
-          emptyText ??
-          (list.query
-            ? `No ${entityPlural} match your search.`
-            : `No ${entityPlural} yet.`)
-        }
+        empty={empty}
+        skeleton={skeleton}
         onRetry={list.reload}
       >
         {children}

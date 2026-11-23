@@ -1,5 +1,5 @@
 import type { CurrentUser } from "@/domain/auth";
-import type { Appointment, Patient, Provider } from "@/domain/entities";
+import type { Appointment, PatientListItem, Provider } from "@/domain/entities";
 import {
   ForbiddenError,
   NotFoundError,
@@ -29,7 +29,7 @@ const summary = (appointment: Appointment): PatientVisitSummary => ({
  */
 export function createMockProviderRosterRepository(
   repositories: {
-    patients: Listable<Patient>;
+    patients: Listable<PatientListItem>;
     providers: Listable<Provider>;
     appointments: Listable<Appointment>;
   },

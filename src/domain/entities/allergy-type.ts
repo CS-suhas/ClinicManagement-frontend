@@ -4,6 +4,8 @@ import { isBlank } from "../validation";
 export interface AllergyType {
   id: string;
   name: string;
+  /** Patients with this allergy recorded. Optional for older responses; delete is blocked above 0. */
+  patientCount?: number;
 }
 
 export type AllergyTypeInput = Omit<AllergyType, "id">;

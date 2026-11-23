@@ -4,12 +4,35 @@ import { useService } from "@/di/container-provider";
 import type { AllergyType } from "@/domain/entities";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
+import { AllergyChip } from "@/presentation/components/glance/allergy-chip";
 import { ListPage } from "@/presentation/components/list-page";
+import { RowActions } from "@/presentation/components/row-actions";
+import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
 import { AllergyTypeFormDialog } from "@/presentation/features/allergies/allergy-type-form-dialog";
+import { AllergyUsagePanel } from "@/presentation/features/allergies/allergy-usage-panel";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 
+/** Why an allergy type cannot be deleted yet, or undefined when it can. */
+function inUseReason(allergy: AllergyType): string | undefined {
+  const count = allergy.patientCount ?? 0;
+  if (count === 0) return undefined;
+  return `In use by ${count} ${count === 1 ? "patient" : "patients"}`;
+}
+
 const columns: Column<AllergyType>[] = [
-  { header: "Name", cell: (a) => a.name },
+  {
+    id: "name",
+    header: "Name",
+    sortValue: (a) => a.name,
+    cell: (a) => <AllergyChip name={a.name} allergyId={a.id} showDot={false} />,
+  },
+  {
+    id: "patients",
+    header: "Patients",
+    align: "end",
+    sortValue: (a) => a.patientCount ?? null,
+    cell: (a) => (a.patientCount === undefined ? "—" : a.patientCount),
+  },
 ];
 
 export default function Page() {
@@ -27,13 +50,23 @@ export default function Page() {
         list={crud}
         pageSize={PAGE_SIZE}
         onCreate={crud.form.openCreate}
+        skeleton={<TableSkeleton columns={["chip", "number"]} expandable />}
       >
         <DataTable
           columns={columns}
           rows={crud.rows}
           rowLabel={(a) => a.name}
-          onEdit={crud.form.openEdit}
-          onDelete={crud.setDeleting}
+          rowActions={(a) => (
+            <RowActions
+              label={a.name}
+              onEdit={() => crud.form.openEdit(a)}
+              onDelete={() => crud.setDeleting(a)}
+              deleteDisabledReason={inUseReason(a)}
+            />
+          )}
+          expandable={{
+            render: (a) => <AllergyUsagePanel allergy={a} />,
+          }}
         />
       </ListPage>
 

@@ -14,6 +14,7 @@ import type {
   Patient,
   PatientAllergy,
   PatientInput,
+  PatientListItem,
   Provider,
   ProviderInput,
 } from "../entities";
@@ -74,6 +75,10 @@ export interface AppointmentListItem
   clinicId: string;
   clinicName: string;
   reasonForVisit: string | null;
+  /** Allergies recorded on the patient. Optional for older responses. */
+  patientAllergyCount?: number;
+  /** Highest recorded severity of the patient, or null. Optional for older responses. */
+  patientHighestAllergySeverity?: string | null;
 }
 
 /** Port: status transitions. Each one throws ConflictError on an invalid transition and ForbiddenError for the wrong caller. */
@@ -99,6 +104,8 @@ export interface AdminDashboard {
   patientCount: number;
   pendingProviderVerificationCount: number;
   todayAppointmentCount: number;
+  /** All PENDING clinic join requests. Optional for older responses. */
+  pendingJoinRequestCount?: number;
 }
 
 export interface ClinicAdminDashboard extends AdminDashboard {
@@ -110,11 +117,23 @@ export interface DoctorDashboard {
   weekAppointmentCount: number;
   distinctPatientCount: number;
   nextAppointment: AppointmentListItem | null;
+  /** REQUESTED appointments starting now or later. Optional for older responses. */
+  pendingRequestCount?: number;
+}
+
+/** A recent decision on one of the patient's requests. Uses the CURRENT status, so a later change drops it. */
+export interface RecentDecision {
+  appointmentId: string;
+  status: "CONFIRMED" | "DECLINED";
+  decidedAtUtc: string | null;
+  providerName: string;
 }
 
 export interface PatientDashboard {
   nextAppointment: AppointmentListItem | null;
   upcomingAppointmentCount: number;
+  /** Up to five, newest first. Optional for older responses. */
+  recentDecisions?: RecentDecision[];
 }
 
 /** Response of GET /api/me/dashboard. A section is null unless the caller holds that role (and, for doctor and patient, the linked record). */
@@ -140,7 +159,7 @@ export interface PatientVisitSummary {
 
 /** One line of a provider's patient roster. Visit facts count only that provider's appointments. */
 export interface PatientRosterRow {
-  patient: Patient;
+  patient: PatientListItem;
   /** Latest past appointment, ignoring DECLINED and CANCELLED. */
   lastVisit: PatientVisitSummary | null;
   /** Soonest upcoming appointment, ignoring DECLINED and CANCELLED. */
@@ -222,7 +241,7 @@ export type ClinicRepository = CrudRepository<Clinic, ClinicInput> &
 export type ProviderRepository = CrudRepository<Provider, ProviderInput> &
   SearchRepository<Provider, ProviderSearchOptions>;
 export type PatientRepository = CrudRepository<Patient, PatientInput> &
-  SearchRepository<Patient>;
+  SearchRepository<PatientListItem>;
 export type AllergyTypeRepository = CrudRepository<
   AllergyType,
   AllergyTypeInput

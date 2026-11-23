@@ -4,6 +4,7 @@ import type {
   Appointment,
   Clinic,
   Patient,
+  PatientAllergy,
   Provider,
 } from "@/domain/entities";
 import { UnauthorizedError } from "@/domain/errors";
@@ -35,27 +36,54 @@ export function createMockDashboardRepository(
     patients: Listable<Patient>;
     allergyTypes: Listable<AllergyType>;
     appointments: Listable<Appointment>;
-    clinicJoinRequests: Pick<ClinicJoinRequestRepository, "listForClinic">;
+    allergies: Listable<PatientAllergy>;
+    clinicJoinRequests: Pick<ClinicJoinRequestRepository, "listForClinic"> & {
+      countPending(): Promise<number>;
+    };
   },
   currentUser: () => Promise<CurrentUser | null>,
 ): DashboardRepository {
-  const loadAll = () =>
-    Promise.all([
+  const loadAll = async () => {
+    const [
+      clinics,
+      providers,
+      patients,
+      allergyTypes,
+      appointments,
+      allergies,
+    ] = await Promise.all([
       repositories.clinics.list(),
       repositories.providers.list(),
       repositories.patients.list(),
       repositories.allergyTypes.list(),
       repositories.appointments.list(),
+      repositories.allergies.list(),
     ]);
+    return {
+      clinics,
+      providers,
+      patients,
+      allergyTypes,
+      appointments,
+      allergies,
+    };
+  };
 
   return {
     async getDashboard(): Promise<DashboardData> {
-      const [clinics, providers, patients, allergyTypes, appointments] =
-        await loadAll();
+      const {
+        clinics,
+        providers,
+        patients,
+        allergyTypes,
+        appointments,
+        allergies,
+      } = await loadAll();
       const upcomingAppointments = toAppointmentListItems(appointments, {
         patients,
         providers,
         clinics,
+        allergies,
       })
         .filter((item) => Date.parse(item.appointmentDateTime) >= Date.now())
         .sort((a, b) =>
@@ -75,11 +103,13 @@ export function createMockDashboardRepository(
     async getMine(): Promise<MeDashboard> {
       const user = await currentUser();
       if (!user) throw new UnauthorizedError();
-      const [clinics, providers, patients, , appointments] = await loadAll();
+      const { clinics, providers, patients, appointments, allergies } =
+        await loadAll();
       const items = toAppointmentListItems(appointments, {
         patients,
         providers,
         clinics,
+        allergies,
       });
 
       // "Today" is the UTC calendar day; "week" is seven days from its midnight.
@@ -122,6 +152,8 @@ export function createMockDashboardRepository(
           todayAppointmentCount: items.filter(
             (item) => counts(item) && inToday(item),
           ).length,
+          pendingJoinRequestCount:
+            await repositories.clinicJoinRequests.countPending(),
         };
 
       // Clinic admin: scoped to the caller's clinics. Patients are those with an appointment there.
@@ -171,6 +203,11 @@ export function createMockDashboardRepository(
           ).length,
           distinctPatientCount: new Set(own.map((item) => item.patientId)).size,
           nextAppointment: own.filter(upcoming).sort(soonestFirst)[0] ?? null,
+          pendingRequestCount: own.filter(
+            (item) =>
+              item.status === "REQUESTED" &&
+              Date.parse(item.appointmentDateTime) >= now,
+          ).length,
         };
       }
 
@@ -181,9 +218,29 @@ export function createMockDashboardRepository(
         const mine = items.filter(
           (item) => item.patientId === patientId && upcoming(item),
         );
+        // Recent decisions use the current status, so a later completion or cancellation drops out.
+        const recentDecisions = items
+          .filter(
+            (item) =>
+              item.patientId === patientId &&
+              (item.status === "CONFIRMED" || item.status === "DECLINED"),
+          )
+          .sort(
+            (a, b) =>
+              Date.parse(b.statusChangedAtUtc ?? b.appointmentDateTime) -
+              Date.parse(a.statusChangedAtUtc ?? a.appointmentDateTime),
+          )
+          .slice(0, 5)
+          .map((item) => ({
+            appointmentId: item.id,
+            status: item.status as "CONFIRMED" | "DECLINED",
+            decidedAtUtc: item.statusChangedAtUtc ?? null,
+            providerName: item.providerName,
+          }));
         patient = {
           nextAppointment: mine.sort(soonestFirst)[0] ?? null,
           upcomingAppointmentCount: mine.length,
+          recentDecisions,
         };
       }
 

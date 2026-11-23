@@ -6,9 +6,10 @@ import { useService } from "@/di/container-provider";
 import type { PagedResult } from "@/domain/repositories";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
+import { EmptyState } from "@/presentation/components/ui/empty-state";
+import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { PAGE_SIZE } from "@/presentation/hooks/use-crud-page";
-import { useNow } from "@/presentation/hooks/use-now";
 import { PatientRosterCard } from "./patient-roster-card";
 import { PatientRosterTable } from "./patient-roster-table";
 
@@ -22,7 +23,6 @@ export function DoctorPatientsView({
   providerId: string | null;
 }) {
   const patientService = useService("patientService");
-  const now = useNow();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const search = query.trim();
@@ -72,12 +72,33 @@ export function DoctorPatientsView({
         loading={roster.loading}
         error={roster.error}
         isEmpty={rows.length === 0}
-        emptyText={
-          search ? "No patients match your search." : "No patients yet."
+        skeleton={
+          <TableSkeleton
+            columns={["chip", "short", "text", "text", "text"]}
+            selectable
+            expandable
+          />
+        }
+        empty={
+          <div className="p-4">
+            {search ? (
+              <EmptyState
+                variant="no-matches"
+                title="No patients match"
+                description="Try a different name."
+                onClearFilters={() => setQuery("")}
+              />
+            ) : (
+              <EmptyState
+                title="No patients yet"
+                description="Patients appear here after they book with you."
+              />
+            )}
+          </div>
         }
         onRetry={roster.reload}
       >
-        <PatientRosterTable rows={rows} now={now} />
+        <PatientRosterTable rows={rows} />
       </AsyncContent>
     </PatientRosterCard>
   );

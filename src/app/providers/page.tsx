@@ -1,6 +1,6 @@
 "use client";
 
-import { Flex } from "@radix-ui/themes";
+import { Button, Flex, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import {
@@ -8,6 +8,8 @@ import {
   type Provider,
   providerFullName,
 } from "@/domain/entities";
+import { useAuth } from "@/presentation/auth/auth-provider";
+import { ConfirmActionDialog } from "@/presentation/components/confirm-action-dialog";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
 import { ErrorCallout } from "@/presentation/components/error-callout";
@@ -15,16 +17,46 @@ import {
   ALL_FILTER,
   FilterSelect,
 } from "@/presentation/components/filter-select";
+import { ClinicChip } from "@/presentation/components/glance/clinic-chip";
+import { DoctorChip } from "@/presentation/components/glance/doctor-chip";
+import { StatusPill } from "@/presentation/components/glance/status-chip";
 import { ListPage } from "@/presentation/components/list-page";
+import { useNotify } from "@/presentation/components/notifications";
+import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
+import { ProviderDetails } from "@/presentation/features/providers/provider-details";
 import { ProviderFormDialog } from "@/presentation/features/providers/provider-form-dialog";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
+import { invalidateGlanceData } from "@/presentation/hooks/use-glance-data";
 import { formatFee } from "@/presentation/lib/format";
+
+type Decision = "verify" | "reject";
+
+const DECISION_VERB: Record<Decision, string> = {
+  verify: "verified",
+  reject: "rejected",
+};
+
+const DECISION_STATUS: Record<Decision, "VERIFIED" | "REJECTED"> = {
+  verify: "VERIFIED",
+  reject: "REJECTED",
+};
 
 export default function Page() {
   const clinicService = useService("clinicService");
+  const providerService = useService("providerService");
+  const { user } = useAuth();
+  const { notifyError, notifySuccess } = useNotify();
+  const isAdmin = !!user?.roles.includes("admin");
   const [clinicFilter, setClinicFilter] = useState<string>(ALL_FILTER);
-  const crud = useCrudPage(useService("providerService"), {
+  const [bulk, setBulk] = useState<{
+    decision: Decision;
+    targets: Provider[];
+    clear: () => void;
+  } | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const crud = useCrudPage(providerService, {
     entityName: "provider",
     extraOptions: () => ({
       clinicId: clinicFilter === ALL_FILTER ? undefined : clinicFilter,
@@ -39,18 +71,139 @@ export default function Page() {
   } = useAsyncData(() => clinicService.search({ page: 1, pageSize: 100 }));
 
   const clinics = clinicData?.items ?? [];
-  const clinicName = (id: string) => clinics.find((c) => c.id === id)?.name;
+  const clinicById = new Map(clinics.map((c) => [c.id, c]));
+  const hasFilters = crud.query !== "" || clinicFilter !== ALL_FILTER;
+
+  /** One doctor's verify or reject: the badge flips at once, rolled back on failure. */
+  const decide = (provider: Provider, decision: Decision) => {
+    const name = providerFullName(provider);
+    const previous = provider.verificationStatus;
+    crud.runOptimistic({
+      apply: () =>
+        crud.patch(provider.id, {
+          verificationStatus: DECISION_STATUS[decision],
+        }),
+      rollback: () => crud.patch(provider.id, { verificationStatus: previous }),
+      request: () =>
+        decision === "verify"
+          ? providerService.verify(provider.id)
+          : providerService.reject(provider.id),
+      failureMessage: `Could not ${decision === "verify" ? "verify" : "reject"} ${name}`,
+      successMessage: `${name} ${DECISION_VERB[decision]}`,
+    });
+  };
+
+  /** Sends the decisions one after another and reports how many worked. */
+  const runBulk = async () => {
+    if (!bulk) return;
+    setBulkBusy(true);
+    let done = 0;
+    let failed = 0;
+    for (const provider of bulk.targets) {
+      try {
+        if (bulk.decision === "verify")
+          await providerService.verify(provider.id);
+        else await providerService.reject(provider.id);
+        crud.patch(provider.id, {
+          verificationStatus: DECISION_STATUS[bulk.decision],
+        });
+        done++;
+      } catch {
+        failed++;
+      }
+    }
+    setBulkBusy(false);
+    setBulk(null);
+    bulk.clear();
+    invalidateGlanceData();
+    void crud.reload();
+    const summary = `${done} ${DECISION_VERB[bulk.decision]}${failed ? `, ${failed} failed` : ""}`;
+    if (failed > 0) notifyError(summary);
+    else notifySuccess(summary);
+  };
+
   const columns: Column<Provider>[] = [
-    { header: "Name", cell: providerFullName },
-    { header: "Specialty", cell: (p) => p.specialty },
-    { header: "Clinic", cell: (p) => clinicName(p.clinicId) ?? "—" },
-    { header: "Fee", cell: (p) => formatFee(p.fee) },
     {
+      id: "name",
+      header: "Name",
+      sortValue: providerFullName,
+      cell: (p) => (
+        <DoctorChip
+          provider={{
+            ...p,
+            clinicName: clinicById.get(p.clinicId)?.name ?? null,
+          }}
+        />
+      ),
+    },
+    {
+      id: "specialty",
+      header: "Specialty",
+      hideBelow: "md",
+      sortValue: (p) => p.specialty,
+      cell: (p) => <Text size="2">{p.specialty}</Text>,
+    },
+    {
+      id: "clinic",
+      header: "Clinic",
+      cell: (p) => {
+        const clinic = clinicById.get(p.clinicId);
+        return clinic ? (
+          <ClinicChip
+            clinic={{ id: clinic.id, name: clinic.name }}
+            variant="inline"
+          />
+        ) : (
+          <Text size="2" style={{ color: "var(--mp-muted)" }}>
+            —
+          </Text>
+        );
+      },
+    },
+    {
+      id: "verification",
+      header: "Verification",
+      cell: (p) => (
+        <Flex align="center" gap="2" wrap="wrap">
+          {p.verificationStatus ? (
+            <StatusPill kind="verification" status={p.verificationStatus} />
+          ) : (
+            <Text size="2" style={{ color: "var(--mp-muted)" }}>
+              —
+            </Text>
+          )}
+          {isAdmin && p.verificationStatus === "PENDING" && (
+            <>
+              <Button size="1" color="teal" onClick={() => decide(p, "verify")}>
+                Verify
+              </Button>
+              <Button
+                size="1"
+                variant="soft"
+                color="red"
+                onClick={() => decide(p, "reject")}
+              >
+                Reject
+              </Button>
+            </>
+          )}
+        </Flex>
+      ),
+    },
+    {
+      id: "fee",
+      header: "Fee",
+      align: "end",
+      sortValue: (p) => p.fee ?? null,
+      cell: (p) => <span className="tabular-nums">{formatFee(p.fee)}</span>,
+    },
+    {
+      id: "gender",
       header: "Gender",
+      hideBelow: "md",
       cell: (p) => (p.gender ? PROVIDER_GENDER_LABELS[p.gender] : "—"),
     },
   ];
-  const hasFilters = crud.query !== "" || clinicFilter !== ALL_FILTER;
 
   return (
     <>
@@ -64,8 +217,28 @@ export default function Page() {
         onCreate={crud.form.openCreate}
         createDisabled={clinicsLoading || !clinicData}
         emptyText={
-          hasFilters ? "No providers match your filters." : "No providers yet."
+          hasFilters
+            ? "Try a different search or clear the filters."
+            : "Add a provider to start booking visits."
         }
+        activeFilters={
+          clinicFilter === ALL_FILTER
+            ? []
+            : [
+                {
+                  id: "clinic",
+                  label: clinicById.get(clinicFilter)?.name ?? "Clinic",
+                  onRemove: () => {
+                    setClinicFilter(ALL_FILTER);
+                    crud.setPage(1);
+                  },
+                },
+              ]
+        }
+        onClearFilters={() => {
+          setClinicFilter(ALL_FILTER);
+          crud.setPage(1);
+        }}
         banner={
           clinicError && (
             <Flex mb="3">
@@ -88,6 +261,13 @@ export default function Page() {
             }}
           />
         }
+        skeleton={
+          <TableSkeleton
+            columns={["chip", "text", "chip", "chip", "number", "text"]}
+            selectable={isAdmin}
+            expandable={isAdmin}
+          />
+        }
       >
         <DataTable
           columns={columns}
@@ -95,6 +275,57 @@ export default function Page() {
           rowLabel={providerFullName}
           onEdit={crud.form.openEdit}
           onDelete={crud.setDeleting}
+          expandable={
+            isAdmin
+              ? { render: (p) => <ProviderDetails provider={p} /> }
+              : undefined
+          }
+          selection={
+            isAdmin
+              ? {
+                  bulkActions: (selected, clear) => {
+                    const pending = selected.filter(
+                      (p) => p.verificationStatus === "PENDING",
+                    );
+                    return (
+                      <Flex gap="2" wrap="wrap">
+                        <Button
+                          size="1"
+                          color="teal"
+                          disabled={pending.length === 0}
+                          onClick={() =>
+                            setBulk({
+                              decision: "verify",
+                              targets: pending,
+                              clear,
+                            })
+                          }
+                        >
+                          Verify {pending.length} pending
+                        </Button>
+                        <Button
+                          size="1"
+                          variant="soft"
+                          color="red"
+                          disabled={pending.length === 0}
+                          onClick={() =>
+                            setBulk({
+                              decision: "reject",
+                              targets: pending,
+                              clear,
+                            })
+                          }
+                        >
+                          Reject pending
+                        </Button>
+                      </Flex>
+                    );
+                  },
+                  isSelectable: (p) => p.verificationStatus === "PENDING",
+                  disabledReason: () => "Only pending doctors can be decided",
+                }
+              : undefined
+          }
         />
       </ListPage>
 
@@ -109,6 +340,29 @@ export default function Page() {
         {...crud.deleteDialog}
         title="Delete provider?"
         description={`"${crud.deleting ? providerFullName(crud.deleting) : ""}" will be permanently removed.`}
+      />
+      <ConfirmActionDialog
+        open={bulk !== null}
+        onOpenChange={(open) => !open && setBulk(null)}
+        busy={bulkBusy}
+        title={
+          bulk?.decision === "verify"
+            ? `Verify ${bulk.targets.length} doctor${bulk.targets.length === 1 ? "" : "s"}?`
+            : `Reject ${bulk?.targets.length ?? 0} doctor${bulk?.targets.length === 1 ? "" : "s"}?`
+        }
+        description={
+          <Flex direction="column" gap="2">
+            <Text size="2">Only pending applications are affected.</Text>
+            <ul className="list-disc pl-5 text-[13px]">
+              {bulk?.targets.map((p) => (
+                <li key={p.id}>{providerFullName(p)}</li>
+              ))}
+            </ul>
+          </Flex>
+        }
+        confirmLabel={bulk?.decision === "verify" ? "Verify" : "Reject"}
+        confirmColor={bulk?.decision === "verify" ? "teal" : "red"}
+        onConfirm={() => void runBulk()}
       />
     </>
   );

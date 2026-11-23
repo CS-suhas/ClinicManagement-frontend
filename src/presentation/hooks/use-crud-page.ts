@@ -74,6 +74,14 @@ export function useCrudPage<
         },
     );
 
+  const noun = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+
+  /** Changes fields of one loaded row in place, e.g. an inline status change. */
+  const patch = (id: string, change: Partial<T>) =>
+    editItems((items) =>
+      items.map((item) => (item.id === id ? { ...item, ...change } : item)),
+    );
+
   /**
    * Creates (`editing` null) or updates an item. Throws ValidationError
    * synchronously so the form can show it; nothing else is awaited.
@@ -94,6 +102,7 @@ export function useCrudPage<
           ),
         request: () => service.update(editing.id, input),
         failureMessage: `Could not update ${entityName}`,
+        successMessage: `${noun} saved`,
       });
       return;
     }
@@ -108,6 +117,7 @@ export function useCrudPage<
         editItems((items) => items.filter((i) => i.id !== created.id), -1),
       request: () => service.create(input, created.id),
       failureMessage: `Could not add ${entityName}`,
+      successMessage: `${noun} added`,
     });
   };
 
@@ -128,6 +138,7 @@ export function useCrudPage<
       },
       request: () => service.delete(item.id),
       failureMessage: `Could not delete ${entityName}`,
+      successMessage: `${noun} deleted`,
     });
   };
 
@@ -142,6 +153,11 @@ export function useCrudPage<
     error,
     reload,
     save,
+    /** Optimistic update of one row, with the same queueing, rollback and popups as save. */
+    runOptimistic,
+    patch,
+    /** Removes a row optimistically (with a success toast). Use for custom delete flows. */
+    remove,
     form: {
       open: formState.open,
       editing: formState.editing,

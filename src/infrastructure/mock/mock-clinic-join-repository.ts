@@ -169,6 +169,13 @@ export class MockClinicJoinRequestRepository
     );
   }
 
+  /** All PENDING requests across clinics. The caller decides whether it may see the number. */
+  async countPending(): Promise<number> {
+    await delay();
+    return this.store.read().filter((record) => record.status === "PENDING")
+      .length;
+  }
+
   approve(id: string): Promise<void> {
     return this.decide(id, "APPROVED");
   }

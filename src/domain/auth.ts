@@ -16,7 +16,12 @@ export interface MeResponse {
   subject: string;
   roles: Role[];
   patient: { id: string } | null;
-  provider: { id: string; verificationStatus: VerificationStatus } | null;
+  /** `clinicId` is null when the doctor has no clinic; absent on older responses. */
+  provider: {
+    id: string;
+    verificationStatus: VerificationStatus;
+    clinicId?: string | null;
+  } | null;
   /** Null when the API has no display name for the user. */
   displayName: string | null;
   /** Clinics the user administers. Empty unless the user holds the clinicadmin role. */

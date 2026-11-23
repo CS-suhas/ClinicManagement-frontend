@@ -25,6 +25,10 @@ export interface Appointment {
   reasonForVisit: string;
   /** Set by the API. New appointments start as REQUESTED. */
   status: AppointmentStatus;
+  /** When the appointment was requested (UTC). Optional for older records. */
+  createdAtUtc?: string | null;
+  /** When the status last changed (UTC); the API falls back to createdAtUtc. */
+  statusChangedAtUtc?: string | null;
 }
 
 /** Status is changed through the confirm, decline, complete and cancel actions, never by a form. */

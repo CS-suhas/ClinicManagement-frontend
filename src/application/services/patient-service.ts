@@ -2,6 +2,7 @@ import {
   type Appointment,
   type Patient,
   type PatientInput,
+  type PatientListItem,
   validatePatient,
 } from "@/domain/entities";
 import { assertNoDependents } from "@/domain/errors";
@@ -38,7 +39,7 @@ export interface PatientVisits {
 
 /** One line of the admin patients page, with visits across every provider. */
 export interface PatientVisitRow {
-  patient: Patient;
+  patient: PatientListItem;
   lastVisit?: AppointmentListItem;
   nextVisit?: AppointmentListItem;
   /** Most recent appointment on the books; supplies the reason and provider. */
@@ -67,7 +68,7 @@ export function summarizeVisits(
 
 /** Joins a patient with their visit facts; the provider comes from the latest visit. */
 export function toRosterRow(
-  patient: Patient,
+  patient: PatientListItem,
   visits?: PatientVisits,
 ): PatientVisitRow {
   const latest = visits?.latestVisit;
@@ -86,7 +87,12 @@ export function toRosterRow(
   };
 }
 
-export class PatientService extends CrudService<Patient, PatientInput> {
+export class PatientService extends CrudService<
+  Patient,
+  PatientInput,
+  SearchOptions,
+  PatientListItem
+> {
   constructor(
     patientRepo: PatientRepository,
     private readonly appointments: AppointmentRepository,

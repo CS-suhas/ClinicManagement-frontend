@@ -6,6 +6,7 @@ export { ClinicService } from "./clinic-service";
 export { ConfigurationService } from "./configuration-service";
 export { CrudService } from "./crud-service";
 export { DashboardService } from "./dashboard-service";
+export { GlanceService } from "./glance-service";
 export { PatientAllergyService } from "./patient-allergy-service";
 export { PatientService } from "./patient-service";
 export { ProviderService } from "./provider-service";

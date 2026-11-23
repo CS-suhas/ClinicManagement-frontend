@@ -6,25 +6,20 @@ import {
   ClinicService,
   ConfigurationService,
   DashboardService,
+  GlanceService,
   PatientAllergyService,
   PatientService,
   ProviderService,
 } from "@/application/services";
 import type { AuthPersona, AuthRepository, CurrentUser } from "@/domain/auth";
-import type {
-  AllergyType,
-  AllergyTypeInput,
-  Clinic,
-  ClinicInput,
-  Patient,
-  PatientInput,
-} from "@/domain/entities";
+import type { Clinic, ClinicInput } from "@/domain/entities";
 import type {
   AllergyTypeRepository,
   AppointmentAvailabilityRepository,
   AppointmentRepository,
   ClinicJoinRequestRepository,
   ClinicRepository,
+  DashboardRepository,
   PatientAllergyRepository,
   PatientRepository,
   ProviderDirectoryRepository,
@@ -62,6 +57,10 @@ import {
 } from "@/infrastructure/mock/mock-configuration-repository";
 import { createMockDashboardRepository } from "@/infrastructure/mock/mock-dashboard-repository";
 import {
+  MockAllergyTypeRepository,
+  MockPatientRepository,
+} from "@/infrastructure/mock/mock-patient-repositories";
+import {
   createMockProviderDirectoryRepository,
   MockProviderRepository,
   MockProviderVerificationRepository,
@@ -92,11 +91,14 @@ export interface Container {
   configurationService: ConfigurationService;
   dashboardService: DashboardService;
   authService: AuthService;
+  /** Read models for the glance cards, composed from the services above. */
+  glanceService: GlanceService;
   /** Demo identities for the sign-in picker. Empty when sign-in is Keycloak-backed. */
   authPersonas: AuthPersona[];
 }
 
 interface Repositories {
+  dashboard: DashboardRepository;
   auth: AuthRepository;
   clinics: ClinicRepository;
   providers: ProviderRepository;
@@ -124,17 +126,21 @@ function createMockRepositories(): Repositories {
   // One store instance is shared by every adapter that reads or writes providers.
   const providersStore = col("providers-v2", seed.seedProviders);
   const providers = new MockProviderRepository(providersStore);
-  const patients = new MockCrudRepository<Patient, PatientInput>(
+  const patientAllergiesStore = col(
+    "patient-allergies",
+    seed.seedPatientAllergies,
+  );
+  const patients = new MockPatientRepository(
     col("patients", seed.seedPatients),
-    "Patient",
+    patientAllergiesStore,
   );
   const allergyTypesStore = col("allergy-types", seed.seedAllergyTypes);
-  const allergyTypes = new MockCrudRepository<AllergyType, AllergyTypeInput>(
+  const allergyTypes = new MockAllergyTypeRepository(
     allergyTypesStore,
-    "Allergy type",
+    patientAllergiesStore,
   );
   const patientAllergies = new MockPatientAllergyRepository(
-    col("patient-allergies", seed.seedPatientAllergies),
+    patientAllergiesStore,
     allergyTypesStore,
   );
   const auth = new MockAuthRepository(patients, providersStore);
@@ -153,6 +159,7 @@ function createMockRepositories(): Repositories {
         patients: patientList,
         providers: providerList,
         clinics: clinicList,
+        allergies: patientAllergiesStore.read(),
       };
     },
     currentUser,
@@ -169,6 +176,18 @@ function createMockRepositories(): Repositories {
     currentUser,
   );
   return {
+    dashboard: createMockDashboardRepository(
+      {
+        clinics,
+        providers,
+        patients,
+        allergyTypes,
+        appointments,
+        allergies: { list: async () => patientAllergiesStore.read() },
+        clinicJoinRequests,
+      },
+      () => auth.getCurrentUser(),
+    ),
     auth,
     clinics,
     providers,
@@ -199,6 +218,7 @@ function createRestRepositories(baseUrl: string): Repositories {
   const clinics = new RestClinicRepository(http);
   const providers = new RestProviderRepository(http);
   return {
+    dashboard: new RestDashboardRepository(http),
     auth,
     clinics,
     providers,
@@ -222,44 +242,58 @@ export function createContainer(config: ContainerConfig): Container {
     : createMockRepositories();
   const getToken = (): Promise<string | null> => r.auth.getAccessToken();
 
+  const clinicService = new ClinicService(r.clinics, r.providers);
+  const providerService = new ProviderService(
+    r.providers,
+    r.appointments,
+    r.providerDirectory,
+    r.providerVerification,
+  );
+  const patientService = new PatientService(
+    r.patients,
+    r.appointments,
+    r.patientAllergies,
+    r.providerRoster,
+  );
+  const patientAllergyService = new PatientAllergyService(r.patientAllergies);
+  const appointmentService = new AppointmentService(
+    r.appointments,
+    r.appointmentAvailability,
+  );
+  const clinicJoinService = new ClinicJoinService(r.clinicJoinRequests);
+  const configurationService = new ConfigurationService(
+    isRest
+      ? // Served by the Next.js rewrites in next.config.ts, hence no base URL.
+        new RestConfigurationRepository(new HttpClient("", getToken))
+      : new MockConfigurationRepository(),
+  );
+
   return {
-    clinicService: new ClinicService(r.clinics, r.providers),
-    providerService: new ProviderService(
-      r.providers,
-      r.appointments,
-      r.providerDirectory,
-      r.providerVerification,
-    ),
-    patientService: new PatientService(
-      r.patients,
-      r.appointments,
-      r.patientAllergies,
-      r.providerRoster,
-    ),
+    clinicService,
+    providerService,
+    patientService,
     allergyTypeService: new AllergyTypeService(
       r.allergyTypes,
       r.patientAllergies,
     ),
-    patientAllergyService: new PatientAllergyService(r.patientAllergies),
-    appointmentService: new AppointmentService(
-      r.appointments,
-      r.appointmentAvailability,
-    ),
-    clinicJoinService: new ClinicJoinService(r.clinicJoinRequests),
-    configurationService: new ConfigurationService(
-      isRest
-        ? // Served by the Next.js rewrites in next.config.ts, hence no base URL.
-          new RestConfigurationRepository(new HttpClient("", getToken))
-        : new MockConfigurationRepository(),
-    ),
-    dashboardService: new DashboardService(
-      isRest
-        ? new RestDashboardRepository(
-            new HttpClient(config.apiBaseUrl, getToken),
-          )
-        : createMockDashboardRepository(r, () => r.auth.getCurrentUser()),
-    ),
+    patientAllergyService,
+    appointmentService,
+    clinicJoinService,
+    configurationService,
+    dashboardService: new DashboardService(r.dashboard),
     authService: new AuthService(r.auth),
+    glanceService: new GlanceService(
+      {
+        patients: patientService,
+        patientAllergies: patientAllergyService,
+        appointments: appointmentService,
+        providers: providerService,
+        clinics: clinicService,
+        clinicJoins: clinicJoinService,
+        configuration: configurationService,
+      },
+      () => r.auth.getCurrentUser(),
+    ),
     authPersonas: isRest ? [] : MOCK_PERSONAS,
   };
 }
