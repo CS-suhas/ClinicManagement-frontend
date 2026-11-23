@@ -86,10 +86,10 @@ export class RestCrudRepository<T extends { id: string }, TInput, TResponse = T>
     return item && this.mapper.fromResponse(item);
   }
 
-  async create(input: TInput) {
+  async create(input: TInput, id: string = crypto.randomUUID()) {
     const item = await this.http.post<TResponse>(this.resource, {
       ...this.mapper.toRequest(input),
-      id: crypto.randomUUID(),
+      id,
     });
     return this.mapper.fromResponse(item);
   }
@@ -300,8 +300,8 @@ export class RestAppointmentRepository implements AppointmentRepository {
     return this.crud.getById(id);
   }
 
-  create(input: AppointmentInput) {
-    return this.crud.create(input);
+  create(input: AppointmentInput, id?: string) {
+    return this.crud.create(input, id);
   }
 
   update(id: string, input: AppointmentInput) {

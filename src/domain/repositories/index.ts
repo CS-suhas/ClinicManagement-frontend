@@ -16,7 +16,8 @@ import type {
 export interface CrudRepository<T extends { id: string }, TInput> {
   list(): Promise<T[]>;
   getById(id: string): Promise<T | null>;
-  create(input: TInput): Promise<T>;
+  /** `id` lets callers pick the id up front, e.g. for optimistic UI. */
+  create(input: TInput, id?: string): Promise<T>;
   update(id: string, input: TInput): Promise<T>;
   delete(id: string): Promise<void>;
 }

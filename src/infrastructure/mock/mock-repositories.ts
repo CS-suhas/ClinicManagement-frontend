@@ -73,9 +73,9 @@ export class MockCrudRepository<T extends { id: string }, TInput>
     return this.store.read().find((x) => x.id === id) ?? null;
   }
 
-  async create(input: TInput): Promise<T> {
+  async create(input: TInput, id: string = newId()): Promise<T> {
     await delay();
-    const item = { ...input, id: newId() } as unknown as T;
+    const item = { ...input, id } as unknown as T;
     this.store.write([...this.store.read(), item]);
     return item;
   }
@@ -219,8 +219,8 @@ export class MockAppointmentRepository implements AppointmentRepository {
     return this.crud.getById(id);
   }
 
-  create(input: AppointmentInput) {
-    return this.crud.create(input);
+  create(input: AppointmentInput, id?: string) {
+    return this.crud.create(input, id);
   }
 
   update(id: string, input: AppointmentInput) {

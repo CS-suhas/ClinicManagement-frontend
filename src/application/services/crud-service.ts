@@ -41,13 +41,18 @@ export abstract class CrudService<
     return item;
   }
 
-  create(input: TInput): Promise<T> {
+  /** Throws ValidationError when `input` is invalid; call before optimistic UI. */
+  validateInput(input: TInput): void {
     assertValid(this.validate(input));
-    return this.repo.create(input);
+  }
+
+  create(input: TInput, id?: string): Promise<T> {
+    this.validateInput(input);
+    return this.repo.create(input, id);
   }
 
   update(id: string, input: TInput): Promise<T> {
-    assertValid(this.validate(input));
+    this.validateInput(input);
     return this.repo.update(id, input);
   }
 

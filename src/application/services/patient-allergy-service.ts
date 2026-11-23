@@ -23,15 +23,20 @@ export class PatientAllergyService {
     return this.repo.allergyOptions(patientId, options);
   }
 
+  /** Throws ValidationError when `record` is invalid; call before optimistic UI. */
+  validateInput(record: PatientAllergy): void {
+    assertValid(validatePatientAllergy(record));
+  }
+
   /** Adds or upserts an allergy on a patient. */
   async add(record: PatientAllergy): Promise<PatientAllergy> {
-    assertValid(validatePatientAllergy(record));
+    this.validateInput(record);
     return this.repo.add(record);
   }
 
   /** Updates severity/notes of an existing record. */
   update(record: PatientAllergy): Promise<PatientAllergy> {
-    assertValid(validatePatientAllergy(record));
+    this.validateInput(record);
     return this.repo.save(record);
   }
 
