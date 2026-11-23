@@ -1,12 +1,10 @@
 "use client";
 
-import { TextField } from "@radix-ui/themes";
-import { useEffect, useState } from "react";
 import { useService } from "@/di/container-provider";
 import type { AllergyType, AllergyTypeInput } from "@/domain/entities";
 import { FormDialog } from "@/presentation/components/form-dialog";
-import { FormField } from "@/presentation/components/form-field";
-import { useFormSubmit } from "@/presentation/hooks/use-form-submit";
+import { TextFormField } from "@/presentation/components/form-fields";
+import { useEntityForm } from "@/presentation/hooks/use-entity-form";
 
 const EMPTY: AllergyTypeInput = { name: "" };
 
@@ -22,50 +20,20 @@ export function AllergyTypeFormDialog({
   allergyType: AllergyType | null;
   onSaved: () => void;
 }) {
-  const allergyTypeService = useService("allergyTypeService");
-  const { submitting, fieldErrors, formError, run, reset } = useFormSubmit();
-  const [values, setValues] = useState<AllergyTypeInput>(EMPTY);
-
-  useEffect(() => {
-    if (open) {
-      reset();
-      setValues(allergyType ? { name: allergyType.name } : EMPTY);
-    }
-  }, [open, allergyType, reset]);
-
-  const submit = async () => {
-    const ok = await run(() =>
-      allergyType
-        ? allergyTypeService.update(allergyType.id, values)
-        : allergyTypeService.create(values),
-    );
-    if (ok) {
-      onOpenChange(false);
-      onSaved();
-    }
-  };
+  const form = useEntityForm({
+    entityName: "allergy",
+    idPrefix: "allergy",
+    open,
+    onOpenChange,
+    onSaved,
+    entity: allergyType,
+    empty: EMPTY,
+    service: useService("allergyTypeService"),
+  });
 
   return (
-    <FormDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={allergyType ? "Edit allergy" : "New allergy"}
-      submitLabel={allergyType ? "Save changes" : "Create allergy"}
-      submitting={submitting}
-      formError={formError}
-      onSubmit={submit}
-    >
-      <FormField
-        label="Allergy name"
-        htmlFor="allergy-name"
-        error={fieldErrors.name}
-      >
-        <TextField.Root
-          id="allergy-name"
-          value={values.name}
-          onChange={(e) => setValues({ name: e.target.value })}
-        />
-      </FormField>
+    <FormDialog {...form.dialogProps}>
+      <TextFormField label="Allergy name" {...form.field("name")} />
     </FormDialog>
   );
 }
