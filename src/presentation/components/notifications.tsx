@@ -64,16 +64,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }}
       >
         {items.map((n) => (
-          <Callout.Root key={n.id} color="red" role="alert" size="1">
+          <Callout.Root
+            key={n.id}
+            color="red"
+            role="alert"
+            size="1"
+            style={{ display: "flex", alignItems: "center" }}
+          >
             <Callout.Icon>
               <ExclamationTriangleIcon />
             </Callout.Icon>
-            <Callout.Text>{n.message}</Callout.Text>
+            <Callout.Text style={{ flex: 1 }}>{n.message}</Callout.Text>
             <IconButton
               size="1"
               variant="ghost"
               color="red"
               aria-label="Dismiss notification"
+              style={{ marginLeft: "auto", flexShrink: 0 }}
               onClick={() => dismiss(n.id)}
             >
               <Cross2Icon />
