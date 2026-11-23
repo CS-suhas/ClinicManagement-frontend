@@ -2,7 +2,6 @@
 
 import { PlusIcon } from "@radix-ui/react-icons";
 import { Button, Flex } from "@radix-ui/themes";
-import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import type { AllergyType } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
@@ -12,10 +11,7 @@ import { PageHeader } from "@/presentation/components/page-header";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
 import { SearchField } from "@/presentation/components/search-field";
 import { AllergyTypeFormDialog } from "@/presentation/features/allergies/allergy-type-form-dialog";
-import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
-
-const PAGE_SIZE = 20;
+import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 
 const columns: Column<AllergyType>[] = [
   { header: "Name", cell: (a) => a.name },
@@ -23,30 +19,21 @@ const columns: Column<AllergyType>[] = [
 
 export default function Page() {
   const allergyTypeService = useService("allergyTypeService");
-  const { query, search, page, setQuery, setPage } = usePagedSearch();
-  const { data, loading, error, reload } = useAsyncData(
-    () =>
-      allergyTypeService.search({
-        search: search || undefined,
-        page,
-        pageSize: PAGE_SIZE,
-      }),
-    `${search}|${page}`,
-  );
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<AllergyType | null>(null);
-  const [deleting, setDeleting] = useState<AllergyType | null>(null);
-
-  const rows = data?.items ?? [];
-
-  const openCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-  const openEdit = (a: AllergyType) => {
-    setEditing(a);
-    setFormOpen(true);
-  };
+  const {
+    query,
+    page,
+    setQuery,
+    setPage,
+    data,
+    rows,
+    loading,
+    error,
+    reload,
+    form,
+    deleting,
+    setDeleting,
+    confirmDelete,
+  } = useCrudPage(allergyTypeService);
 
   return (
     <>
@@ -54,7 +41,7 @@ export default function Page() {
         title="Allergies"
         description="Catalogue of allergy types that can be recorded on patients."
         actions={
-          <Button onClick={openCreate}>
+          <Button onClick={form.openCreate}>
             <PlusIcon /> New allergy
           </Button>
         }
@@ -80,7 +67,7 @@ export default function Page() {
           columns={columns}
           rows={rows}
           rowLabel={(a) => a.name}
-          onEdit={openEdit}
+          onEdit={form.openEdit}
           onDelete={setDeleting}
         />
       </AsyncContent>
@@ -94,9 +81,9 @@ export default function Page() {
       )}
 
       <AllergyTypeFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        allergyType={editing}
+        open={form.open}
+        onOpenChange={form.onOpenChange}
+        allergyType={form.editing}
         onSaved={reload}
       />
       <ConfirmDeleteDialog
@@ -104,7 +91,7 @@ export default function Page() {
         onOpenChange={(o) => !o && setDeleting(null)}
         title="Delete allergy?"
         description={`"${deleting?.name}" will be permanently removed. Allergies recorded on patients block deletion.`}
-        onConfirm={() => allergyTypeService.delete(deleting?.id ?? "")}
+        onConfirm={confirmDelete}
         onDeleted={reload}
       />
     </>

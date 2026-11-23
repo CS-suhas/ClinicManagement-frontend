@@ -2,7 +2,6 @@
 
 import { PlusIcon } from "@radix-ui/react-icons";
 import { Button, Flex } from "@radix-ui/themes";
-import { useState } from "react";
 import { useService } from "@/di/container-provider";
 import type { Clinic } from "@/domain/entities";
 import { AsyncContent } from "@/presentation/components/async-content";
@@ -12,10 +11,7 @@ import { PageHeader } from "@/presentation/components/page-header";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
 import { SearchField } from "@/presentation/components/search-field";
 import { ClinicFormDialog } from "@/presentation/features/clinics/clinic-form-dialog";
-import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
-
-const PAGE_SIZE = 20;
+import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 
 const columns: Column<Clinic>[] = [
   { header: "Name", cell: (c) => c.name },
@@ -25,30 +21,21 @@ const columns: Column<Clinic>[] = [
 
 export default function Page() {
   const clinicService = useService("clinicService");
-  const { query, search, page, setQuery, setPage } = usePagedSearch();
-  const { data, loading, error, reload } = useAsyncData(
-    () =>
-      clinicService.search({
-        search: search || undefined,
-        page,
-        pageSize: PAGE_SIZE,
-      }),
-    `${search}|${page}`,
-  );
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Clinic | null>(null);
-  const [deleting, setDeleting] = useState<Clinic | null>(null);
-
-  const rows = data?.items ?? [];
-
-  const openCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-  const openEdit = (c: Clinic) => {
-    setEditing(c);
-    setFormOpen(true);
-  };
+  const {
+    query,
+    page,
+    setQuery,
+    setPage,
+    data,
+    rows,
+    loading,
+    error,
+    reload,
+    form,
+    deleting,
+    setDeleting,
+    confirmDelete,
+  } = useCrudPage(clinicService);
 
   return (
     <>
@@ -56,7 +43,7 @@ export default function Page() {
         title="Clinics"
         description="Locations where providers practice."
         actions={
-          <Button onClick={openCreate}>
+          <Button onClick={form.openCreate}>
             <PlusIcon /> New clinic
           </Button>
         }
@@ -80,7 +67,7 @@ export default function Page() {
           columns={columns}
           rows={rows}
           rowLabel={(c) => c.name}
-          onEdit={openEdit}
+          onEdit={form.openEdit}
           onDelete={setDeleting}
         />
       </AsyncContent>
@@ -94,9 +81,9 @@ export default function Page() {
       )}
 
       <ClinicFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        clinic={editing}
+        open={form.open}
+        onOpenChange={form.onOpenChange}
+        clinic={form.editing}
         onSaved={reload}
       />
       <ConfirmDeleteDialog
@@ -104,7 +91,7 @@ export default function Page() {
         onOpenChange={(o) => !o && setDeleting(null)}
         title="Delete clinic?"
         description={`"${deleting?.name}" will be permanently removed.`}
-        onConfirm={() => clinicService.delete(deleting?.id ?? "")}
+        onConfirm={confirmDelete}
         onDeleted={reload}
       />
     </>

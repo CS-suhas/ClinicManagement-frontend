@@ -12,12 +12,17 @@ import { PageHeader } from "@/presentation/components/page-header";
 import { PaginationControls } from "@/presentation/components/pagination-controls";
 import { SearchField } from "@/presentation/components/search-field";
 import { AppointmentFormDialog } from "@/presentation/features/appointments/appointment-form-dialog";
-import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
+import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 import { formatDateTime } from "@/presentation/lib/format";
 
 type Range = "upcoming" | "past" | "all";
-const PAGE_SIZE = 20;
+
+function rangeOptions(range: Range) {
+  const now = new Date().toISOString();
+  if (range === "upcoming") return { from: now };
+  if (range === "past") return { to: now };
+  return {};
+}
 
 const columns: Column<AppointmentListItem>[] = [
   { header: "Date & time", cell: (a) => formatDateTime(a.appointmentDateTime) },
@@ -41,37 +46,29 @@ const columns: Column<AppointmentListItem>[] = [
 export default function Page() {
   const appointmentService = useService("appointmentService");
   const [range, setRange] = useState<Range>("upcoming");
-  const { query, search, page, setQuery, setPage } = usePagedSearch();
-  const { data, loading, error, reload } = useAsyncData(() => {
-    const options = {
-      search: search || undefined,
-      page,
-      pageSize: PAGE_SIZE,
-      ...(range === "upcoming"
-        ? { from: new Date().toISOString() }
-        : range === "past"
-          ? { to: new Date().toISOString() }
-          : {}),
-    };
-    return appointmentService.search(options);
-  }, `${search}|${range}|${page}`);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<AppointmentListItem | null>(null);
-  const [deleting, setDeleting] = useState<AppointmentListItem | null>(null);
+  const {
+    query,
+    page,
+    setQuery,
+    setPage,
+    data,
+    rows: items,
+    loading,
+    error,
+    reload,
+    form,
+    deleting,
+    setDeleting,
+    confirmDelete,
+  } = useCrudPage(appointmentService, {
+    extraOptions: () => rangeOptions(range),
+    extraKey: range,
+  });
   const time = (a: AppointmentListItem) =>
     new Date(a.appointmentDateTime).getTime();
-  const rows = [...(data?.items ?? [])].sort((a, b) =>
+  const rows = [...items].sort((a, b) =>
     range === "past" ? time(b) - time(a) : time(a) - time(b),
   );
-
-  const openCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-  const openEdit = (a: AppointmentListItem) => {
-    setEditing(a);
-    setFormOpen(true);
-  };
 
   const emptyText = query
     ? "No appointments match your search."
@@ -85,7 +82,7 @@ export default function Page() {
         title="Appointments"
         description="Scheduled visits between patients and providers."
         actions={
-          <Button onClick={openCreate} disabled={loading || !data}>
+          <Button onClick={form.openCreate} disabled={loading || !data}>
             <PlusIcon /> New appointment
           </Button>
         }
@@ -122,7 +119,7 @@ export default function Page() {
           columns={columns}
           rows={rows}
           rowLabel={(a) => `appointment for ${a.patientName}`}
-          onEdit={openEdit}
+          onEdit={form.openEdit}
           onDelete={setDeleting}
         />
       </AsyncContent>
@@ -136,9 +133,9 @@ export default function Page() {
       )}
 
       <AppointmentFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        appointment={editing}
+        open={form.open}
+        onOpenChange={form.onOpenChange}
+        appointment={form.editing}
         onSaved={reload}
       />
       <ConfirmDeleteDialog
@@ -150,7 +147,7 @@ export default function Page() {
             ? `The appointment for ${deleting.patientName} on ${formatDateTime(deleting.appointmentDateTime)} will be permanently removed. This cannot be undone.`
             : ""
         }
-        onConfirm={() => appointmentService.delete(deleting?.id ?? "")}
+        onConfirm={confirmDelete}
         onDeleted={reload}
       />
     </>

@@ -13,11 +13,8 @@ import { PaginationControls } from "@/presentation/components/pagination-control
 import { SearchField } from "@/presentation/components/search-field";
 import { PatientAllergiesDialog } from "@/presentation/features/patients/patient-allergies-dialog";
 import { PatientFormDialog } from "@/presentation/features/patients/patient-form-dialog";
-import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { usePagedSearch } from "@/presentation/hooks/use-paged-search";
+import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
 import { formatDate } from "@/presentation/lib/format";
-
-const PAGE_SIZE = 20;
 
 const columns: Column<Patient>[] = [
   { header: "Name", cell: patientFullName },
@@ -28,32 +25,23 @@ const columns: Column<Patient>[] = [
 
 export default function Page() {
   const patientService = useService("patientService");
-  const { query, search, page, setQuery, setPage } = usePagedSearch();
-  const { data, loading, error, reload } = useAsyncData(
-    () =>
-      patientService.search({
-        search: search || undefined,
-        page,
-        pageSize: PAGE_SIZE,
-      }),
-    `${search}|${page}`,
-  );
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Patient | null>(null);
-  const [deleting, setDeleting] = useState<Patient | null>(null);
+  const {
+    query,
+    page,
+    setQuery,
+    setPage,
+    data,
+    rows,
+    loading,
+    error,
+    reload,
+    form,
+    deleting,
+    setDeleting,
+    confirmDelete,
+  } = useCrudPage(patientService);
   const [allergiesOpen, setAllergiesOpen] = useState(false);
   const [allergyPatient, setAllergyPatient] = useState<Patient | null>(null);
-
-  const rows = data?.items ?? [];
-
-  const openCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-  const openEdit = (p: Patient) => {
-    setEditing(p);
-    setFormOpen(true);
-  };
   const openAllergies = (p: Patient) => {
     setAllergyPatient(p);
     setAllergiesOpen(true);
@@ -65,7 +53,7 @@ export default function Page() {
         title="Patients"
         description="People registered at the clinics."
         actions={
-          <Button onClick={openCreate}>
+          <Button onClick={form.openCreate}>
             <PlusIcon /> New patient
           </Button>
         }
@@ -91,7 +79,7 @@ export default function Page() {
           columns={columns}
           rows={rows}
           rowLabel={patientFullName}
-          onEdit={openEdit}
+          onEdit={form.openEdit}
           onDelete={setDeleting}
           extraActions={(p) => (
             <Tooltip content="Allergies">
@@ -118,9 +106,9 @@ export default function Page() {
       )}
 
       <PatientFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        patient={editing}
+        open={form.open}
+        onOpenChange={form.onOpenChange}
+        patient={form.editing}
         onSaved={reload}
       />
       <PatientAllergiesDialog
@@ -133,7 +121,7 @@ export default function Page() {
         onOpenChange={(o) => !o && setDeleting(null)}
         title="Delete patient?"
         description={`"${deleting ? patientFullName(deleting) : ""}" and their allergy records will be permanently removed.`}
-        onConfirm={() => patientService.delete(deleting?.id ?? "")}
+        onConfirm={confirmDelete}
         onDeleted={reload}
       />
     </>
