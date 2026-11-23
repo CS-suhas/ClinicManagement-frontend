@@ -7,6 +7,7 @@ import type {
   PatientAllergy,
   Provider,
 } from "@/domain/entities";
+import type { ClinicJoinRequestRecord } from "./mock-clinic-join-repository";
 
 export const seedClinics: Clinic[] = [
   {
@@ -53,6 +54,37 @@ export const seedProviders: Provider[] = [
     fee: null,
     gender: null,
     verificationStatus: "PENDING",
+  },
+  // Verified but clinic-less: can request to join a clinic.
+  {
+    id: "pr4",
+    clinicId: "",
+    firstName: "Sam",
+    lastName: "Rivera",
+    specialty: "Dermatology",
+    fee: 1800,
+    gender: "OTHER",
+    verificationStatus: "VERIFIED",
+  },
+];
+
+/** Seeded join requests, in the store's record shape. */
+export const seedClinicJoinRequests: ClinicJoinRequestRecord[] = [
+  {
+    id: "jr1",
+    providerId: "pr4",
+    clinicId: "c1",
+    status: "PENDING",
+    createdAtUtc: "2026-11-22T08:15:00.000Z",
+    decidedAtUtc: null,
+  },
+  {
+    id: "jr2",
+    providerId: "pr4",
+    clinicId: "c2",
+    status: "REJECTED",
+    createdAtUtc: "2026-11-10T06:00:00.000Z",
+    decidedAtUtc: "2026-11-11T09:30:00.000Z",
   },
 ];
 

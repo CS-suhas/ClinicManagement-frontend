@@ -1,5 +1,6 @@
 export type { AuthRepository } from "../auth";
 
+import type { VerificationStatus } from "../auth";
 import type {
   AllergyType,
   AllergyTypeInput,
@@ -8,6 +9,8 @@ import type {
   AppointmentStatus,
   Clinic,
   ClinicInput,
+  ClinicJoinRequest,
+  ClinicJoinStatus,
   Patient,
   PatientAllergy,
   PatientInput,
@@ -152,6 +155,66 @@ export interface ProviderRosterRepository {
     providerId: string,
     options: SearchOptions,
   ): Promise<PagedResult<PatientRosterRow>>;
+}
+
+export interface ProviderDirectoryOptions extends SearchOptions {
+  clinicId?: string;
+}
+
+/** A directory row: the provider and the name of its clinic, null when unknown. */
+export type ProviderDirectoryEntry = Provider & { clinicName: string | null };
+
+/**
+ * Port: the public list of bookable doctors, i.e. verified providers that
+ * belong to a clinic. `search` matches first name, last name, specialty or clinic name.
+ */
+export interface ProviderDirectoryRepository {
+  list(
+    options: ProviderDirectoryOptions,
+  ): Promise<PagedResult<ProviderDirectoryEntry>>;
+}
+
+export interface VerificationSearchOptions extends SearchOptions {
+  /** Non-admins are always limited to VERIFIED, whatever is passed. */
+  verificationStatus?: VerificationStatus;
+}
+
+/** Port: doctor verification. Admin only; each action throws ConflictError on an invalid transition. */
+export interface ProviderVerificationRepository {
+  searchByStatus(
+    options: VerificationSearchOptions,
+  ): Promise<PagedResult<Provider>>;
+  /** From PENDING or REJECTED. Throws ConflictError when already VERIFIED. */
+  verify(id: string): Promise<void>;
+  /** From PENDING only. Throws ConflictError otherwise. */
+  reject(id: string): Promise<void>;
+}
+
+/** Port: busy slots for one doctor on one local day. Public, and carries no patient data. */
+export interface AppointmentAvailabilityRepository {
+  /** `date` is "YYYY-MM-DD". Resolves to the ISO start times of REQUESTED and CONFIRMED appointments that day. */
+  getBusyStarts(providerId: string, date: string): Promise<string[]>;
+}
+
+/** Port: a doctor's requests to join a clinic. */
+export interface ClinicJoinRequestRepository {
+  /** Throws ConflictError when the doctor already has a clinic or a PENDING request. */
+  createForProvider(
+    providerId: string,
+    clinicId: string,
+  ): Promise<{ id: string }>;
+  /** Newest first. */
+  listForProvider(providerId: string): Promise<ClinicJoinRequest[]>;
+  /** Clinic admins of that clinic, and admins. Newest first. */
+  listForClinic(
+    clinicId: string,
+    status?: ClinicJoinStatus,
+  ): Promise<ClinicJoinRequest[]>;
+  /** Clinic admins of the request's clinic, and admins. Also sets the provider's clinic. */
+  approve(id: string): Promise<void>;
+  reject(id: string): Promise<void>;
+  /** Only by the requesting doctor, and only while PENDING. */
+  cancel(id: string): Promise<void>;
 }
 
 export type ClinicRepository = CrudRepository<Clinic, ClinicInput> &

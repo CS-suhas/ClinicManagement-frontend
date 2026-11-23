@@ -1,4 +1,9 @@
-import type { Patient, PatientInput } from "./entities";
+import type {
+  Patient,
+  PatientInput,
+  Provider,
+  ProviderRegistrationInput,
+} from "./entities";
 
 /** Roles understood by the API. A user can hold several at once. */
 export const ROLES = ["patient", "doctor", "admin", "clinicadmin"] as const;
@@ -41,4 +46,9 @@ export interface AuthRepository {
   getAccessToken(): Promise<string | null>;
   /** Creates the signed-in user's own patient record and links it to their account. */
   createPatientProfile(input: PatientInput): Promise<Patient>;
+  /**
+   * Creates a PENDING provider with no clinic and links it to the signed-in user.
+   * Throws ConflictError (409) when the user is already linked to a provider.
+   */
+  registerAsProvider(input: ProviderRegistrationInput): Promise<Provider>;
 }

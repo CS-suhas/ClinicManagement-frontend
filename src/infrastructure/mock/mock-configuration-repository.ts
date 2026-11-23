@@ -1,5 +1,13 @@
+import type { AppointmentSettings } from "@/domain/entities";
 import type { ConfigurationRepository } from "@/domain/repositories";
 import { delay } from "./local-storage-collection";
+
+/** Fixed appointment settings for mock mode, mirroring what the API serves. */
+export const MOCK_APPOINTMENT_SETTINGS: AppointmentSettings = {
+  appointmentDurationMinutes: 30,
+  clinicOpeningTime: "08:00:00",
+  clinicClosingTime: "17:00:00",
+};
 
 /** Fixed settings for mock mode, mirroring what the API serves. */
 export class MockConfigurationRepository implements ConfigurationRepository {
@@ -10,10 +18,6 @@ export class MockConfigurationRepository implements ConfigurationRepository {
 
   async getAppointmentSettings() {
     await delay();
-    return {
-      appointmentDurationMinutes: 30,
-      clinicOpeningTime: "08:00:00",
-      clinicClosingTime: "17:00:00",
-    };
+    return { ...MOCK_APPOINTMENT_SETTINGS };
   }
 }

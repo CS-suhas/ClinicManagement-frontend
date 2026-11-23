@@ -7,14 +7,17 @@ import type { AppointmentSettings } from "@/domain/entities";
 import { DoctorAvatar } from "./doctor-avatar";
 import type { DoctorProfile } from "./doctor-profile";
 import { SlotPicker } from "./slot-picker";
-import { buildSlots, toDateKey, upcomingDays } from "./time-slots";
+import { buildSlots, upcomingDays } from "./time-slots";
 
 const DAYS_AHEAD = 14;
 
 export interface BookingDialogProps {
   doctor: DoctorProfile | null;
   settings: AppointmentSettings | undefined;
-  /** The doctor's existing appointment times, to grey out taken slots. */
+  /** The viewed day, `YYYY-MM-DD`. Owned by the booking hook. */
+  dateKey: string;
+  onDateChange: (dateKey: string) => void;
+  /** The doctor's busy start times on the viewed day, to grey out taken slots. */
   bookedStarts: string[];
   onOpenChange: (open: boolean) => void;
   /** Called with the chosen `YYYY-MM-DDTHH:mm` once the visitor continues. */
@@ -24,20 +27,20 @@ export interface BookingDialogProps {
 export function BookingDialog({
   doctor,
   settings,
+  dateKey,
+  onDateChange,
   bookedStarts,
   onOpenChange,
   onContinue,
 }: BookingDialogProps) {
   const days = useMemo(() => upcomingDays(DAYS_AHEAD), []);
-  const [dateKey, setDateKey] = useState(() => toDateKey(days[0]));
   const [slot, setSlot] = useState("");
   const doctorId = doctor?.id;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: start fresh for each doctor.
   useEffect(() => {
-    setDateKey(toDateKey(days[0]));
     setSlot("");
-  }, [doctorId, days]);
+  }, [doctorId]);
 
   const slots = useMemo(
     () => (settings ? buildSlots(dateKey, settings, bookedStarts) : []),
@@ -90,7 +93,7 @@ export function BookingDialog({
             days={days}
             dateKey={dateKey}
             onDateChange={(key) => {
-              setDateKey(key);
+              onDateChange(key);
               setSlot("");
             }}
             slots={slots}

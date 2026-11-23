@@ -1,5 +1,10 @@
-import type { AppointmentSettings } from "@/domain/entities";
-import { appointmentTimeBounds } from "@/presentation/lib/appointment-hours";
+import {
+  type AppointmentSettings,
+  clockToMinutes,
+  isWithinClinicHours,
+  minutesToClock,
+  overlapsBusyStart,
+} from "@/domain/entities";
 
 export type SlotPeriod = "Morning" | "Afternoon" | "Evening";
 
@@ -25,11 +30,6 @@ export function upcomingDays(count: number, from = new Date()): Date[] {
   });
 }
 
-const toMinutes = (time: string) => {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-};
-
 const periodOf = (minutes: number): SlotPeriod =>
   minutes < 12 * 60 ? "Morning" : minutes < 17 * 60 ? "Afternoon" : "Evening";
 
@@ -43,8 +43,8 @@ const labelOf = (minutes: number) =>
   ).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
 /**
- * Every start time of a day, from opening until the last visit that still ends
- * before closing. `bookedStarts` are the doctor's existing appointment times.
+ * Every start time of a day that fits clinic hours. `bookedStarts` are the
+ * doctor's busy start times; a slot is taken when it overlaps one of them.
  */
 export function buildSlots(
   dateKey: string,
@@ -52,49 +52,26 @@ export function buildSlots(
   bookedStarts: string[],
   now = new Date(),
 ): TimeSlot[] {
-  const { opening, latestStart } = appointmentTimeBounds(settings);
-  if (!opening || !latestStart) return [];
+  const opening = clockToMinutes(settings.clinicOpeningTime);
+  if (opening === null) return [];
 
   const duration = settings.appointmentDurationMinutes;
-  const booked = bookedStarts.map((start) => Date.parse(start));
   const slots: TimeSlot[] = [];
 
   for (
-    let minutes = toMinutes(opening);
-    minutes <= toMinutes(latestStart);
+    let minutes = opening;
+    isWithinClinicHours(minutes, duration, settings);
     minutes += duration
   ) {
-    const value = `${dateKey}T${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
-    const start = Date.parse(value);
-    const end = start + duration * 60_000;
-    const taken = booked.some(
-      (existing) => start < existing + duration * 60_000 && existing < end,
-    );
+    const value = `${dateKey}T${minutesToClock(minutes)}`;
     slots.push({
       value,
       label: labelOf(minutes),
       period: periodOf(minutes),
-      unavailable: taken || start <= now.getTime(),
+      unavailable:
+        overlapsBusyStart(value, duration, bookedStarts) ||
+        Date.parse(value) <= now.getTime(),
     });
   }
   return slots;
-}
-
-/**
- * A slot's local `YYYY-MM-DDTHH:mm` as ISO-8601 with the browser's UTC offset,
- * e.g. `2026-11-24T09:00:00+05:30`. Called from event handlers only.
- */
-export function toOffsetDateTime(local: string): string {
-  const [year, month, day] = local.slice(0, 10).split("-").map(Number);
-  const [hours, minutes] = local.slice(11, 16).split(":").map(Number);
-  const offset = -new Date(
-    year,
-    month - 1,
-    day,
-    hours,
-    minutes,
-  ).getTimezoneOffset();
-  const magnitude = Math.abs(offset);
-  const sign = offset < 0 ? "-" : "+";
-  return `${local.slice(0, 16)}:00${sign}${pad(Math.floor(magnitude / 60))}:${pad(magnitude % 60)}`;
 }

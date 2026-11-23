@@ -1,9 +1,9 @@
 import {
   type Clinic,
-  type Provider,
   type ProviderGender,
   providerFullName,
 } from "@/domain/entities";
+import type { ProviderDirectoryEntry } from "@/domain/repositories";
 
 const GENDER_KEYS: Record<ProviderGender, Lowercase<ProviderGender>> = {
   MALE: "male",
@@ -31,8 +31,9 @@ export interface DoctorProfile {
   consultTypes?: string[];
 }
 
+/** `clinic` supplies the address and phone, which the directory does not carry. */
 export function toDoctorProfile(
-  provider: Provider,
+  provider: ProviderDirectoryEntry,
   clinic: Clinic | undefined,
 ): DoctorProfile {
   return {
@@ -40,7 +41,7 @@ export function toDoctorProfile(
     name: `Dr. ${providerFullName(provider)}`,
     specialties: [provider.specialty],
     clinicId: provider.clinicId,
-    clinicName: clinic?.name ?? "",
+    clinicName: provider.clinicName ?? clinic?.name ?? "",
     location: clinic?.location ?? null,
     phone: clinic?.phoneNumber || null,
     consultationFee: provider.fee ?? undefined,

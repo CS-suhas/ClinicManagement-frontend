@@ -6,15 +6,20 @@ import type {
   AppointmentInput,
   Clinic,
   ClinicInput,
+  ClinicJoinRequest,
+  ClinicJoinStatus,
   PatientAllergy,
   Provider,
   ProviderGender,
   ProviderInput,
 } from "@/domain/entities";
+import { UnauthorizedError } from "@/domain/errors";
 import type {
+  AppointmentAvailabilityRepository,
   AppointmentListItem,
   AppointmentRepository,
   AppointmentSearchOptions,
+  ClinicJoinRequestRepository,
   ConfigurationRepository,
   CrudRepository,
   DashboardData,
@@ -23,9 +28,14 @@ import type {
   PagedResult,
   PatientAllergyRepository,
   PatientRosterRow,
+  ProviderDirectoryEntry,
+  ProviderDirectoryOptions,
+  ProviderDirectoryRepository,
   ProviderRosterRepository,
   ProviderSearchOptions,
+  ProviderVerificationRepository,
   SearchOptions,
+  VerificationSearchOptions,
 } from "@/domain/repositories";
 import type { HttpClient } from "./http-client";
 import { queryString } from "./query-string";
@@ -410,6 +420,178 @@ export class RestProviderRosterRepository implements ProviderRosterRepository {
     });
     return this.http.get<PagedResult<PatientRosterRow>>(
       `/providers/${encodeURIComponent(providerId)}/patients?${query}`,
+    );
+  }
+}
+
+/** The directory row as the API sends it. `clinicName` is optional until the API always sends it. */
+interface DirectoryResponse extends ProviderResponse {
+  clinicName?: string | null;
+}
+
+/**
+ * GET /providers/directory: the public, bookable doctors. Uses the API's
+ * clinicName when present; otherwise looks names up in GET /clinics, once per call.
+ */
+export class RestProviderDirectoryRepository
+  implements ProviderDirectoryRepository
+{
+  constructor(
+    private readonly http: HttpClient,
+    private readonly clinics: { list(): Promise<Clinic[]> },
+  ) {}
+
+  async list(
+    options: ProviderDirectoryOptions,
+  ): Promise<PagedResult<ProviderDirectoryEntry>> {
+    const query = queryString({
+      search: options.search,
+      clinicId: options.clinicId,
+      page: options.page,
+      pageSize: options.pageSize,
+    });
+    const result = await this.http.get<PagedResult<DirectoryResponse>>(
+      `/providers/directory?${query}`,
+    );
+    const needsLookup = result.items.some(
+      (item) => typeof item.clinicName !== "string",
+    );
+    const clinicNames = needsLookup
+      ? await this.loadClinicNames()
+      : new Map<string, string>();
+    return {
+      ...result,
+      items: result.items.map((item) => ({
+        ...providerMapper.fromResponse(item),
+        clinicName:
+          typeof item.clinicName === "string"
+            ? item.clinicName
+            : (clinicNames.get(item.clinicId ?? "") ?? null),
+      })),
+    };
+  }
+
+  /** Anonymous visitors cannot read /clinics, so their names stay null. */
+  private async loadClinicNames(): Promise<Map<string, string>> {
+    try {
+      const clinics = await this.clinics.list();
+      return new Map(clinics.map((clinic) => [clinic.id, clinic.name]));
+    } catch (e) {
+      if (e instanceof UnauthorizedError) return new Map();
+      throw e;
+    }
+  }
+}
+
+/** Doctor verification. Search is forced to VERIFIED for non-admins by the API. */
+export class RestProviderVerificationRepository
+  implements ProviderVerificationRepository
+{
+  constructor(private readonly http: HttpClient) {}
+
+  async searchByStatus(options: VerificationSearchOptions) {
+    const query = queryString({
+      verificationStatus: options.verificationStatus,
+      search: options.search,
+      page: options.page,
+      pageSize: options.pageSize,
+    });
+    const result = await this.http.get<PagedResult<ProviderResponse>>(
+      `/providers/search?${query}`,
+    );
+    return {
+      ...result,
+      items: result.items.map((item) => providerMapper.fromResponse(item)),
+    };
+  }
+
+  verify(id: string) {
+    return this.http.post<void>(
+      `/providers/${encodeURIComponent(id)}/verify`,
+      undefined,
+    );
+  }
+
+  reject(id: string) {
+    return this.http.post<void>(
+      `/providers/${encodeURIComponent(id)}/reject`,
+      undefined,
+    );
+  }
+}
+
+/** Busy slots for one doctor on one day. */
+export class RestAppointmentAvailabilityRepository
+  implements AppointmentAvailabilityRepository
+{
+  constructor(private readonly http: HttpClient) {}
+
+  async getBusyStarts(providerId: string, date: string): Promise<string[]> {
+    // TODO(contract): confirm the busy-slots response shape with the backend.
+    // string[] is assumed; {items} and {busyStarts} are also accepted.
+    const raw = await this.http.get<unknown>(
+      `/providers/${encodeURIComponent(providerId)}/busy-slots?${queryString({ date })}`,
+    );
+    return parseBusyStarts(raw);
+  }
+}
+
+function parseBusyStarts(raw: unknown): string[] {
+  const list: unknown =
+    Array.isArray(raw) || !raw || typeof raw !== "object"
+      ? raw
+      : ((raw as { items?: unknown }).items ??
+        (raw as { busyStarts?: unknown }).busyStarts);
+  if (!Array.isArray(list) || !list.every((s) => typeof s === "string"))
+    throw new Error("The API returned invalid busy slots.");
+  return list;
+}
+
+/** Clinic join requests. Each path follows the API contract in the backend notes. */
+export class RestClinicJoinRequestRepository
+  implements ClinicJoinRequestRepository
+{
+  constructor(private readonly http: HttpClient) {}
+
+  createForProvider(providerId: string, clinicId: string) {
+    return this.http.post<{ id: string }>(
+      `/providers/${encodeURIComponent(providerId)}/clinic-join-requests`,
+      { clinicId },
+    );
+  }
+
+  listForProvider(providerId: string) {
+    return this.http.get<ClinicJoinRequest[]>(
+      `/providers/${encodeURIComponent(providerId)}/clinic-join-requests`,
+    );
+  }
+
+  listForClinic(clinicId: string, status?: ClinicJoinStatus) {
+    const query = queryString({ status });
+    return this.http.get<ClinicJoinRequest[]>(
+      `/clinics/${encodeURIComponent(clinicId)}/join-requests?${query}`,
+    );
+  }
+
+  approve(id: string) {
+    return this.decide(id, "approve");
+  }
+
+  reject(id: string) {
+    return this.decide(id, "reject");
+  }
+
+  cancel(id: string) {
+    return this.http.post<void>(
+      `/clinic-join-requests/${encodeURIComponent(id)}/cancel`,
+      undefined,
+    );
+  }
+
+  private decide(id: string, action: "approve" | "reject") {
+    return this.http.post<void>(
+      `/clinic-join-requests/${encodeURIComponent(id)}/${action}`,
+      undefined,
     );
   }
 }

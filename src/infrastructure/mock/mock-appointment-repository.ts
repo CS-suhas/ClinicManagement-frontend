@@ -5,6 +5,7 @@ import {
   type AppointmentInput,
   canActOnAppointment,
   nextAppointmentStatus,
+  overlapsBusyStart,
 } from "@/domain/entities";
 import {
   ConflictError,
@@ -69,6 +70,8 @@ export class MockAppointmentRepository implements AppointmentRepository {
     private readonly store: LocalStorageCollection<Appointment>,
     private readonly getLookups: () => Promise<AppointmentLookups>,
     private readonly currentUser: () => Promise<CurrentUser | null>,
+    /** The clinic's visit length, for the overlap rule. */
+    private readonly appointmentDurationMinutes: number,
   ) {
     this.crud = new MockCrudRepository(store, "Appointment");
   }
@@ -81,11 +84,35 @@ export class MockAppointmentRepository implements AppointmentRepository {
     return this.crud.getById(id);
   }
 
-  /** New appointments start as REQUESTED, as the API does. */
+  /**
+   * New appointments start as REQUESTED, as the API does. Throws NotFoundError
+   * for an unknown provider and ConflictError when the provider has a REQUESTED
+   * or CONFIRMED appointment less than one duration away.
+   */
   async create(input: AppointmentInput, id: string = newId()) {
     await delay();
+    const lookups = await this.getLookups();
+    if (!lookups.providers.some((provider) => provider.id === input.providerId))
+      throw new NotFoundError("Provider", input.providerId);
+    const items = this.store.read();
+    const busyStarts = items
+      .filter(
+        (appointment) =>
+          appointment.providerId === input.providerId &&
+          (appointment.status === "REQUESTED" ||
+            appointment.status === "CONFIRMED"),
+      )
+      .map((appointment) => appointment.appointmentDateTime);
+    if (
+      overlapsBusyStart(
+        input.appointmentDateTime,
+        this.appointmentDurationMinutes,
+        busyStarts,
+      )
+    )
+      throw new ConflictError("That time was just taken.");
     const item: Appointment = { ...input, id, status: "REQUESTED" };
-    this.store.write([...this.store.read(), item]);
+    this.store.write([...items, item]);
     return item;
   }
 

@@ -11,6 +11,7 @@ import type {
   AdminDashboard,
   AppointmentListItem,
   ClinicAdminDashboard,
+  ClinicJoinRequestRepository,
   DashboardData,
   DashboardRepository,
   DoctorDashboard,
@@ -34,6 +35,7 @@ export function createMockDashboardRepository(
     patients: Listable<Patient>;
     allergyTypes: Listable<AllergyType>;
     appointments: Listable<Appointment>;
+    clinicJoinRequests: Pick<ClinicJoinRequestRepository, "listForClinic">;
   },
   currentUser: () => Promise<CurrentUser | null>,
 ): DashboardRepository {
@@ -133,6 +135,11 @@ export function createMockDashboardRepository(
         const myItems = items.filter((item) =>
           myProviderIds.has(item.providerId),
         );
+        const pendingRequests = await Promise.all(
+          user.clinicAdminOf.map((clinicId) =>
+            repositories.clinicJoinRequests.listForClinic(clinicId, "PENDING"),
+          ),
+        );
         clinicAdmin = {
           clinicCount: clinics.filter((c) => mine.has(c.id)).length,
           providerCount: myProviders.length,
@@ -143,8 +150,10 @@ export function createMockDashboardRepository(
           todayAppointmentCount: myItems.filter(
             (item) => counts(item) && inToday(item),
           ).length,
-          // Join requests are not modelled in the mock, so none are ever pending.
-          pendingJoinRequestCount: 0,
+          pendingJoinRequestCount: pendingRequests.reduce(
+            (total, requests) => total + requests.length,
+            0,
+          ),
         };
       }
 

@@ -1,5 +1,10 @@
 import type { AuthRepository, CurrentUser, MeResponse } from "@/domain/auth";
-import type { Patient, PatientInput } from "@/domain/entities";
+import type {
+  Patient,
+  PatientInput,
+  Provider,
+  ProviderRegistrationInput,
+} from "@/domain/entities";
 import { UnauthorizedError } from "@/domain/errors";
 import type { HttpClient } from "./http-client";
 
@@ -47,5 +52,30 @@ export class RestAuthRepository implements AuthRepository {
       ...input,
     });
     return { ...input, id: created.id };
+  }
+
+  /** The API links the new provider to the caller and returns 409 when they already have one. */
+  async registerAsProvider(
+    input: ProviderRegistrationInput,
+  ): Promise<Provider> {
+    const id = crypto.randomUUID();
+    await this.http.post<unknown>("/providers/register", {
+      id,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      specialty: input.specialty,
+      fee: input.fee ?? undefined,
+      gender: input.gender ?? undefined,
+    });
+    return {
+      id,
+      clinicId: "",
+      firstName: input.firstName,
+      lastName: input.lastName,
+      specialty: input.specialty,
+      fee: input.fee ?? null,
+      gender: input.gender ?? null,
+      verificationStatus: "PENDING",
+    };
   }
 }

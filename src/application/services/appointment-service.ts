@@ -7,16 +7,30 @@ import {
   appointmentActionsFor,
   validateAppointment,
 } from "@/domain/entities";
+import {
+  ForbiddenError,
+  UnauthorizedError,
+  ValidationError,
+} from "@/domain/errors";
+import {
+  addDays,
+  localMidnightIso,
+  toOffsetDateTime,
+} from "@/domain/local-time";
 import type {
+  AppointmentAvailabilityRepository,
   AppointmentListItem,
   AppointmentRepository,
   AppointmentSearchOptions,
 } from "@/domain/repositories";
 import { CrudService } from "./crud-service";
 
+export { addDays, localMidnightIso };
+
 const PAGE_SIZE = 100;
 /** Caps the paging loop so a runaway backend cannot stall the page. */
 const MAX_PAGES = 20;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface AppointmentDayQuery {
   /** Local calendar day, "YYYY-MM-DD". */
@@ -25,6 +39,14 @@ export interface AppointmentDayQuery {
   providerIds?: string[];
   patientId?: string;
   clinicId?: string;
+}
+
+/** What a patient picks on the booking screens. */
+export interface PatientBookingInput {
+  providerId: string;
+  /** Local `YYYY-MM-DDTHH:mm`. The service adds the offset. */
+  appointmentDateTime: string;
+  reasonForVisit: string;
 }
 
 /**
@@ -91,31 +113,16 @@ export function allowedActions(
   return appointmentActionsFor(item, user);
 }
 
-const pad = (n: number) => String(n).padStart(2, "0");
-
-/** Shifts a "YYYY-MM-DD" local day by whole days. */
-export function addDays(date: string, days: number): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const next = new Date(year, month - 1, day + days);
-  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
-}
-
-/** Local midnight at the start of a "YYYY-MM-DD" day, with the local UTC offset, e.g. 2026-11-23T00:00:00+05:30. */
-export function localMidnightIso(date: string): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const offsetMinutes = -new Date(year, month - 1, day).getTimezoneOffset();
-  const sign = offsetMinutes < 0 ? "-" : "+";
-  const abs = Math.abs(offsetMinutes);
-  return `${date}T00:00:00${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
-}
-
 export class AppointmentService extends CrudService<
   Appointment,
   AppointmentInput,
   AppointmentSearchOptions,
   AppointmentListItem
 > {
-  constructor(private readonly appointments: AppointmentRepository) {
+  constructor(
+    private readonly appointments: AppointmentRepository,
+    private readonly availability: AppointmentAvailabilityRepository,
+  ) {
     super(appointments, "Appointment");
   }
   protected validate = validateAppointment;
@@ -154,6 +161,36 @@ export class AppointmentService extends CrudService<
       (a, b) =>
         Date.parse(a.appointmentDateTime) - Date.parse(b.appointmentDateTime),
     );
+  }
+
+  /**
+   * ISO start times of the doctor's REQUESTED and CONFIRMED appointments on a
+   * local day. Public: works for anyone, and carries no patient data. Use it to
+   * grey out taken slots; the appointment search is scoped and cannot do this.
+   */
+  busyStarts(providerId: string, date: string): Promise<string[]> {
+    if (!DATE_PATTERN.test(date))
+      throw new ValidationError({ date: "Date must be YYYY-MM-DD" });
+    return this.availability.getBusyStarts(providerId, date);
+  }
+
+  /**
+   * Books a visit for the signed-in patient. The patient id comes from the
+   * user, never from the caller. Throws ForbiddenError when the user has no patient record.
+   */
+  bookAsPatient(
+    input: PatientBookingInput,
+    user: Pick<CurrentUser, "roles" | "patient"> | null,
+  ): Promise<Appointment> {
+    if (!user) throw new UnauthorizedError();
+    if (!hasRole(user, "patient") || !user.patient)
+      throw new ForbiddenError("Only patients with a patient record can book.");
+    return this.create({
+      patientId: user.patient.id,
+      providerId: input.providerId,
+      appointmentDateTime: toOffsetDateTime(input.appointmentDateTime),
+      reasonForVisit: input.reasonForVisit.trim(),
+    });
   }
 
   confirm(id: string): Promise<void> {

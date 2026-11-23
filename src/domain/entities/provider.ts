@@ -36,9 +36,20 @@ const FEE_LIMIT = 100_000_000;
 const isProviderGender = (value: string): value is ProviderGender =>
   (PROVIDER_GENDERS as readonly string[]).includes(value.toUpperCase());
 
-export function validateProvider(input: ProviderInput): FieldErrors {
+/** The fields every provider has, whether an admin creates it or the doctor registers. */
+export interface ProviderDetails {
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  fee?: number | null;
+  gender?: ProviderGender | null;
+}
+
+/** What a doctor sends to register themself. The clinic is set later, through a join request. */
+export type ProviderRegistrationInput = ProviderDetails;
+
+function validateProviderDetails(input: ProviderDetails): FieldErrors {
   const errors: FieldErrors = {};
-  if (isBlank(input.clinicId)) errors.clinicId = "Clinic is required";
   if (isBlank(input.firstName)) errors.firstName = "First name is required";
   if (isBlank(input.lastName)) errors.lastName = "Last name is required";
   if (isBlank(input.specialty)) errors.specialty = "Specialty is required";
@@ -54,4 +65,16 @@ export function validateProvider(input: ProviderInput): FieldErrors {
   if (input.gender && !isProviderGender(input.gender))
     errors.gender = "Gender must be male, female or other";
   return errors;
+}
+
+export function validateProvider(input: ProviderInput): FieldErrors {
+  const errors = validateProviderDetails(input);
+  if (isBlank(input.clinicId)) errors.clinicId = "Clinic is required";
+  return errors;
+}
+
+export function validateProviderRegistration(
+  input: ProviderRegistrationInput,
+): FieldErrors {
+  return validateProviderDetails(input);
 }

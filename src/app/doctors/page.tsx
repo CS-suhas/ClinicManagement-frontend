@@ -30,6 +30,7 @@ export default function DoctorsPage() {
   const providerService = useService("providerService");
   const clinicService = useService("clinicService");
   const booking = useDoctorBooking();
+
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [accessOpen, setAccessOpen] = useState(false);
@@ -51,15 +52,15 @@ export default function DoctorsPage() {
   };
 
   const { data, loading, error, reload } = useAsyncData(async () => {
-    const [providers, clinics] = await Promise.all([
-      providerService.list(),
+    // The directory holds only bookable doctors: verified, and in a clinic.
+    const [directory, clinics] = await Promise.all([
+      providerService.directory({ page: 1, pageSize: 100 }),
       clinicService.list(),
     ]);
     const clinicById = new Map(clinics.map((c) => [c.id, c]));
-    // Mirror the backend directory: only verified doctors are public.
-    return providers
-      .filter((p) => (p.verificationStatus ?? "VERIFIED") === "VERIFIED")
-      .map((p) => toDoctorProfile(p, clinicById.get(p.clinicId)));
+    return directory.items.map((p) =>
+      toDoctorProfile(p, clinicById.get(p.clinicId)),
+    );
   });
 
   const doctors = useMemo(
@@ -106,6 +107,8 @@ export default function DoctorsPage() {
         <BookingDialog
           doctor={booking.slotDoctor}
           settings={booking.settings}
+          dateKey={booking.dateKey}
+          onDateChange={booking.setDateKey}
           bookedStarts={booking.bookedStarts}
           onOpenChange={(open) => !open && booking.cancelSlotPicking()}
           onContinue={booking.chooseSlot}
