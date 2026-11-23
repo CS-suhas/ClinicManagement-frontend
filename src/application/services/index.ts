@@ -17,7 +17,7 @@ import {
   validatePatientAllergy,
   validateProvider,
 } from "@/domain/entities";
-import { assertValid, ConflictError } from "@/domain/errors";
+import { assertNoDependents, assertValid } from "@/domain/errors";
 import type {
   AllergyTypeRepository,
   AppointmentListItem,
@@ -50,10 +50,10 @@ export class ClinicService extends CrudService<Clinic, ClinicInput> {
       pageSize: 1,
       clinicId: id,
     });
-    if (count > 0)
-      throw new ConflictError(
-        `Cannot delete: ${count} provider(s) still belong to this clinic.`,
-      );
+    assertNoDependents(
+      count,
+      (n) => `Cannot delete: ${n} provider(s) still belong to this clinic.`,
+    );
   }
 }
 
@@ -75,10 +75,10 @@ export class ProviderService extends CrudService<
       pageSize: 1,
       providerId: id,
     });
-    if (count > 0)
-      throw new ConflictError(
-        `Cannot delete: provider has ${count} appointment(s).`,
-      );
+    assertNoDependents(
+      count,
+      (n) => `Cannot delete: provider has ${n} appointment(s).`,
+    );
   }
 }
 
@@ -97,17 +97,20 @@ export class PatientService extends CrudService<Patient, PatientInput> {
       pageSize: 1,
       patientId: id,
     });
-    if (count > 0)
-      throw new ConflictError(
-        `Cannot delete: patient has ${count} appointment(s).`,
-      );
+    assertNoDependents(
+      count,
+      (n) => `Cannot delete: patient has ${n} appointment(s).`,
+    );
   }
   /** Cascades the patient's allergy records (owned data) before removing the patient. */
   async delete(id: string): Promise<void> {
     await this.ensureDeletable(id);
-    for (const pa of await this.patientAllergies.listByPatient(id)) {
-      await this.patientAllergies.delete(pa.patientId, pa.allergyId);
-    }
+    const records = await this.patientAllergies.listByPatient(id);
+    await Promise.all(
+      records.map((pa) =>
+        this.patientAllergies.delete(pa.patientId, pa.allergyId),
+      ),
+    );
     await this.repo.delete(id);
   }
 }
@@ -125,10 +128,10 @@ export class AllergyTypeService extends CrudService<
   protected validate = validateAllergyType;
   protected async ensureDeletable(id: string) {
     const count = (await this.patientAllergies.listByAllergy(id)).length;
-    if (count > 0)
-      throw new ConflictError(
-        `Cannot delete: ${count} patient(s) have this allergy recorded.`,
-      );
+    assertNoDependents(
+      count,
+      (n) => `Cannot delete: ${n} patient(s) have this allergy recorded.`,
+    );
   }
 }
 
