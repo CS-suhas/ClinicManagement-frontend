@@ -20,6 +20,7 @@ import {
 import { assertValid, ConflictError } from "@/domain/errors";
 import type {
   AllergyTypeRepository,
+  AppointmentListItem,
   AppointmentRepository,
   AppointmentSearchOptions,
   ClinicRepository,
@@ -37,15 +38,12 @@ export { CrudService } from "./crud-service";
 
 export class ClinicService extends CrudService<Clinic, ClinicInput> {
   constructor(
-    private readonly clinicRepo: ClinicRepository,
+    clinicRepo: ClinicRepository,
     private readonly providers: ProviderRepository,
   ) {
     super(clinicRepo, "Clinic");
   }
   protected validate = validateClinic;
-  search(options: SearchOptions) {
-    return this.clinicRepo.search(options);
-  }
   protected async ensureDeletable(id: string) {
     const { totalCount: count } = await this.providers.search({
       page: 1,
@@ -59,17 +57,18 @@ export class ClinicService extends CrudService<Clinic, ClinicInput> {
   }
 }
 
-export class ProviderService extends CrudService<Provider, ProviderInput> {
+export class ProviderService extends CrudService<
+  Provider,
+  ProviderInput,
+  ProviderSearchOptions
+> {
   constructor(
-    private readonly providerRepo: ProviderRepository,
+    providerRepo: ProviderRepository,
     private readonly appointments: AppointmentRepository,
   ) {
     super(providerRepo, "Provider");
   }
   protected validate = validateProvider;
-  search(options: ProviderSearchOptions) {
-    return this.providerRepo.search(options);
-  }
   protected async ensureDeletable(id: string) {
     const { totalCount: count } = await this.appointments.search({
       page: 1,
@@ -85,16 +84,13 @@ export class ProviderService extends CrudService<Provider, ProviderInput> {
 
 export class PatientService extends CrudService<Patient, PatientInput> {
   constructor(
-    private readonly patientRepo: PatientRepository,
+    patientRepo: PatientRepository,
     private readonly appointments: AppointmentRepository,
     private readonly patientAllergies: PatientAllergyRepository,
   ) {
     super(patientRepo, "Patient");
   }
   protected validate = validatePatient;
-  search(options: SearchOptions) {
-    return this.patientRepo.search(options);
-  }
   protected async ensureDeletable(id: string) {
     const { totalCount: count } = await this.appointments.search({
       page: 1,
@@ -121,15 +117,12 @@ export class AllergyTypeService extends CrudService<
   AllergyTypeInput
 > {
   constructor(
-    private readonly allergyTypeRepo: AllergyTypeRepository,
+    allergyTypeRepo: AllergyTypeRepository,
     private readonly patientAllergies: PatientAllergyRepository,
   ) {
     super(allergyTypeRepo, "Allergy type");
   }
   protected validate = validateAllergyType;
-  search(options: SearchOptions) {
-    return this.allergyTypeRepo.search(options);
-  }
   protected async ensureDeletable(id: string) {
     const count = (await this.patientAllergies.listByAllergy(id)).length;
     if (count > 0)
@@ -141,15 +134,14 @@ export class AllergyTypeService extends CrudService<
 
 export class AppointmentService extends CrudService<
   Appointment,
-  AppointmentInput
+  AppointmentInput,
+  AppointmentSearchOptions,
+  AppointmentListItem
 > {
-  constructor(private readonly appointmentRepo: AppointmentRepository) {
+  constructor(appointmentRepo: AppointmentRepository) {
     super(appointmentRepo, "Appointment");
   }
   protected validate = validateAppointment;
-  search(options: AppointmentSearchOptions) {
-    return this.appointmentRepo.search(options);
-  }
 }
 
 export class PatientAllergyService {

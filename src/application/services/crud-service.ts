@@ -1,13 +1,24 @@
 import { assertValid, type FieldErrors, NotFoundError } from "@/domain/errors";
-import type { CrudRepository } from "@/domain/repositories";
+import type {
+  CrudRepository,
+  SearchOptions,
+  SearchRepository,
+} from "@/domain/repositories";
 
 /**
  * Base use-case class: validates input via the domain, delegates persistence
  * to the injected repository port, and lets subclasses guard deletes.
  */
-export abstract class CrudService<T extends { id: string }, TInput> {
+export abstract class CrudService<
+  T extends { id: string },
+  TInput,
+  TOptions extends SearchOptions = SearchOptions,
+  /** What `search` returns per row; richer than T for joined list views. */
+  TListItem = T,
+> {
   protected constructor(
-    protected readonly repo: CrudRepository<T, TInput>,
+    protected readonly repo: CrudRepository<T, TInput> &
+      SearchRepository<TListItem, TOptions>,
     private readonly entityName: string,
   ) {}
 
@@ -15,6 +26,10 @@ export abstract class CrudService<T extends { id: string }, TInput> {
 
   /** Override to throw ConflictError when the entity is still referenced. */
   protected async ensureDeletable(_id: string): Promise<void> {}
+
+  search(options: TOptions) {
+    return this.repo.search(options);
+  }
 
   list(): Promise<T[]> {
     return this.repo.list();
