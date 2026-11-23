@@ -22,11 +22,6 @@ export function usePagedSearch(delay = 300) {
     (page: number) => setCriteria((current) => ({ ...current, page })),
     [],
   );
-  const resetPage = useCallback(
-    () => setCriteria((current) => ({ ...current, page: 1 })),
-    [],
-  );
-
   return {
     query,
     search: criteria.search,
@@ -34,6 +29,5 @@ export function usePagedSearch(delay = 300) {
     setQuery,
     setQueryNow,
     setPage,
-    resetPage,
   };
 }
