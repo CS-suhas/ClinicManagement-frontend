@@ -43,7 +43,10 @@ In `rest` mode sign-in uses Keycloak with the Authorization Code flow and PKCE
 (S256) against the public client `clinic-spa`, via
 [`oidc-client-ts`](https://github.com/authts/oidc-client-ts). The access token is
 sent as `Authorization: Bearer` on every API call, refreshed with the refresh
-token shortly before it expires, and kept in `sessionStorage` (per tab).
+token shortly before it expires, and kept in `localStorage`, so all tabs share
+one sign-in. Refreshes take a cross-tab Web Lock (the realm rotates refresh
+tokens, so two tabs refreshing at once would revoke each other), and signing out
+in one tab signs out the others.
 Sign-out also ends the Keycloak session (RP-initiated logout). "Create account"
 on `/login` opens Keycloak's registration form. Keycloak sends the browser back
 to `/login/callback` and, after sign-out, to `/`; both must be allowed for the

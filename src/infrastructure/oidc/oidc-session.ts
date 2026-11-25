@@ -10,6 +10,21 @@ import { resolveOidcClientSettings } from "./oidc-config";
 /** Access tokens this close to expiry are refreshed before use. */
 const REFRESH_MARGIN_SECONDS = 30;
 
+/** Web Locks name that serialises token refreshes across this origin's tabs. */
+const REFRESH_LOCK = "oidc-token-refresh";
+
+const isExpiring = (user: User) =>
+  user.expires_in !== undefined && user.expires_in <= REFRESH_MARGIN_SECONDS;
+
+/**
+ * Runs `fn` while holding the cross-tab refresh lock. Web Locks need a secure
+ * context; elsewhere (the app over plain HTTP) `fn` runs unlocked.
+ */
+function withRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  return locks ? (locks.request(REFRESH_LOCK, fn) as Promise<T>) : fn();
+}
+
 /** Carried through Keycloak in the OIDC `state`, so the callback knows where to go. */
 interface SignInState {
   returnTo?: string;
@@ -19,8 +34,8 @@ const isBrowser = () => typeof window !== "undefined";
 
 /**
  * The browser's Keycloak session: Authorization Code flow with PKCE (S256)
- * against a public client, via oidc-client-ts. Tokens live in sessionStorage
- * (per tab, cleared when the tab closes) and are refreshed on demand with the
+ * against a public client, via oidc-client-ts. Tokens live in localStorage, so
+ * every tab of the app shares one sign-in, and are refreshed on demand with the
  * refresh token. On the server every method behaves as "signed out".
  */
 export class OidcSession {
@@ -31,6 +46,7 @@ export class OidcSession {
   private refreshing: Promise<User | null> | null = null;
   private callback: Promise<{ returnTo: string | null }> | null = null;
   private readonly expiredListeners = new Set<() => void>();
+  private watchingOtherTabs = false;
 
   /** `loadConfig` supplies the runtime Keycloak settings (the `keycloak` section of /runtime-config). */
   constructor(private readonly loadConfig: () => Promise<unknown>) {}
@@ -63,14 +79,34 @@ export class OidcSession {
       post_logout_redirect_uri: client.postLogoutRedirectUri,
       response_type: "code",
       scope: "openid profile email",
-      userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+      // Shared by all tabs; see refresh() for how they take turns refreshing.
+      userStore: new WebStorageStateStore({ store: window.localStorage }),
       // Tokens are refreshed when a request needs one (see getAccessToken), so
       // an idle tab does not keep the Keycloak session alive forever.
       automaticSilentRenew: false,
       monitorSession: false,
       loadUserInfo: false,
     };
-    return { manager: new UserManager(settings), settings };
+    const manager = new UserManager(settings);
+    this.watchOtherTabs(settings);
+    return { manager, settings };
+  }
+
+  /** Signing out in another tab removes the shared tokens; this tab then signs out too. */
+  private watchOtherTabs(settings: UserManagerSettings) {
+    if (this.watchingOtherTabs) return;
+    this.watchingOtherTabs = true;
+    // oidc-client-ts's user key; the store prefix is "oidc.".
+    const key = `oidc.user:${settings.authority}:${settings.client_id}`;
+    window.addEventListener("storage", (event) => {
+      if (event.storageArea !== window.localStorage) return;
+      if ((event.key === key && event.newValue === null) || event.key === null)
+        this.notifyExpired();
+    });
+  }
+
+  private notifyExpired() {
+    for (const listener of this.expiredListeners) listener();
   }
 
   /** A valid access token, refreshed first when it is about to expire. Null when signed out. */
@@ -79,9 +115,7 @@ export class OidcSession {
     const manager = await this.manager();
     const user = await manager.getUser();
     if (!user) return null;
-    const expiresIn = user.expires_in;
-    if (expiresIn === undefined || expiresIn > REFRESH_MARGIN_SECONDS)
-      return user.access_token;
+    if (!isExpiring(user)) return user.access_token;
     return (await this.refresh(manager))?.access_token ?? null;
   }
 
@@ -91,23 +125,37 @@ export class OidcSession {
   }
 
   /**
-   * One refresh at a time: the realm rotates refresh tokens, so two parallel
-   * refreshes would revoke each other. A failed refresh ends the session.
+   * One refresh at a time, across all tabs: the realm rotates refresh tokens,
+   * so two parallel refreshes would revoke each other. Inside the lock the
+   * stored tokens are read again, since another tab may have just refreshed
+   * them. A failed refresh ends the session (in every tab).
    */
   private refresh(manager: UserManager): Promise<User | null> {
     if (!this.refreshing) {
-      this.refreshing = manager
-        .signinSilent()
-        .catch(async () => {
-          await manager.removeUser();
-          for (const listener of this.expiredListeners) listener();
-          return null;
-        })
-        .finally(() => {
+      this.refreshing = withRefreshLock(() => this.refreshNow(manager)).finally(
+        () => {
           this.refreshing = null;
-        });
+        },
+      );
     }
     return this.refreshing;
+  }
+
+  private async refreshNow(manager: UserManager): Promise<User | null> {
+    const before = await manager.getUser();
+    if (!before) return null;
+    if (!isExpiring(before)) return before;
+    try {
+      return await manager.signinSilent();
+    } catch {
+      // Without Web Locks (plain-HTTP origins) another tab may have refreshed
+      // first, revoking the token used here; its new tokens are still good.
+      const after = await manager.getUser();
+      if (after && after.refresh_token !== before.refresh_token) return after;
+      await manager.removeUser();
+      this.notifyExpired();
+      return null;
+    }
   }
 
   /** Sends the browser to Keycloak's sign-in (or registration) page. */
