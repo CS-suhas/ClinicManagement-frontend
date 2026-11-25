@@ -1,6 +1,11 @@
-import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
+import { ArrowRightIcon } from "@radix-ui/react-icons";
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import Link from "next/link";
+import {
+  LandingHeaderAuth,
+  SignedOutOnly,
+} from "@/presentation/features/landing/landing-auth";
+import { LandingSearch } from "@/presentation/features/landing/landing-search";
 import { LandingWelcome } from "@/presentation/features/landing/landing-welcome";
 
 const display = Bricolage_Grotesque({
@@ -33,6 +38,7 @@ export default function LandingPage() {
           </svg>
           medipulse life
         </div>
+        <LandingHeaderAuth />
       </header>
 
       <main className="lp-main">
@@ -41,33 +47,34 @@ export default function LandingPage() {
         <div className="lp-band" aria-hidden="true">
           <svg
             className="lp-ecg"
+            aria-hidden="true"
             viewBox="0 0 1000 200"
             preserveAspectRatio="none"
           >
-            <title>Heartbeat line</title>
             <path
               className="lp-ecgLine"
               d={ECG_PATH}
-              pathLength={1}
               vectorEffect="non-scaling-stroke"
             />
           </svg>
         </div>
 
         <p className="lp-copy">
-          Search doctors by specialty and location, or join MediPulse Life to
-          start seeing patients.
+          Search doctors by name, specialty or place, or leave it blank to
+          browse everyone.
         </p>
 
-        <div className="lp-actions">
-          <Link href="/doctors" className="lp-btn lp-primary">
-            <MagnifyingGlassIcon width={18} height={18} />
-            Find doctors
-          </Link>
-          <Link href="/providers" className="lp-btn lp-secondary">
-            Register as a doctor
-          </Link>
-        </div>
+        <LandingSearch />
+
+        <SignedOutOnly>
+          <p className="lp-register">
+            Are you a doctor?{" "}
+            <Link href="/providers">
+              Register to start seeing patients
+              <ArrowRightIcon aria-hidden="true" />
+            </Link>
+          </p>
+        </SignedOutOnly>
       </main>
 
       <LandingWelcome />

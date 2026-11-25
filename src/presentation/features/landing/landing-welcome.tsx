@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ArrowRightIcon,
-  DashboardIcon,
-  MagnifyingGlassIcon,
-} from "@radix-ui/react-icons";
+import { DashboardIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { useService } from "@/di/container-provider";
 import { useAuth } from "@/presentation/auth/auth-provider";
@@ -18,12 +14,14 @@ import { QuickLinkCard } from "./quick-link-card";
 const PADDING = { paddingInline: "clamp(1.25rem, 5vw, 4rem)" } as const;
 
 /**
- * The role-aware section under the landing hero. Signed out it offers find and
- * sign in; signed in it greets the user and lists quick links for each role.
+ * The role-aware section under the landing hero: greets a signed-in user and
+ * lists quick links for each role. Renders nothing for signed-out visitors.
  * Counts come from one dashboard read and drop out silently if it fails.
  */
 export function LandingWelcome() {
   const { user, loading } = useAuth();
+  // Signed out, the hero's search and register link already cover everything.
+  if (!loading && !user) return null;
 
   return (
     <section
@@ -33,30 +31,8 @@ export function LandingWelcome() {
     >
       {loading ? (
         <div aria-hidden="true" className="h-24 w-full" />
-      ) : user ? (
-        <SignedIn />
       ) : (
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/doctors"
-            className="inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold no-underline"
-            style={{ background: "var(--primary)", color: "#fff" }}
-          >
-            <MagnifyingGlassIcon aria-hidden="true" width={18} height={18} />
-            Find doctors
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold no-underline"
-            style={{
-              border: "1px solid var(--primary)",
-              color: "var(--primary)",
-            }}
-          >
-            Sign in
-            <ArrowRightIcon aria-hidden="true" />
-          </Link>
-        </div>
+        <SignedIn />
       )}
     </section>
   );

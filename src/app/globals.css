@@ -26,7 +26,30 @@
 .lp-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding-block: 1.75rem;
+}
+
+.lp-headerLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 7rem;
+  justify-content: flex-end;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.lp-headerLink:hover {
+  color: var(--primary);
+}
+
+.lp-headerLink:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .lp-wordmark {
@@ -83,9 +106,6 @@
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: lp-draw 2.6s cubic-bezier(0.5, 0, 0.2, 1) 0.3s forwards;
 }
 
 .lp-copy {
@@ -96,11 +116,71 @@
   color: var(--muted);
 }
 
-.lp-actions {
+.lp-search {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.875rem;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 48rem;
   margin-top: 2rem;
+  padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 30px -12px rgb(19 41 45 / 0.25);
+}
+
+.lp-search:focus-within {
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--primary) 20%, transparent),
+    0 10px 30px -12px rgb(19 41 45 / 0.25);
+}
+
+.lp-searchIcon {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.lp-searchInput {
+  flex: 1;
+  min-width: 0;
+  padding-block: 0.75rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 1.25rem;
+  color: var(--ink);
+  outline: none;
+}
+
+.lp-searchInput::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.lp-searchBtn {
+  flex-shrink: 0;
+  border: 0;
+  cursor: pointer;
+}
+
+.lp-register {
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+}
+
+.lp-register a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+
+.lp-register a:hover {
+  color: var(--primary);
 }
 
 .lp-btn {
@@ -136,28 +216,7 @@
   background: #006873;
 }
 
-.lp-secondary {
-  background: transparent;
-  color: var(--ink);
-  border: 2px solid var(--ink);
-}
-
-.lp-secondary:hover {
-  background: var(--ink);
-  color: var(--paper);
-}
-
-@keyframes lp-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .lp-ecgLine {
-    animation: none;
-    stroke-dashoffset: 0;
-  }
   .lp-btn {
     transition: none;
   }
@@ -166,6 +225,20 @@
 @media (max-width: 640px) {
   .lp-band {
     height: 140px;
+  }
+  .lp-search {
+    flex-wrap: wrap;
+    padding: 0.5rem;
+  }
+  .lp-searchIcon {
+    margin-left: 0.5rem;
+  }
+  .lp-searchInput {
+    font-size: 1.125rem;
+  }
+  .lp-searchBtn {
+    flex-basis: 100%;
+    justify-content: center;
   }
 }
 

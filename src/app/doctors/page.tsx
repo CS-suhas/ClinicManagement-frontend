@@ -3,7 +3,7 @@
 import { Heading, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useService } from "@/di/container-provider";
 import { AsyncContent } from "@/presentation/components/async-content";
 import { PublicNavbar } from "@/presentation/components/public-navbar";
@@ -26,6 +26,19 @@ import {
 import { useBookingGate } from "@/presentation/features/doctors/use-booking-gate";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 
+/**
+ * The directory URL for a clinic, search text and specialty, leaving out empty
+ * values so `/doctors` stays clean. Shareable, and kept through sign-in.
+ */
+function directoryHref(clinicId: string, query: string, specialty: string) {
+  const params = new URLSearchParams();
+  if (clinicId) params.set("clinicId", clinicId);
+  if (query.trim()) params.set("q", query.trim());
+  if (specialty) params.set("specialty", specialty);
+  const search = params.toString();
+  return search ? `/doctors?${search}` : "/doctors";
+}
+
 export default function DoctorsPage() {
   // Search params need a Suspense boundary so the page can still prerender.
   return (
@@ -43,13 +56,22 @@ function DoctorDirectory() {
   const clinicId = searchParams.get("clinicId") ?? "";
   const gate = useBookingGate();
 
-  const [filters, setFilters] = useState<DoctorFilterValues>(DEFAULT_FILTERS);
-  const [query, setQuery] = useState("");
+  // Search text and specialty start from the URL (e.g. the landing search).
+  const [filters, setFilters] = useState<DoctorFilterValues>(() => ({
+    ...DEFAULT_FILTERS,
+    specialty: searchParams.get("specialty") ?? "",
+  }));
+  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
 
-  /** Where sign-in returns the visitor, keeping the clinic filter. */
-  const returnTo = clinicId
-    ? `/doctors?clinicId=${encodeURIComponent(clinicId)}`
-    : "/doctors";
+  /** Where sign-in returns the visitor, keeping the search and filters. */
+  const returnTo = directoryHref(clinicId, query, filters.specialty);
+
+  // Mirror the search and specialty into the URL without a navigation, so the
+  // page can be shared or reloaded. The clinic is already in it.
+  useEffect(() => {
+    const current = window.location.pathname + window.location.search;
+    if (current !== returnTo) window.history.replaceState(null, "", returnTo);
+  }, [returnTo]);
 
   // Loaded once, so the clinic filter's options stay put while doctors reload.
   const clinics = useAsyncData(() => clinicService.list());
@@ -74,10 +96,9 @@ function DoctorDirectory() {
   }, clinicId);
 
   const setClinicId = (id: string) =>
-    router.replace(
-      id ? `/doctors?clinicId=${encodeURIComponent(id)}` : "/doctors",
-      { scroll: false },
-    );
+    router.replace(directoryHref(id, query, filters.specialty), {
+      scroll: false,
+    });
 
   const doctors = useMemo(
     () => filterDoctors(data?.doctors ?? [], filters, query),
