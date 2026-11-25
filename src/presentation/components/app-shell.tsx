@@ -70,13 +70,10 @@ function badgeCount(
   mine: ReturnType<typeof useMyDashboard>["data"],
 ): number {
   if (!mine) return 0;
-  if (badge === "approvals")
-    return mine.admin?.pendingProviderVerificationCount ?? 0;
-  return (
-    mine.admin?.pendingJoinRequestCount ??
-    mine.clinicAdmin?.pendingJoinRequestCount ??
-    0
-  );
+  switch (badge) {
+    case "approvals":
+      return mine.admin?.pendingProviderVerificationCount ?? 0;
+  }
 }
 
 /**

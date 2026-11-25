@@ -57,7 +57,6 @@ export class RestSummaryRepository implements SummaryRepository {
       clinic: ClinicResponse;
       providerCount: number;
       todayAppointmentCount: number;
-      pendingJoinRequestCount: number | null;
       topSpecialties: { specialty: string; count: number }[];
       providers: ProviderSummaryResponse[];
     }>(`/clinics/${encodeURIComponent(id)}/summary`);
@@ -65,7 +64,6 @@ export class RestSummaryRepository implements SummaryRepository {
       clinic: clinicMapper.fromResponse(response.clinic),
       providerCount: response.providerCount,
       todayAppointmentCount: response.todayAppointmentCount,
-      pendingJoinRequestCount: response.pendingJoinRequestCount ?? null,
       topSpecialties: response.topSpecialties,
       providers: response.providers.map(toSummaryProvider),
     };

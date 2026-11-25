@@ -26,22 +26,6 @@ export function notificationItems(
         text: plural(approvals, "doctor application", "waiting for approval"),
         href: "/approvals",
       });
-    const joins = mine.admin.pendingJoinRequestCount ?? 0;
-    if (joins > 0)
-      items.push({
-        id: `joins:admin:${joins}`,
-        text: plural(joins, "clinic move request", "waiting for a decision"),
-        href: "/join-requests",
-      });
-  }
-
-  if (mine.clinicAdmin && mine.clinicAdmin.pendingJoinRequestCount > 0) {
-    const joins = mine.clinicAdmin.pendingJoinRequestCount;
-    items.push({
-      id: `joins:clinic:${joins}`,
-      text: plural(joins, "clinic move request", "waiting for a decision"),
-      href: "/join-requests",
-    });
   }
 
   const requests = mine.doctor?.pendingRequestCount ?? 0;

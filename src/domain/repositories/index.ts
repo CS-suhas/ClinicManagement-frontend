@@ -10,8 +10,6 @@ import type {
   AppointmentStatus,
   Clinic,
   ClinicInput,
-  ClinicJoinRequest,
-  ClinicJoinStatus,
   Patient,
   PatientAllergy,
   PatientInput,
@@ -105,13 +103,9 @@ export interface AdminDashboard {
   patientCount: number;
   pendingProviderVerificationCount: number;
   todayAppointmentCount: number;
-  /** All PENDING clinic join requests. Optional for older responses. */
-  pendingJoinRequestCount?: number;
 }
 
-export interface ClinicAdminDashboard extends AdminDashboard {
-  pendingJoinRequestCount: number;
-}
+export type ClinicAdminDashboard = AdminDashboard;
 
 export interface DoctorDashboard {
   todayAppointmentCount: number;
@@ -214,27 +208,6 @@ export interface ProviderVerificationRepository {
 export interface AppointmentAvailabilityRepository {
   /** `date` is "YYYY-MM-DD". Resolves to the ISO start times of REQUESTED and CONFIRMED appointments that day. */
   getBusyStarts(providerId: string, date: string): Promise<string[]>;
-}
-
-/** Port: a verified doctor's requests to move to another clinic. */
-export interface ClinicJoinRequestRepository {
-  /** Throws ConflictError when `clinicId` is the doctor's current clinic or they have a PENDING request. */
-  createForProvider(
-    providerId: string,
-    clinicId: string,
-  ): Promise<{ id: string }>;
-  /** Newest first. */
-  listForProvider(providerId: string): Promise<ClinicJoinRequest[]>;
-  /** Clinic admins of that clinic, and admins. Newest first. */
-  listForClinic(
-    clinicId: string,
-    status?: ClinicJoinStatus,
-  ): Promise<ClinicJoinRequest[]>;
-  /** Clinic admins of the request's clinic, and admins. Also moves the provider to that clinic. */
-  approve(id: string): Promise<void>;
-  reject(id: string): Promise<void>;
-  /** Only by the requesting doctor, and only while PENDING. */
-  cancel(id: string): Promise<void>;
 }
 
 export type ClinicRepository = CrudRepository<Clinic, ClinicInput> &

@@ -5,7 +5,6 @@ import {
   type AppointmentSettings,
   type AppointmentStatus,
   type Clinic,
-  type ClinicJoinRequest,
   clockToMinutes,
   isWithinClinicHours,
   minutesToClock,
@@ -49,7 +48,6 @@ export interface MockSummarySources {
   appointments: Listable<Appointment>;
   allergies: Listable<PatientAllergy>;
   allergyTypes: Listable<AllergyType>;
-  joinRequests: Listable<Pick<ClinicJoinRequest, "clinicId" | "status">>;
   settings: AppointmentSettings;
 }
 
@@ -103,23 +101,15 @@ export function createMockSummaryRepository(
   currentUser: () => Promise<CurrentUser | null>,
 ): SummaryRepository {
   const readAll = async () => {
-    const [
-      patients,
-      providers,
-      clinics,
-      appointments,
-      allergies,
-      types,
-      joins,
-    ] = await Promise.all([
-      sources.patients.list(),
-      sources.providers.list(),
-      sources.clinics.list(),
-      sources.appointments.list(),
-      sources.allergies.list(),
-      sources.allergyTypes.list(),
-      sources.joinRequests.list(),
-    ]);
+    const [patients, providers, clinics, appointments, allergies, types] =
+      await Promise.all([
+        sources.patients.list(),
+        sources.providers.list(),
+        sources.clinics.list(),
+        sources.appointments.list(),
+        sources.allergies.list(),
+        sources.allergyTypes.list(),
+      ]);
     return {
       patients,
       providers: new Map(providers.map((p) => [p.id, p])),
@@ -127,7 +117,6 @@ export function createMockSummaryRepository(
       appointments,
       allergies,
       types: new Map(types.map((t) => [t.id, t])),
-      joins,
     };
   };
 
@@ -254,18 +243,10 @@ export function createMockSummaryRepository(
         const time = Date.parse(a.appointmentDateTime);
         return time >= dayStart && time < dayEnd;
       }).length;
-      const isStaff =
-        user.roles.includes("admin") || user.clinicAdminOf.includes(id);
-
       return {
         clinic,
         providerCount: verified.length,
         todayAppointmentCount: today,
-        pendingJoinRequestCount: isStaff
-          ? data.joins.filter(
-              (r) => r.clinicId === id && r.status === "PENDING",
-            ).length
-          : null,
         topSpecialties: topSpecialties(verified),
         providers: verified
           .slice(0, CLINIC_PROVIDER_PREVIEW)

@@ -208,7 +208,6 @@ export function DoctorStep({
         </Grid>
         <Text size="1" style={{ color: "var(--mp-muted)" }}>
           Your details are reviewed before you can take bookings at this clinic.
-          You can ask to move to another clinic later.
         </Text>
       </Flex>
 

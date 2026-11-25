@@ -1,13 +1,10 @@
 "use client";
 
 import { HomeIcon } from "@radix-ui/react-icons";
-import { Button, Flex, Text } from "@radix-ui/themes";
-import { useState } from "react";
+import { Flex, Text } from "@radix-ui/themes";
 import { useService } from "@/di/container-provider";
 import type { ClinicSummary } from "@/domain/repositories/glance";
 import { useGlanceData } from "../../hooks/use-glance-data";
-import { getErrorMessage } from "../../lib/errors";
-import { useNotify } from "../notifications";
 import { AvatarStack } from "../ui/avatar-stack";
 import { Chip } from "../ui/chip";
 import { IconCircle } from "../ui/icon-circle";
@@ -23,20 +20,11 @@ import {
 
 export interface ClinicChipProps {
   clinic: { id: string; name: string };
-  /**
-   * The signed-in doctor's provider id when they are verified and this is not
-   * their current clinic. The card then offers "Request to move here".
-   */
-  joinAs?: string;
   variant?: "chip" | "inline";
 }
 
 /** A clinic as a house icon and name. The card shows its address, phone, doctors and today's load. */
-export function ClinicChip({
-  clinic,
-  joinAs,
-  variant = "chip",
-}: ClinicChipProps) {
+export function ClinicChip({ clinic, variant = "chip" }: ClinicChipProps) {
   return (
     <GlancePopover
       label={`Clinic ${clinic.name}, show details`}
@@ -54,24 +42,19 @@ export function ClinicChip({
         </Chip>
       }
     >
-      {({ open }) => <ClinicCard clinic={clinic} joinAs={joinAs} open={open} />}
+      {({ open }) => <ClinicCard clinic={clinic} open={open} />}
     </GlancePopover>
   );
 }
 
 function ClinicCard({
   clinic,
-  joinAs,
   open,
 }: {
   clinic: { id: string; name: string };
-  joinAs?: string;
   open: boolean;
 }) {
   const glance = useService("glanceService");
-  const clinicJoins = useService("clinicJoinService");
-  const { notifySuccess, notifyError } = useNotify();
-  const [requesting, setRequesting] = useState(false);
   const summaryState = useGlanceData<ClinicSummary>(
     `clinic:${clinic.id}`,
     () => glance.getClinicSummary(clinic.id),
@@ -80,22 +63,6 @@ function ClinicCard({
   const summary = summaryState.data;
   const address = summary?.clinic?.location ?? null;
   const phone = summary?.clinic?.phoneNumber ?? "";
-
-  const requestJoin = async () => {
-    if (!joinAs) return;
-    setRequesting(true);
-    try {
-      await clinicJoins.createForProvider(joinAs, clinic.id);
-      notifySuccess(`Request to move sent to ${clinic.name}`);
-      summaryState.retry();
-    } catch (e) {
-      notifyError(
-        `Could not request to move to ${clinic.name}: ${getErrorMessage(e)}`,
-      );
-    } finally {
-      setRequesting(false);
-    }
-  };
 
   return (
     <>
@@ -141,7 +108,7 @@ function ClinicCard({
           </GlanceSection>
 
           <GlanceSection>
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-2 gap-2 text-center">
               <Stat label="Doctors" value={String(summary.providerCount)} />
               <Stat
                 label="Today"
@@ -151,12 +118,6 @@ function ClinicCard({
                     : String(summary.todayAppointmentCount)
                 }
               />
-              {summary.pendingJoinRequestCount !== null && (
-                <Stat
-                  label="Pending joins"
-                  value={String(summary.pendingJoinRequestCount)}
-                />
-              )}
             </div>
           </GlanceSection>
 
@@ -192,17 +153,7 @@ function ClinicCard({
       )}
 
       <GlanceFooter>
-        {joinAs && (
-          <Button
-            size="2"
-            color="teal"
-            loading={requesting}
-            onClick={() => void requestJoin()}
-          >
-            Request to move here
-          </Button>
-        )}
-        <GlanceAction href={`/clinics/${clinic.id}`} primary={!joinAs}>
+        <GlanceAction href={`/clinics/${clinic.id}`} primary>
           View clinic
         </GlanceAction>
         <GlanceAction href={`/doctors?clinicId=${clinic.id}`}>

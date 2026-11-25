@@ -2,7 +2,6 @@ import {
   AllergyTypeService,
   AppointmentService,
   AuthService,
-  ClinicJoinService,
   ClinicService,
   ConfigurationService,
   DashboardService,
@@ -22,7 +21,6 @@ import type {
   AllergyTypeRepository,
   AppointmentAvailabilityRepository,
   AppointmentRepository,
-  ClinicJoinRequestRepository,
   ClinicRepository,
   DashboardRepository,
   PatientAllergyRepository,
@@ -40,7 +38,6 @@ import { RestAuthRepository } from "@/infrastructure/http/rest-auth-repository";
 import {
   RestAppointmentAvailabilityRepository,
   RestAppointmentRepository,
-  RestClinicJoinRequestRepository,
   RestClinicRepository,
   RestConfigurationRepository,
   RestCrudRepository,
@@ -59,7 +56,6 @@ import {
   MOCK_PERSONAS,
   MockAuthRepository,
 } from "@/infrastructure/mock/mock-auth-repository";
-import { MockClinicJoinRequestRepository } from "@/infrastructure/mock/mock-clinic-join-repository";
 import { MockClinicRepository } from "@/infrastructure/mock/mock-clinic-repository";
 import {
   MOCK_APPOINTMENT_SETTINGS,
@@ -97,7 +93,6 @@ export interface Container {
   allergyTypeService: AllergyTypeService;
   patientAllergyService: PatientAllergyService;
   appointmentService: AppointmentService;
-  clinicJoinService: ClinicJoinService;
   configurationService: ConfigurationService;
   dashboardService: DashboardService;
   authService: AuthService;
@@ -124,7 +119,6 @@ interface Repositories {
   appointments: AppointmentRepository;
   appointmentAvailability: AppointmentAvailabilityRepository;
   providerRoster: ProviderRosterRepository;
-  clinicJoinRequests: ClinicJoinRequestRepository;
   summaries: SummaryRepository;
 }
 
@@ -183,17 +177,6 @@ function createMockRepositories(): Repositories {
     { patients, providers, appointments },
     currentUser,
   );
-  // Versioned key: v2 seeds requests to move clinic, since pr4 now has one.
-  const joinRequestsStore = col(
-    "clinic-join-requests-v2",
-    seed.seedClinicJoinRequests,
-  );
-  const clinicJoinRequests = new MockClinicJoinRequestRepository(
-    joinRequestsStore,
-    providersStore,
-    clinics,
-    currentUser,
-  );
   return {
     dashboard: createMockDashboardRepository(
       {
@@ -203,7 +186,6 @@ function createMockRepositories(): Repositories {
         allergyTypes,
         appointments,
         allergies: { list: async () => patientAllergiesStore.read() },
-        clinicJoinRequests,
       },
       () => auth.getCurrentUser(),
     ),
@@ -226,7 +208,6 @@ function createMockRepositories(): Repositories {
       appointmentsStore,
     ),
     providerRoster,
-    clinicJoinRequests,
     summaries: createMockSummaryRepository(
       {
         patients: { list: async () => patientsStore.read() },
@@ -235,7 +216,6 @@ function createMockRepositories(): Repositories {
         appointments: { list: async () => appointmentsStore.read() },
         allergies: { list: async () => patientAllergiesStore.read() },
         allergyTypes: { list: async () => allergyTypesStore.read() },
-        joinRequests: { list: async () => joinRequestsStore.read() },
         settings: MOCK_APPOINTMENT_SETTINGS,
       },
       currentUser,
@@ -268,7 +248,6 @@ function createRestRepositories(
     appointments: new RestAppointmentRepository(http),
     appointmentAvailability: new RestAppointmentAvailabilityRepository(http),
     providerRoster: new RestProviderRosterRepository(http),
-    clinicJoinRequests: new RestClinicJoinRequestRepository(http),
     summaries: new RestSummaryRepository(http),
   };
 }
@@ -301,7 +280,6 @@ export function createContainer(config: ContainerConfig): Container {
     r.appointments,
     r.appointmentAvailability,
   );
-  const clinicJoinService = new ClinicJoinService(r.clinicJoinRequests);
   const configurationService = new ConfigurationService(
     isRest
       ? new RestConfigurationRepository(
@@ -320,7 +298,6 @@ export function createContainer(config: ContainerConfig): Container {
     ),
     patientAllergyService,
     appointmentService,
-    clinicJoinService,
     configurationService,
     dashboardService: new DashboardService(r.dashboard),
     authService: new AuthService(r.auth),

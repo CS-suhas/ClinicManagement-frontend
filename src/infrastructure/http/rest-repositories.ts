@@ -6,8 +6,6 @@ import type {
   AppointmentInput,
   Clinic,
   ClinicInput,
-  ClinicJoinRequest,
-  ClinicJoinStatus,
   PatientAllergy,
   Provider,
   ProviderGender,
@@ -19,7 +17,6 @@ import type {
   AppointmentListItem,
   AppointmentRepository,
   AppointmentSearchOptions,
-  ClinicJoinRequestRepository,
   ConfigurationRepository,
   CrudRepository,
   DashboardData,
@@ -545,54 +542,5 @@ export class RestAppointmentAvailabilityRepository
     if (!Array.isArray(list) || !list.every((s) => typeof s === "string"))
       throw new Error("The API returned invalid busy slots.");
     return list;
-  }
-}
-
-/** Clinic join requests. Each path follows the API contract in the backend notes. */
-export class RestClinicJoinRequestRepository
-  implements ClinicJoinRequestRepository
-{
-  constructor(private readonly http: HttpClient) {}
-
-  createForProvider(providerId: string, clinicId: string) {
-    return this.http.post<{ id: string }>(
-      `/providers/${encodeURIComponent(providerId)}/clinic-join-requests`,
-      { clinicId },
-    );
-  }
-
-  listForProvider(providerId: string) {
-    return this.http.get<ClinicJoinRequest[]>(
-      `/providers/${encodeURIComponent(providerId)}/clinic-join-requests`,
-    );
-  }
-
-  listForClinic(clinicId: string, status?: ClinicJoinStatus) {
-    const query = queryString({ status });
-    return this.http.get<ClinicJoinRequest[]>(
-      `/clinics/${encodeURIComponent(clinicId)}/join-requests?${query}`,
-    );
-  }
-
-  approve(id: string) {
-    return this.decide(id, "approve");
-  }
-
-  reject(id: string) {
-    return this.decide(id, "reject");
-  }
-
-  cancel(id: string) {
-    return this.http.post<void>(
-      `/clinic-join-requests/${encodeURIComponent(id)}/cancel`,
-      undefined,
-    );
-  }
-
-  private decide(id: string, action: "approve" | "reject") {
-    return this.http.post<void>(
-      `/clinic-join-requests/${encodeURIComponent(id)}/${action}`,
-      undefined,
-    );
   }
 }

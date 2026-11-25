@@ -7,7 +7,6 @@ import {
   MagnifyingGlassIcon,
   PersonIcon,
   PlusIcon,
-  ReaderIcon,
 } from "@radix-ui/react-icons";
 import type { ReactNode } from "react";
 import type { CurrentUser } from "@/domain/auth";
@@ -103,16 +102,6 @@ export function buildLandingCards(
   }
 
   if (has("clinicadmin")) {
-    const joins = mine?.clinicAdmin?.pendingJoinRequestCount ?? null;
-    cards.push({
-      href: "/join-requests",
-      title: "Join requests",
-      hint: "Doctors asking to move to your clinic.",
-      icon: <ReaderIcon />,
-      count: joins,
-      tone: joins ? "attention" : "default",
-      rank: 3,
-    });
     cards.push({
       href: "/appointments",
       title: "Clinic schedule",

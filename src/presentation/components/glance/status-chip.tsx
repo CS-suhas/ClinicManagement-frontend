@@ -11,7 +11,7 @@ import {
   GlanceSection,
 } from "./glance-popover";
 
-export type StatusKind = "appointment" | "verification" | "joinRequest";
+export type StatusKind = "appointment" | "verification";
 
 type Palette = { background: string; color: string };
 
@@ -34,7 +34,6 @@ export interface StatusPresentation {
 const KIND_TITLE: Record<StatusKind, string> = {
   appointment: "Appointment",
   verification: "Doctor approval",
-  joinRequest: "Clinic move request",
 };
 
 const PRESENTATION: Record<StatusKind, Record<string, StatusPresentation>> = {
@@ -49,12 +48,6 @@ const PRESENTATION: Record<StatusKind, Record<string, StatusPresentation>> = {
     PENDING: { label: "Pending", tone: "amber", glyph: "◷" },
     VERIFIED: { label: "Verified", tone: "teal", glyph: "✓" },
     REJECTED: { label: "Rejected", tone: "red", glyph: "✕" },
-  },
-  joinRequest: {
-    PENDING: { label: "Pending", tone: "amber", glyph: "◷" },
-    APPROVED: { label: "Approved", tone: "teal", glyph: "✓" },
-    REJECTED: { label: "Rejected", tone: "red", glyph: "✕" },
-    CANCELLED: { label: "Cancelled", tone: "slate", glyph: "–" },
   },
 };
 
@@ -82,8 +75,6 @@ function defaultNote(kind: StatusKind, status: string): string | null {
     return "Rejected by the doctor. No reason is recorded.";
   if (kind === "verification" && status === "REJECTED")
     return "Not approved. Contact your clinic administrator.";
-  if (kind === "joinRequest" && status === "REJECTED")
-    return "Declined by the clinic. No reason is recorded.";
   return null;
 }
 

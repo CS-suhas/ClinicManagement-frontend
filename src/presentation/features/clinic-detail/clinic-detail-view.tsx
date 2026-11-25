@@ -3,65 +3,23 @@
 import { HomeIcon } from "@radix-ui/react-icons";
 import { Button, Flex, Spinner, Text } from "@radix-ui/themes";
 import Link from "next/link";
-import { useState } from "react";
-import { hasRole } from "@/application/auth/permissions";
 import { useService } from "@/di/container-provider";
-import { ConflictError } from "@/domain/errors";
 import type { ClinicSummary } from "@/domain/repositories/glance";
-import { useAuth } from "@/presentation/auth/auth-provider";
 import { ErrorCallout } from "@/presentation/components/error-callout";
 import { DoctorChip } from "@/presentation/components/glance";
-import { useNotify } from "@/presentation/components/notifications";
 import { EmptyState } from "@/presentation/components/ui/empty-state";
 import { IconCircle } from "@/presentation/components/ui/icon-circle";
 import { PageHeader } from "@/presentation/components/ui/page-header";
 import { Surface } from "@/presentation/components/ui/surface";
-import { JOIN_CONFLICT_MESSAGE } from "@/presentation/features/my-clinic/use-my-clinic";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { getErrorMessage } from "@/presentation/lib/errors";
 
 /** A clinic: its details and stats, specialties, and its doctors. */
 export function ClinicDetailView({ clinicId }: { clinicId: string }) {
   const glance = useService("glanceService");
-  const clinicJoinService = useService("clinicJoinService");
-  const { user } = useAuth();
-  const { notifySuccess, notifyError } = useNotify();
-  const [requesting, setRequesting] = useState(false);
-  const [requested, setRequested] = useState(false);
   const summary = useAsyncData<ClinicSummary>(
     () => glance.getClinicSummary(clinicId),
     clinicId,
   );
-
-  const provider = user?.provider ?? null;
-  // A verified doctor may ask to move here from their current clinic.
-  const canRequestMove =
-    provider !== null &&
-    provider.verificationStatus === "VERIFIED" &&
-    provider.clinicId !== clinicId &&
-    hasRole(user, "doctor");
-  const isStaff =
-    hasRole(user, "admin") || (user?.clinicAdminOf ?? []).includes(clinicId);
-
-  const requestMove = async () => {
-    if (!provider) return;
-    setRequesting(true);
-    try {
-      await clinicJoinService.createForProvider(provider.id, clinicId);
-      setRequested(true);
-      notifySuccess(
-        `Request to move sent to ${summary.data?.clinic?.name ?? "the clinic"}`,
-      );
-    } catch (e) {
-      notifyError(
-        e instanceof ConflictError
-          ? JOIN_CONFLICT_MESSAGE
-          : `Could not send the request: ${getErrorMessage(e)}`,
-      );
-    } finally {
-      setRequesting(false);
-    }
-  };
 
   if (summary.loading && !summary.data)
     return (
@@ -101,23 +59,6 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
       <PageHeader
         title={clinic.name}
         subtitle={clinic.location ?? "No address on record"}
-        actions={
-          canRequestMove ? (
-            requested ? (
-              <Button asChild variant="soft" color="teal">
-                <Link href="/my-clinic">See my request</Link>
-              </Button>
-            ) : (
-              <Button
-                color="teal"
-                loading={requesting}
-                onClick={() => void requestMove()}
-              >
-                Request to move here
-              </Button>
-            )
-          ) : undefined
-        }
       />
 
       <Surface padding="lg">
@@ -170,7 +111,7 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
         </Flex>
       </Surface>
 
-      <dl className="m-0 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <dl className="m-0 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Stat label="Verified doctors" value={String(data.providerCount)} />
         <Stat
           label="Appointments today"
@@ -180,35 +121,6 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
               : String(data.todayAppointmentCount)
           }
         />
-        {isStaff && data.pendingJoinRequestCount !== null ? (
-          <Surface padding="md">
-            <dt
-              className="text-xs font-medium"
-              style={{ color: "var(--mp-muted)" }}
-            >
-              Pending join requests
-            </dt>
-            <dd className="m-0 mt-1 flex items-center justify-between">
-              <span
-                className="text-2xl font-semibold tabular-nums"
-                style={{ color: "var(--mp-ink)" }}
-              >
-                {data.pendingJoinRequestCount}
-              </span>
-              {data.pendingJoinRequestCount > 0 && (
-                <Link
-                  href="/join-requests"
-                  className="text-sm font-medium"
-                  style={{ color: "var(--mp-primary)" }}
-                >
-                  Review
-                </Link>
-              )}
-            </dd>
-          </Surface>
-        ) : (
-          <Stat label="Pending join requests" value="—" />
-        )}
       </dl>
 
       <section aria-labelledby="clinic-doctors-heading">

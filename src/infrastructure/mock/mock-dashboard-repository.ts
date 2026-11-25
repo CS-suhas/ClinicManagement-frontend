@@ -12,7 +12,6 @@ import type {
   AdminDashboard,
   AppointmentListItem,
   ClinicAdminDashboard,
-  ClinicJoinRequestRepository,
   DashboardData,
   DashboardRepository,
   DoctorDashboard,
@@ -37,9 +36,6 @@ export function createMockDashboardRepository(
     allergyTypes: Listable<AllergyType>;
     appointments: Listable<Appointment>;
     allergies: Listable<PatientAllergy>;
-    clinicJoinRequests: Pick<ClinicJoinRequestRepository, "listForClinic"> & {
-      countPending(): Promise<number>;
-    };
   },
   currentUser: () => Promise<CurrentUser | null>,
 ): DashboardRepository {
@@ -152,8 +148,6 @@ export function createMockDashboardRepository(
           todayAppointmentCount: items.filter(
             (item) => counts(item) && inToday(item),
           ).length,
-          pendingJoinRequestCount:
-            await repositories.clinicJoinRequests.countPending(),
         };
 
       // Clinic admin: scoped to the caller's clinics. Patients are those with an appointment there.
@@ -165,11 +159,6 @@ export function createMockDashboardRepository(
         const myItems = items.filter((item) =>
           myProviderIds.has(item.providerId),
         );
-        const pendingRequests = await Promise.all(
-          user.clinicAdminOf.map((clinicId) =>
-            repositories.clinicJoinRequests.listForClinic(clinicId, "PENDING"),
-          ),
-        );
         clinicAdmin = {
           clinicCount: clinics.filter((c) => mine.has(c.id)).length,
           providerCount: myProviders.length,
@@ -180,10 +169,6 @@ export function createMockDashboardRepository(
           todayAppointmentCount: myItems.filter(
             (item) => counts(item) && inToday(item),
           ).length,
-          pendingJoinRequestCount: pendingRequests.reduce(
-            (total, requests) => total + requests.length,
-            0,
-          ),
         };
       }
 

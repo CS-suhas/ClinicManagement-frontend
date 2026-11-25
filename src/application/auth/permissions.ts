@@ -17,7 +17,6 @@ export const ROUTE_ROLES = {
   "/patients/[id]": ["admin", "doctor", "patient"],
   "/allergies": ["admin"],
   "/approvals": ["admin"],
-  "/join-requests": ["admin", "clinicadmin"],
   "/my-clinic": ["doctor"],
   /** Public directory: no sign-in needed unless the deployment sets PUBLIC_DOCTORS=false. */
   "/doctors": null,
@@ -27,7 +26,7 @@ export const ROUTE_ROLES = {
 } as const satisfies Record<string, readonly Role[] | null>;
 
 /** Nav badges the shell fills from the signed-in user's dashboard counts. */
-export type NavBadge = "approvals" | "joinRequests";
+export type NavBadge = "approvals";
 
 export interface NavItem {
   href: string;
@@ -53,12 +52,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Approvals",
     roles: ROUTE_ROLES["/approvals"],
     badge: "approvals",
-  },
-  {
-    href: "/join-requests",
-    label: "Join requests",
-    roles: ROUTE_ROLES["/join-requests"],
-    badge: "joinRequests",
   },
   { href: "/my-clinic", label: "My clinic", roles: ROUTE_ROLES["/my-clinic"] },
 ];

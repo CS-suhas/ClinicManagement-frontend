@@ -87,8 +87,6 @@ export interface ClinicSummary {
   topSpecialties: { specialty: string; count: number }[];
   /** Appointments today at the clinic. Null unless the caller is an admin or a clinic admin of it. */
   todayAppointmentCount: number | null;
-  /** Pending join requests. Null unless the caller is an admin or a clinic admin of it. */
-  pendingJoinRequestCount: number | null;
 }
 
 /** Doctors per clinic for list tables, from one directory read. */

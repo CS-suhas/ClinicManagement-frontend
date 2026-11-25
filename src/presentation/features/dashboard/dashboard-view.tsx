@@ -8,7 +8,6 @@ import {
   MagnifyingGlassIcon,
   PersonIcon,
   PlusIcon,
-  ReaderIcon,
 } from "@radix-ui/react-icons";
 import { Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
@@ -76,14 +75,6 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
           }
         />
         <QuickLinkCard
-          href="/join-requests"
-          icon={<ReaderIcon />}
-          title="Join requests"
-          hint="Doctors asking to move to another clinic."
-          count={data.admin.pendingJoinRequestCount}
-          tone={data.admin.pendingJoinRequestCount ? "attention" : "default"}
-        />
-        <QuickLinkCard
           href="/clinics"
           icon={<HomeIcon />}
           title="Clinics"
@@ -117,16 +108,6 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
   if (data.clinicAdmin)
     sections.push(
       <Section key="clinicadmin" title="Clinic admin" icon={<HomeIcon />}>
-        <QuickLinkCard
-          href="/join-requests"
-          icon={<ReaderIcon />}
-          title="Join requests"
-          hint="Doctors asking to move to your clinic."
-          count={data.clinicAdmin.pendingJoinRequestCount}
-          tone={
-            data.clinicAdmin.pendingJoinRequestCount ? "attention" : "default"
-          }
-        />
         <QuickLinkCard
           href="/appointments"
           icon={<CalendarIcon />}
@@ -174,7 +155,7 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
           href="/my-clinic"
           icon={<HomeIcon />}
           title="My clinic"
-          hint="Your clinic, or ask to move to another."
+          hint="The clinic you practise at."
         />
         <NextVisit appointment={data.doctor.nextAppointment} />
       </Section>,

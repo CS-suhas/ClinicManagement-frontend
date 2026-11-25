@@ -48,8 +48,6 @@ export interface ClinicSummaryData {
   providerCount: number;
   /** Appointments today on the server's UTC day, excluding DECLINED and CANCELLED. */
   todayAppointmentCount: number;
-  /** Null unless the caller is an admin or a clinic admin of this clinic. */
-  pendingJoinRequestCount: number | null;
   /** Up to three, most common first. */
   topSpecialties: { specialty: string; count: number }[];
   /** Up to five verified doctors. */

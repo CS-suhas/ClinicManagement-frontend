@@ -306,7 +306,6 @@ export class GlanceService {
       providers: [],
       topSpecialties: [],
       todayAppointmentCount: null,
-      pendingJoinRequestCount: null,
     };
     if (!user) return empty;
     const data = await unlessDenied(() =>
@@ -321,7 +320,6 @@ export class GlanceService {
       providers: data.providers.slice(0, 5).map(toDoctorRef),
       topSpecialties: data.topSpecialties,
       todayAppointmentCount: isStaff ? data.todayAppointmentCount : null,
-      pendingJoinRequestCount: isStaff ? data.pendingJoinRequestCount : null,
     };
   }
 
