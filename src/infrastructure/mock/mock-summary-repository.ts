@@ -82,8 +82,8 @@ const localDayRange = (day: string): [number, number] => [
   Date.parse(localMidnightIso(addDays(day, 1))),
 ];
 
-/** Top three specialties by count, most common first, then by name. */
-function topSpecialties(providers: Provider[]) {
+/** Top three specialty names by count, most common first, then by name. */
+function topSpecialties(providers: Provider[]): string[] {
   const counts = new Map<string, number>();
   for (const { specialty } of providers) {
     const key = specialty.trim();
@@ -92,7 +92,8 @@ function topSpecialties(providers: Provider[]) {
   return [...counts]
     .map(([specialty, count]) => ({ specialty, count }))
     .sort((a, b) => b.count - a.count || a.specialty.localeCompare(b.specialty))
-    .slice(0, 3);
+    .slice(0, 3)
+    .map((item) => item.specialty);
 }
 
 /** Creates the mock summary and search port, applying the server's access rules. */

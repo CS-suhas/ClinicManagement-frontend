@@ -49,7 +49,7 @@ export interface ClinicSummaryData {
   /** Appointments today on the server's UTC day, excluding DECLINED and CANCELLED. */
   todayAppointmentCount: number;
   /** Up to three, most common first. */
-  topSpecialties: { specialty: string; count: number }[];
+  topSpecialties: string[];
   /** Up to five verified doctors. */
   providers: SummaryProvider[];
 }

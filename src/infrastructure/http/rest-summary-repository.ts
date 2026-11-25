@@ -57,7 +57,7 @@ export class RestSummaryRepository implements SummaryRepository {
       clinic: ClinicResponse;
       providerCount: number;
       todayAppointmentCount: number;
-      topSpecialties: { specialty: string; count: number }[];
+      topSpecialties: string[];
       providers: ProviderSummaryResponse[];
     }>(`/clinics/${encodeURIComponent(id)}/summary`);
     return {

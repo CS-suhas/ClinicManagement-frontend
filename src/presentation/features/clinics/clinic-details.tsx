@@ -50,10 +50,7 @@ export function ClinicDetails({ clinic }: { clinic: Clinic }) {
       )}
       {data.topSpecialties.length > 0 && (
         <Text size="2" style={{ color: "var(--mp-ink)" }}>
-          Specialties:{" "}
-          {data.topSpecialties
-            .map((s) => `${s.specialty} (${s.count})`)
-            .join(", ")}
+          Specialties: {data.topSpecialties.join(", ")}
         </Text>
       )}
     </Flex>

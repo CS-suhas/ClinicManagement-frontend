@@ -134,14 +134,14 @@ function ClinicCard({
                   <Flex gap="1" wrap="wrap">
                     {summary.topSpecialties.map((s) => (
                       <span
-                        key={s.specialty}
+                        key={s}
                         className="rounded-full px-2 py-0.5 text-[12px]"
                         style={{
                           background: "var(--mp-paper)",
                           color: "var(--mp-muted)",
                         }}
                       >
-                        {s.specialty}
+                        {s}
                       </span>
                     ))}
                   </Flex>

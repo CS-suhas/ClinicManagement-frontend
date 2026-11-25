@@ -83,8 +83,8 @@ export interface ClinicSummary {
   providerCount: number;
   /** Up to five doctors, for avatars. */
   providers: ClinicDoctorRef[];
-  /** Up to three specialties with their counts, most common first. */
-  topSpecialties: { specialty: string; count: number }[];
+  /** Up to three specialty names, most common first. */
+  topSpecialties: string[];
   /** Appointments today at the clinic. Null unless the caller is an admin or a clinic admin of it. */
   todayAppointmentCount: number | null;
 }

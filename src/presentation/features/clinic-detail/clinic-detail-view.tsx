@@ -95,14 +95,14 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
               <Flex gap="2" wrap="wrap" mt="1">
                 {data.topSpecialties.map((item) => (
                   <span
-                    key={item.specialty}
+                    key={item}
                     className="rounded-full px-2.5 py-0.5 text-xs font-medium"
                     style={{
                       background: "var(--mp-primary-tint)",
                       color: "var(--mp-ink)",
                     }}
                   >
-                    {item.specialty} · {item.count}
+                    {item}
                   </span>
                 ))}
               </Flex>
