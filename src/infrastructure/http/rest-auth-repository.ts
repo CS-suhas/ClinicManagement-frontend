@@ -1,8 +1,9 @@
-import type {
-  AuthRepository,
-  CurrentUser,
-  MeResponse,
-  SignInOptions,
+import {
+  type AuthRepository,
+  type CurrentUser,
+  ROLES,
+  type Role,
+  type SignInOptions,
 } from "@/domain/auth";
 import type {
   Patient,
@@ -12,6 +13,7 @@ import type {
 } from "@/domain/entities";
 import { UnauthorizedError } from "@/domain/errors";
 import type { OidcSession } from "@/infrastructure/oidc/oidc-session";
+import type { ApiGet, ApiPost } from "./api-types";
 import type { HttpClient } from "./http-client";
 
 /**
@@ -28,11 +30,16 @@ export class RestAuthRepository implements AuthRepository {
     // No tokens means signed out; skip the /me round trip that would only 401.
     if (!(await this.session.hasSession())) return null;
     try {
-      const me = await this.http.get<MeResponse>("/me");
+      const me = await this.http.get<ApiGet<"/me">>("/me");
+      // The API always sets the subject for a signed-in caller; the spec marks it nullable.
+      const subject = me.subject ?? "";
       return {
         ...me,
+        subject,
+        // Roles come from token claims; keep the ones the app understands.
+        roles: me.roles.filter(isRole),
         // Without a display name, the subject stands in.
-        displayName: me.displayName ?? me.subject,
+        displayName: me.displayName ?? subject,
         clinicAdminOf: me.clinicAdminOf ?? [],
       };
     } catch (e) {
@@ -72,10 +79,13 @@ export class RestAuthRepository implements AuthRepository {
 
   /** The API links the new patient to the caller. A second call returns 409. */
   async createPatientProfile(input: PatientInput): Promise<Patient> {
-    const created = await this.http.post<{ id: string }>("/me/patient", {
-      id: crypto.randomUUID(),
-      ...input,
-    });
+    const created = await this.http.post<ApiPost<"/me/patient">>(
+      "/me/patient",
+      {
+        id: crypto.randomUUID(),
+        ...input,
+      },
+    );
     return { ...input, id: created.id };
   }
 
@@ -86,18 +96,21 @@ export class RestAuthRepository implements AuthRepository {
   async registerAsProvider(
     input: ProviderRegistrationInput,
   ): Promise<Provider> {
-    const id = crypto.randomUUID();
-    await this.http.post<unknown>("/providers/register", {
-      id,
-      clinicId: input.clinicId,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      specialty: input.specialty,
-      fee: input.fee ?? undefined,
-      gender: input.gender ?? undefined,
-    });
+    // The API ignores the body's id and returns the one it generates.
+    const created = await this.http.post<ApiPost<"/providers/register">>(
+      "/providers/register",
+      {
+        id: crypto.randomUUID(),
+        clinicId: input.clinicId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        specialty: input.specialty,
+        fee: input.fee ?? undefined,
+        gender: input.gender ?? undefined,
+      },
+    );
     return {
-      id,
+      id: created.id,
       clinicId: input.clinicId,
       firstName: input.firstName,
       lastName: input.lastName,
@@ -108,3 +121,6 @@ export class RestAuthRepository implements AuthRepository {
     };
   }
 }
+
+const isRole = (role: string): role is Role =>
+  (ROLES as readonly string[]).includes(role);

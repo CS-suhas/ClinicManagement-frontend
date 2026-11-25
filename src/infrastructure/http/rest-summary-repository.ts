@@ -1,4 +1,3 @@
-import type { Patient } from "@/domain/entities";
 import type {
   ClinicSummaryData,
   PatientSummaryData,
@@ -7,21 +6,16 @@ import type {
   SummaryProvider,
   SummaryRepository,
 } from "@/domain/repositories";
+import type { ApiGet } from "./api-types";
 import type { HttpClient } from "./http-client";
 import { queryString } from "./query-string";
 import {
-  type ClinicResponse,
   clinicMapper,
   type ProviderResponse,
   providerMapper,
 } from "./rest-repositories";
 
-/** A provider row as the summary endpoints send it: the provider plus its clinic name. */
-type ProviderSummaryResponse = ProviderResponse & { clinicName: string | null };
-
-const toSummaryProvider = (
-  response: ProviderSummaryResponse,
-): SummaryProvider => ({
+const toSummaryProvider = (response: ProviderResponse): SummaryProvider => ({
   ...providerMapper.fromResponse(response),
   clinicName: response.clinicName ?? null,
 });
@@ -34,14 +28,9 @@ export class RestSummaryRepository implements SummaryRepository {
   constructor(private readonly http: HttpClient) {}
 
   async getPatientSummary(id: string): Promise<PatientSummaryData> {
-    const response = await this.http.get<{
-      patient: Patient;
-      allergies: { allergyId: string; name: string; severity: string }[];
-      lastVisit: PatientSummaryData["lastVisit"];
-      nextVisit: PatientSummaryData["nextVisit"];
-      counts: PatientSummaryData["counts"];
-      recent: PatientSummaryData["recent"];
-    }>(`/patients/${encodeURIComponent(id)}/summary`);
+    const response = await this.http.get<ApiGet<"/patients/{id}/summary">>(
+      `/patients/${encodeURIComponent(id)}/summary`,
+    );
     return {
       patient: response.patient,
       allergies: response.allergies,
@@ -53,13 +42,9 @@ export class RestSummaryRepository implements SummaryRepository {
   }
 
   async getClinicSummary(id: string): Promise<ClinicSummaryData> {
-    const response = await this.http.get<{
-      clinic: ClinicResponse;
-      providerCount: number;
-      todayAppointmentCount: number;
-      topSpecialties: string[];
-      providers: ProviderSummaryResponse[];
-    }>(`/clinics/${encodeURIComponent(id)}/summary`);
+    const response = await this.http.get<ApiGet<"/clinics/{id}/summary">>(
+      `/clinics/${encodeURIComponent(id)}/summary`,
+    );
     return {
       clinic: clinicMapper.fromResponse(response.clinic),
       providerCount: response.providerCount,
@@ -70,12 +55,9 @@ export class RestSummaryRepository implements SummaryRepository {
   }
 
   async getProviderSummary(id: string): Promise<ProviderSummaryData> {
-    const response = await this.http.get<{
-      provider: ProviderSummaryResponse;
-      clinic: ClinicResponse;
-      nextAvailableStart: string | null;
-      todayAppointmentCount: number;
-    }>(`/providers/${encodeURIComponent(id)}/summary`);
+    const response = await this.http.get<ApiGet<"/providers/{id}/summary">>(
+      `/providers/${encodeURIComponent(id)}/summary`,
+    );
     return {
       provider: toSummaryProvider(response.provider),
       clinic: clinicMapper.fromResponse(response.clinic),
@@ -85,6 +67,8 @@ export class RestSummaryRepository implements SummaryRepository {
   }
 
   search(q: string, limit: number): Promise<SearchResults> {
-    return this.http.get<SearchResults>(`/search?${queryString({ q, limit })}`);
+    return this.http.get<ApiGet<"/search">>(
+      `/search?${queryString({ q, limit })}`,
+    );
   }
 }

@@ -1,4 +1,4 @@
-import type { AllergyType, PatientAllergy } from "@/domain/entities";
+import type { AllergyType, Patient, PatientAllergy } from "@/domain/entities";
 import { NotFoundError } from "@/domain/errors";
 import type {
   CrudRepository,
@@ -91,6 +91,7 @@ export class MockPatientAllergyRepository implements PatientAllergyRepository {
   constructor(
     private readonly store: LocalStorageCollection<PatientAllergy>,
     private readonly allergyTypes: LocalStorageCollection<AllergyType>,
+    private readonly patients: LocalStorageCollection<Patient>,
   ) {}
 
   async listByPatient(patientId: string) {
@@ -152,9 +153,15 @@ export class MockPatientAllergyRepository implements PatientAllergyRepository {
     };
   }
 
-  async listByAllergy(allergyId: string) {
+  async listPatientsByAllergy(allergyId: string) {
     await delay();
-    return this.store.read().filter((x) => x.allergyId === allergyId);
+    const ids = new Set(
+      this.store
+        .read()
+        .filter((x) => x.allergyId === allergyId)
+        .map((x) => x.patientId),
+    );
+    return this.patients.read().filter((p) => ids.has(p.id));
   }
 
   async save(record: PatientAllergy) {

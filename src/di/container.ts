@@ -18,6 +18,12 @@ import type {
   PublicAccess,
 } from "@/domain/auth";
 import type {
+  AllergyType,
+  AllergyTypeInput,
+  Patient,
+  PatientInput,
+} from "@/domain/entities";
+import type {
   AllergyTypeRepository,
   AppointmentAvailabilityRepository,
   AppointmentRepository,
@@ -33,9 +39,11 @@ import type {
 } from "@/domain/repositories";
 import { RuntimeConfigClient } from "@/infrastructure/config/runtime-config";
 import { resolveApiBaseUrl } from "@/infrastructure/http/api-base-url";
+import type { Api } from "@/infrastructure/http/api-types";
 import { type BaseUrl, HttpClient } from "@/infrastructure/http/http-client";
 import { RestAuthRepository } from "@/infrastructure/http/rest-auth-repository";
 import {
+  passThrough,
   RestAppointmentAvailabilityRepository,
   RestAppointmentRepository,
   RestClinicRepository,
@@ -150,6 +158,7 @@ function createMockRepositories(): Repositories {
   const patientAllergies = new MockPatientAllergyRepository(
     patientAllergiesStore,
     allergyTypesStore,
+    patientsStore,
   );
   const auth = new MockAuthRepository(patients, providersStore, clinicsStore);
   const currentUser = (): Promise<CurrentUser | null> => auth.getCurrentUser();
@@ -242,8 +251,16 @@ function createRestRepositories(
     providers,
     providerDirectory: new RestProviderDirectoryRepository(http, clinics),
     providerVerification: new RestProviderVerificationRepository(http),
-    patients: new RestCrudRepository(http, "/patients"),
-    allergyTypes: new RestCrudRepository(http, "/allergy-types"),
+    patients: new RestCrudRepository(
+      http,
+      "/patients",
+      passThrough<Patient, PatientInput, Api<"PatientResponse">>(),
+    ),
+    allergyTypes: new RestCrudRepository(
+      http,
+      "/allergy-types",
+      passThrough<AllergyType, AllergyTypeInput, Api<"AllergyTypeResponse">>(),
+    ),
     patientAllergies: new RestPatientAllergyRepository(http),
     appointments: new RestAppointmentRepository(http),
     appointmentAvailability: new RestAppointmentAvailabilityRepository(http),

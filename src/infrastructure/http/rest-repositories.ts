@@ -1,6 +1,4 @@
-import type { VerificationStatus } from "@/domain/auth";
 import type {
-  AllergyType,
   Appointment,
   AppointmentAction,
   AppointmentInput,
@@ -8,23 +6,18 @@ import type {
   ClinicInput,
   PatientAllergy,
   Provider,
-  ProviderGender,
   ProviderInput,
 } from "@/domain/entities";
-import { UnauthorizedError } from "@/domain/errors";
+import { NotFoundError, UnauthorizedError } from "@/domain/errors";
 import type {
   AppointmentAvailabilityRepository,
-  AppointmentListItem,
   AppointmentRepository,
   AppointmentSearchOptions,
   ConfigurationRepository,
   CrudRepository,
-  DashboardData,
   DashboardRepository,
-  MeDashboard,
   PagedResult,
   PatientAllergyRepository,
-  PatientRosterRow,
   ProviderDirectoryEntry,
   ProviderDirectoryOptions,
   ProviderDirectoryRepository,
@@ -34,6 +27,7 @@ import type {
   SearchOptions,
   VerificationSearchOptions,
 } from "@/domain/repositories";
+import type { Api, ApiGet, ApiPost, Endpoint } from "./api-types";
 import type { HttpClient } from "./http-client";
 import { queryString } from "./query-string";
 
@@ -43,36 +37,82 @@ export interface RestMapper<T, TInput, TResponse> {
   toRequest(input: TInput): object;
 }
 
-const identityMapper = {
-  fromResponse: (response: unknown) => response,
-  toRequest: (input: unknown) => input as object,
-};
+/**
+ * For resources whose API response already has the domain shape. The
+ * `TResponse extends T` constraint makes the type check prove that it does.
+ */
+export const passThrough = <T, TInput, TResponse extends T>(): RestMapper<
+  T,
+  TInput,
+  TResponse
+> => ({
+  fromResponse: (response) => response,
+  toRequest: (input) => input as object,
+});
+
+/** A resource whose list, search, get, create, update and delete follow RestCrudRepository's shape. */
+type CrudResource = {
+  [E in Endpoint]: `${E}/search` extends Endpoint
+    ? `${E}/{id}` extends Endpoint
+      ? E
+      : never
+    : never;
+}[Endpoint];
 
 /**
- * REST adapter. Expected API shape (camelCase JSON):
- *   GET    {resource}        -> T[]
- *   GET    {resource}/search -> PagedResult<T>
- *   GET    {resource}/:id    -> T
- *   POST   {resource}        -> T
- *   PUT    {resource}/:id    -> T
- *   DELETE {resource}/:id
- * Pass a `mapper` when the API's JSON differs from the domain entity.
+ * Resolves to the mapper type when every CRUD response of `R` is a
+ * `TResponse` (and create returns an id); otherwise to an error message, so
+ * constructing the repository fails the type check.
  */
-export class RestCrudRepository<T extends { id: string }, TInput, TResponse = T>
-  implements CrudRepository<T, TInput>
+type CheckedMapper<R extends CrudResource, T, TInput, TResponse> = [
+  ApiGet<R>,
+] extends [TResponse[]]
+  ? [ApiGet<`${R}/search`>] extends [{ items: TResponse[] }]
+    ? [ApiGet<`${R}/{id}`>] extends [TResponse]
+      ? [ApiPost<R>] extends [{ id: string }]
+        ? RestMapper<T, TInput, TResponse>
+        : `POST ${R} does not return { id }`
+      : `GET ${R}/{id} does not match the mapper's response type`
+    : `GET ${R}/search does not match the mapper's response type`
+  : `GET ${R} does not match the mapper's response type`;
+
+/**
+ * REST adapter. API shape (camelCase JSON):
+ *   GET    {resource}        -> TResponse[]
+ *   GET    {resource}/search -> PagedResult<TResponse>
+ *   GET    {resource}/:id    -> TResponse
+ *   POST   {resource}        -> 201 { id }   (the server generates the id)
+ *   PUT    {resource}/:id    -> 204
+ *   DELETE {resource}/:id    -> 204
+ * The mapper turns the generated API type into the domain entity. Create and
+ * update read the record back, so callers get what the server stored.
+ */
+export class RestCrudRepository<
+  R extends CrudResource,
+  T extends { id: string },
+  TInput,
+  TResponse,
+> implements CrudRepository<T, TInput>
 {
+  private readonly mapper: RestMapper<T, TInput, TResponse>;
+
   constructor(
     private readonly http: HttpClient,
-    private readonly resource: string,
-    private readonly mapper: RestMapper<
-      T,
-      TInput,
-      TResponse
-    > = identityMapper as unknown as RestMapper<T, TInput, TResponse>,
-  ) {}
+    private readonly resource: R,
+    mapper: CheckedMapper<R, T, TInput, TResponse>,
+  ) {
+    this.mapper = mapper as RestMapper<T, TInput, TResponse>;
+  }
 
   private url(id: string) {
     return `${this.resource}/${encodeURIComponent(id)}`;
+  }
+
+  /** GET after a write. Everyone who may write these records may also read them. */
+  private async reload(id: string): Promise<T> {
+    const item = await this.getById(id);
+    if (!item) throw new NotFoundError(this.resource, id);
+    return item;
   }
 
   async list() {
@@ -101,20 +141,21 @@ export class RestCrudRepository<T extends { id: string }, TInput, TResponse = T>
     return item && this.mapper.fromResponse(item);
   }
 
+  /** `id` is sent for request validation; the server ignores it and returns its own. */
   async create(input: TInput, id: string = crypto.randomUUID()) {
-    const item = await this.http.post<TResponse>(this.resource, {
+    const created = await this.http.post<{ id: string }>(this.resource, {
       ...this.mapper.toRequest(input),
       id,
     });
-    return this.mapper.fromResponse(item);
+    return this.reload(created.id);
   }
 
   async update(id: string, input: TInput) {
-    const item = await this.http.put<TResponse>(this.url(id), {
+    await this.http.put<void>(this.url(id), {
       ...this.mapper.toRequest(input),
       id,
     });
-    return this.mapper.fromResponse(item);
+    return this.reload(id);
   }
 
   delete(id: string) {
@@ -122,14 +163,10 @@ export class RestCrudRepository<T extends { id: string }, TInput, TResponse = T>
   }
 }
 
-export interface ClinicResponse {
-  id: string;
-  name: string;
-  address: string | null;
-  phoneNumber: string | null;
-  /** Verified doctors; present on list and search responses only. */
-  providerCount?: number;
-}
+/** A clinic; list and search responses also carry its verified doctor count. */
+export type ClinicResponse =
+  | Api<"ClinicResponse">
+  | Api<"ClinicListItemResponse">;
 
 export const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
   fromResponse: (clinic) => ({
@@ -137,7 +174,7 @@ export const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
     name: clinic.name,
     location: clinic.address,
     phoneNumber: clinic.phoneNumber ?? "",
-    ...(typeof clinic.providerCount === "number"
+    ...("providerCount" in clinic
       ? { providerCount: clinic.providerCount }
       : {}),
   }),
@@ -148,17 +185,7 @@ export const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
   }),
 };
 
-export interface ProviderResponse {
-  id: string;
-  clinicId: string;
-  firstName: string;
-  lastName: string;
-  specialty: string;
-  verificationStatus: VerificationStatus;
-  fee: number | null;
-  /** Always uppercase in responses. */
-  gender: ProviderGender | null;
-}
+export type ProviderResponse = Api<"ProviderResponse">;
 
 export const providerMapper: RestMapper<
   Provider,
@@ -188,6 +215,7 @@ export const providerMapper: RestMapper<
 
 /** Providers are created and updated with fee and gender, and never send verificationStatus. */
 export class RestProviderRepository extends RestCrudRepository<
+  "/providers",
   Provider,
   ProviderInput,
   ProviderResponse
@@ -199,6 +227,7 @@ export class RestProviderRepository extends RestCrudRepository<
 
 /** Clinics are stored with `address`, which the domain calls `location`. */
 export class RestClinicRepository extends RestCrudRepository<
+  "/clinics",
   Clinic,
   ClinicInput,
   ClinicResponse
@@ -212,11 +241,13 @@ export class RestConfigurationRepository implements ConfigurationRepository {
   constructor(private readonly http: HttpClient) {}
 
   getAllergySeverities() {
-    return this.http.get<unknown>("/allergy-severities");
+    return this.http.get<ApiGet<"/allergy-severities">>("/allergy-severities");
   }
 
   getAppointmentSettings() {
-    return this.http.get<unknown>("/appointment-settings");
+    return this.http.get<ApiGet<"/appointment-settings">>(
+      "/appointment-settings",
+    );
   }
 }
 
@@ -224,11 +255,11 @@ export class RestDashboardRepository implements DashboardRepository {
   constructor(private readonly http: HttpClient) {}
 
   getDashboard() {
-    return this.http.get<DashboardData>("/dashboard");
+    return this.http.get<ApiGet<"/dashboard">>("/dashboard");
   }
 
   getMine() {
-    return this.http.get<MeDashboard>("/me/dashboard");
+    return this.http.get<ApiGet<"/me/dashboard">>("/me/dashboard");
   }
 }
 
@@ -245,14 +276,9 @@ export class RestPatientAllergyRepository implements PatientAllergyRepository {
   constructor(private readonly http: HttpClient) {}
 
   async listByPatient(patientId: string) {
-    const records = await this.http.get<
-      Array<{
-        allergyId: string;
-        name: string;
-        severity: string;
-        notes: string | null;
-      }>
-    >(`/patients/${encodeURIComponent(patientId)}/allergies`);
+    const records = await this.http.get<ApiGet<"/patients/{id}/allergies">>(
+      `/patients/${encodeURIComponent(patientId)}/allergies`,
+    );
     return records.map((record) => ({
       patientId,
       allergyId: record.allergyId,
@@ -269,13 +295,7 @@ export class RestPatientAllergyRepository implements PatientAllergyRepository {
       PageSize: options.pageSize,
     });
     const result = await this.http.get<
-      PagedResult<{
-        id: string;
-        allergyId: string;
-        name: string;
-        severity: string;
-        notes: string | null;
-      }>
+      ApiGet<"/patients/{id}/allergies/search">
     >(`/patients/${encodeURIComponent(patientId)}/allergies/search?${query}`);
     return {
       ...result,
@@ -299,13 +319,13 @@ export class RestPatientAllergyRepository implements PatientAllergyRepository {
       Page: options.page,
       PageSize: options.pageSize,
     });
-    return this.http.get<PagedResult<AllergyType>>(
+    return this.http.get<ApiGet<"/patients/{id}/allergy-options">>(
       `/patients/${encodeURIComponent(patientId)}/allergy-options?${query}`,
     );
   }
 
-  listByAllergy(allergyId: string) {
-    return this.http.get<PatientAllergy[]>(
+  listPatientsByAllergy(allergyId: string) {
+    return this.http.get<ApiGet<"/allergy-types/{id}/patients">>(
       `/allergy-types/${encodeURIComponent(allergyId)}/patients`,
     );
   }
@@ -343,11 +363,23 @@ export class RestPatientAllergyRepository implements PatientAllergyRepository {
 
 export class RestAppointmentRepository implements AppointmentRepository {
   private readonly http: HttpClient;
-  private readonly crud: RestCrudRepository<Appointment, AppointmentInput>;
+  private readonly crud: RestCrudRepository<
+    "/appointments",
+    Appointment,
+    AppointmentInput,
+    Api<"AppointmentResponse">
+  >;
 
   constructor(http: HttpClient) {
     this.http = http;
-    this.crud = new RestCrudRepository(http, "/appointments");
+    this.crud = new RestCrudRepository(http, "/appointments", {
+      // The API sends null for "no reason"; the domain uses an empty string.
+      fromResponse: (appointment) => ({
+        ...appointment,
+        reasonForVisit: appointment.reasonForVisit ?? "",
+      }),
+      toRequest: (input) => input,
+    });
   }
 
   list() {
@@ -383,7 +415,7 @@ export class RestAppointmentRepository implements AppointmentRepository {
       page: options.page,
       pageSize: options.pageSize,
     });
-    return this.http.get<PagedResult<AppointmentListItem>>(
+    return this.http.get<ApiGet<"/appointments/search">>(
       `/appointments/search?${query}`,
     );
   }
@@ -423,15 +455,10 @@ export class RestProviderRosterRepository implements ProviderRosterRepository {
       page: options.page,
       pageSize: options.pageSize,
     });
-    return this.http.get<PagedResult<PatientRosterRow>>(
+    return this.http.get<ApiGet<"/providers/{id}/patients">>(
       `/providers/${encodeURIComponent(providerId)}/patients?${query}`,
     );
   }
-}
-
-/** The directory row as the API sends it. `clinicName` is optional until the API always sends it. */
-interface DirectoryResponse extends ProviderResponse {
-  clinicName?: string | null;
 }
 
 /**
@@ -455,7 +482,7 @@ export class RestProviderDirectoryRepository
       page: options.page,
       pageSize: options.pageSize,
     });
-    const result = await this.http.get<PagedResult<DirectoryResponse>>(
+    const result = await this.http.get<ApiGet<"/providers/directory">>(
       `/providers/directory?${query}`,
     );
     const needsLookup = result.items.some(
@@ -501,7 +528,7 @@ export class RestProviderVerificationRepository
       page: options.page,
       pageSize: options.pageSize,
     });
-    const result = await this.http.get<PagedResult<ProviderResponse>>(
+    const result = await this.http.get<ApiGet<"/providers/search">>(
       `/providers/search?${query}`,
     );
     return {
@@ -535,7 +562,7 @@ export class RestAppointmentAvailabilityRepository
     // `date` is a UTC day on the API; a Sri Lanka clinic day (08:00-16:00
     // +05:30) falls inside the same UTC date, so the local day is passed as is.
     // Times come back in UTC; callers compare instants, so no conversion here.
-    const raw = await this.http.get<{ busyStartTimes?: unknown }>(
+    const raw = await this.http.get<ApiGet<"/providers/{id}/busy-slots">>(
       `/providers/${encodeURIComponent(providerId)}/busy-slots?${queryString({ date })}`,
     );
     const list = raw?.busyStartTimes;

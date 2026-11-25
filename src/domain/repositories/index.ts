@@ -238,7 +238,8 @@ export interface PatientAllergyRepository {
     patientId: string,
     options: SearchOptions & { selectedAllergyId?: string },
   ): Promise<PagedResult<AllergyType>>;
-  listByAllergy(allergyId: string): Promise<PatientAllergy[]>;
+  /** The patients who have this allergy recorded (GET /allergy-types/:id/patients). */
+  listPatientsByAllergy(allergyId: string): Promise<Patient[]>;
   add(record: PatientAllergy): Promise<PatientAllergy>;
   /** Creates or replaces the record identified by (patientId, allergyId). */
   save(record: PatientAllergy): Promise<PatientAllergy>;

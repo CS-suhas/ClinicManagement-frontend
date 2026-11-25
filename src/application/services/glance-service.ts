@@ -351,10 +351,7 @@ export class GlanceService {
     return byClinic;
   }
 
-  /**
-   * One allergy's usage: patient count, severity mix and up to ten patients.
-   * Names are read only for patients the caller may see; the rest show as null.
-   */
+  /** One allergy's usage: patient count and up to ten patients. */
   async getAllergyUsage(allergyId: string): Promise<AllergyUsage | null> {
     const user = await this.currentUser();
     const allowed =
@@ -362,26 +359,17 @@ export class GlanceService {
       (hasRole(user, "admin") ||
         hasRole(user, "clinicadmin") ||
         hasRole(user, "doctor"));
-    const records = await allowedRead(allowed, () =>
-      this.deps.patientAllergies.listByAllergy(allergyId),
+    const patients = await allowedRead(allowed, () =>
+      this.deps.patientAllergies.listPatientsByAllergy(allergyId),
     );
-    if (records === null) return null;
-    const severityCounts: Record<string, number> = {};
-    for (const record of records)
-      severityCounts[record.severity] =
-        (severityCounts[record.severity] ?? 0) + 1;
-    const patients = await Promise.all(
-      records.slice(0, 10).map(async (record) => {
-        const patient = await allowedRead(allowed, () =>
-          this.deps.patients.get(record.patientId),
-        );
-        return {
-          id: record.patientId,
-          name: patient ? `${patient.firstName} ${patient.lastName}` : null,
-        };
-      }),
-    );
-    return { patientCount: records.length, severityCounts, patients };
+    if (patients === null) return null;
+    return {
+      patientCount: patients.length,
+      patients: patients.slice(0, 10).map((patient) => ({
+        id: patient.id,
+        name: `${patient.firstName} ${patient.lastName}`,
+      })),
+    };
   }
 }
 

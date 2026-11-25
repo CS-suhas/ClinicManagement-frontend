@@ -22,7 +22,8 @@ export class AllergyTypeService extends CrudService<
   }
   protected validate = validateAllergyType;
   protected async ensureDeletable(id: string) {
-    const count = (await this.patientAllergies.listByAllergy(id)).length;
+    const count = (await this.patientAllergies.listPatientsByAllergy(id))
+      .length;
     assertNoDependents(
       count,
       (n) => `Cannot delete: ${n} patient(s) have this allergy recorded.`,

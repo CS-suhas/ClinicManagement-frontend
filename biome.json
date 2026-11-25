@@ -13,7 +13,8 @@
       "!.next",
       "!dist",
       "!build",
-      "!public/**/*.svg"
+      "!public/**/*.svg",
+      "!api/openapi.json"
     ]
   },
   "formatter": {

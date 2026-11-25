@@ -76,8 +76,8 @@ export interface SearchProviderHit {
   id: string;
   name: string;
   specialty: string;
-  /** Every provider belongs to a clinic. */
-  clinicName: string;
+  /** Null when the API cannot resolve the clinic's name. */
+  clinicName: string | null;
 }
 
 export interface SearchClinicHit {

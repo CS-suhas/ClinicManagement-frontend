@@ -16,6 +16,12 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      # The API types must match the committed spec. If this fails, run
+      # `npm run api:types` (or `npm run api:update` against a running backend) and commit.
+      - name: API types up to date
+        run: |
+          npm run api:types
+          git diff --exit-code -- src/infrastructure/http/api-schema.gen.ts
       - name: Build (includes type check)
         run: npm run build
 

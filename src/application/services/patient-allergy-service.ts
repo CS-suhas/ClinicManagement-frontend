@@ -17,8 +17,8 @@ export class PatientAllergyService {
   }
 
   /** Every patient record for one allergy type (used for usage counts). */
-  listByAllergy(allergyId: string) {
-    return this.repo.listByAllergy(allergyId);
+  listPatientsByAllergy(allergyId: string) {
+    return this.repo.listPatientsByAllergy(allergyId);
   }
 
   allergyOptions(

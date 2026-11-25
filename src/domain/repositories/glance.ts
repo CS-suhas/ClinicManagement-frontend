@@ -98,8 +98,6 @@ export interface ClinicDoctorPreview {
 /** One allergy's usage across patients, for the allergy glance and expansion. */
 export interface AllergyUsage {
   patientCount: number;
-  /** Count per severity, keyed by the stored severity value. */
-  severityCounts: Record<string, number>;
-  /** Up to ten affected patients; names are omitted when the caller cannot read them. */
-  patients: { id: string; name: string | null }[];
+  /** Up to ten affected patients. */
+  patients: { id: string; name: string }[];
 }
