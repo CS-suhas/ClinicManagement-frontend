@@ -34,10 +34,10 @@ export const SEVERITY_MEANING: Record<SeverityLevel, string> = {
 };
 
 const SEVERITY_COLOR: Record<SeverityLevel, { dot: string; text: string }> = {
-  MILD: { dot: "#d69e2e", text: "#8a5a00" },
-  MODERATE: { dot: "#e0701a", text: "#9a4a00" },
-  SEVERE: { dot: "#c53030", text: "#9b1c1c" },
-  UNKNOWN: { dot: "#7b8c90", text: "#44565a" },
+  MILD: { dot: "#d69e2e", text: "var(--mp-amber-ink)" },
+  MODERATE: { dot: "#e0701a", text: "var(--mp-orange-ink)" },
+  SEVERE: { dot: "#c53030", text: "var(--mp-red-ink)" },
+  UNKNOWN: { dot: "#7b8c90", text: "var(--mp-slate-ink)" },
 };
 
 export function severityColors(severity: string | null | undefined) {

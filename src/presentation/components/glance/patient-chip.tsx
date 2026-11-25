@@ -118,7 +118,7 @@ export function PatientChip({
 export function SevereMark() {
   return (
     <span
-      className="absolute -right-1 -top-1 inline-flex rounded-full bg-white"
+      className="absolute -right-1 -top-1 inline-flex rounded-full bg-[var(--mp-surface)]"
       title="Severe allergy"
     >
       <ExclamationTriangleIcon
@@ -233,7 +233,7 @@ function PatientCard({
               <Text
                 size="1"
                 className="mt-1 block"
-                style={{ color: "#9b1c1c" }}
+                style={{ color: "var(--mp-red-ink)" }}
               >
                 Highest: {severityWord(topAllergies[0].severity)}
               </Text>

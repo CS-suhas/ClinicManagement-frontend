@@ -30,7 +30,7 @@ export function OnboardingStepper({
                   background: lit
                     ? "var(--mp-primary)"
                     : "var(--mp-paper-deep)",
-                  color: lit ? "#fff" : "var(--mp-muted)",
+                  color: lit ? "var(--mp-on-primary)" : "var(--mp-muted)",
                 }}
               >
                 {done ? <CheckIcon width={14} height={14} /> : index + 1}

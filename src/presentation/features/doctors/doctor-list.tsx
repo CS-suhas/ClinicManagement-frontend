@@ -22,7 +22,7 @@ export function DoctorList({
           align="center"
           gap="1"
           py="9"
-          className="rounded-2xl bg-white"
+          className="rounded-2xl bg-[var(--mp-surface)]"
         >
           <Text weight="medium">No doctors match these filters</Text>
           <Text size="2" color="gray">

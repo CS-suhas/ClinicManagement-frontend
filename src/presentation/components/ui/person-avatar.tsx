@@ -1,11 +1,11 @@
 /** Soft background/text pairs; a name always maps to the same pair. */
 const TONES = [
   { background: "var(--mp-primary-tint)", color: "var(--mp-primary-dark)" },
-  { background: "#e4eefb", color: "#1f4e8c" },
-  { background: "#fcf0dc", color: "#8a5a00" },
-  { background: "#fbe6ec", color: "#9b2c4f" },
-  { background: "#ece8fb", color: "#5b3fb0" },
-  { background: "#e3f4e8", color: "#1f6b35" },
+  { background: "var(--mp-blue-bg)", color: "var(--mp-blue-ink)" },
+  { background: "var(--mp-amber-bg)", color: "var(--mp-amber-ink)" },
+  { background: "var(--mp-pink-bg)", color: "var(--mp-pink-ink)" },
+  { background: "var(--mp-violet-bg)", color: "var(--mp-violet-ink)" },
+  { background: "var(--mp-green-bg)", color: "var(--mp-green-ink)" },
 ] as const;
 
 /** Up to two initials; a leading "Dr." is ignored. */

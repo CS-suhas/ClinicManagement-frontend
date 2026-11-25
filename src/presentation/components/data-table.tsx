@@ -388,7 +388,7 @@ export function DataTable<T extends { id: string }>({
                         <th
                           key={column.id ?? column.header}
                           scope="row"
-                          className={`${BODY_CELL} font-normal ${alignClass(column.align)} ${hideClass(column.hideBelow)} max-md:sticky max-md:left-0 max-md:z-[1] max-md:bg-white`}
+                          className={`${BODY_CELL} font-normal ${alignClass(column.align)} ${hideClass(column.hideBelow)} max-md:sticky max-md:left-0 max-md:z-[1] max-md:bg-[var(--mp-surface)]`}
                           style={{ width: column.width }}
                         >
                           {column.cell(row)}
@@ -431,7 +431,10 @@ export function DataTable<T extends { id: string }>({
         <section
           aria-label="Selected rows"
           className="sticky bottom-0 z-[4] flex flex-wrap items-center gap-3 border-t px-4 py-3"
-          style={{ background: "#fff", borderColor: "var(--mp-paper-deep)" }}
+          style={{
+            background: "var(--mp-surface)",
+            borderColor: "var(--mp-paper-deep)",
+          }}
         >
           <Text size="2" weight="medium" style={{ color: "var(--mp-ink)" }}>
             {selectedRows.length} selected

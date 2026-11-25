@@ -9,8 +9,8 @@ export type LinkTone = "default" | "attention" | "alert";
 
 const TONE_PILL: Record<LinkTone, { background: string; color: string }> = {
   default: { background: "var(--mp-primary-tint)", color: "var(--mp-primary)" },
-  attention: { background: "#fdf3dc", color: "#7a4f00" },
-  alert: { background: "#fde8e8", color: "#9b1c1c" },
+  attention: { background: "var(--mp-amber-bg)", color: "var(--mp-amber-ink)" },
+  alert: { background: "var(--mp-red-bg)", color: "var(--mp-red-ink)" },
 };
 
 /**
@@ -36,7 +36,7 @@ export function QuickLinkCard({
   return (
     <Link
       href={href}
-      className="flex items-start gap-3 rounded-2xl bg-white p-4 no-underline transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="flex items-start gap-3 rounded-2xl bg-[var(--mp-surface)] p-4 no-underline transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2"
       style={{
         border: "1px solid var(--mp-paper-deep)",
         color: "var(--mp-ink)",

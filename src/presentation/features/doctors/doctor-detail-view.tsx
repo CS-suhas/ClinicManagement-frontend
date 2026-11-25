@@ -58,7 +58,7 @@ function DoctorDetail({ providerId }: { providerId: string }) {
   const name = doctor.data?.name ?? "Doctor";
 
   return (
-    <div className="min-h-screen" style={{ background: "#f3f8f7" }}>
+    <div className="min-h-screen" style={{ background: "var(--mp-bg)" }}>
       <PublicNavbar
         crumbs={[
           { label: "Home", href: "/" },

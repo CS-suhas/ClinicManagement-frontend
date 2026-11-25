@@ -40,7 +40,7 @@ export function Surface({
     <Tag
       {...rest}
       disabled={disabled}
-      className={`rounded-2xl bg-white ${PADDING[padding]} ${className ?? ""}`.trim()}
+      className={`rounded-2xl bg-[var(--mp-surface)] ${PADDING[padding]} ${className ?? ""}`.trim()}
       style={merged}
     >
       {children}

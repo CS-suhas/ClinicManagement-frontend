@@ -69,7 +69,7 @@ export function MonthCalendar({
 
   return (
     <div
-      className="rounded-2xl bg-white"
+      className="rounded-2xl bg-[var(--mp-surface)]"
       style={{ border: "1px solid var(--mp-paper-deep)" }}
     >
       <div
@@ -105,7 +105,9 @@ export function MonthCalendar({
               style={{
                 borderRight: "1px solid var(--mp-paper-deep)",
                 borderBottom: "1px solid var(--mp-paper-deep)",
-                background: isSelected ? "var(--mp-primary-tint)" : "#fff",
+                background: isSelected
+                  ? "var(--mp-primary-tint)"
+                  : "var(--mp-surface)",
                 opacity: inMonth ? 1 : 0.45,
               }}
             >
@@ -125,7 +127,7 @@ export function MonthCalendar({
                   className="inline-flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums"
                   style={{
                     background: isToday ? "var(--mp-primary)" : "transparent",
-                    color: isToday ? "#fff" : "var(--mp-ink)",
+                    color: isToday ? "var(--mp-on-primary)" : "var(--mp-ink)",
                   }}
                 >
                   {Number(day.slice(8))}

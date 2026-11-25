@@ -116,7 +116,7 @@ export function BookingDetailsDialog({
                 gap="2"
                 p="3"
                 mb="4"
-                className="rounded-xl bg-white"
+                className="rounded-xl bg-[var(--mp-surface)]"
                 style={{
                   border: "1px solid var(--mp-paper-deep)",
                   color: "var(--mp-ink)",

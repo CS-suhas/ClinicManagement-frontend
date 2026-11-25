@@ -32,7 +32,7 @@ import { PersonAvatar } from "./ui/person-avatar";
 import { Surface } from "./ui/surface";
 import { Wordmark } from "./ui/wordmark";
 
-const PAGE_BACKGROUND = "#f3f8f7";
+const PAGE_BACKGROUND = "var(--mp-bg)";
 
 const isLoginPath = (pathname: string) =>
   pathname === "/login" || pathname === "/login/callback";
@@ -146,13 +146,13 @@ function ShellFrame({ children }: { children: ReactNode }) {
     <div className="min-h-screen" style={{ background: PAGE_BACKGROUND }}>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-[var(--mp-surface)] focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
         style={{ color: "var(--mp-ink)" }}
       >
         Skip to content
       </a>
       <header
-        className="flex flex-wrap items-stretch justify-between gap-x-6 bg-white px-6 md:px-12"
+        className="flex flex-wrap items-stretch justify-between gap-x-6 bg-[var(--mp-surface)] px-6 md:px-12"
         style={{ borderBottom: "1px solid var(--mp-paper-deep)" }}
       >
         <div className="flex items-center py-3">
@@ -182,8 +182,8 @@ function ShellFrame({ children }: { children: ReactNode }) {
                   <span
                     className="ml-1.5 inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold"
                     style={{
-                      background: "#fdf3dc",
-                      color: "#8a5a12",
+                      background: "var(--mp-amber-bg)",
+                      color: "var(--mp-amber-ink)",
                       height: 20,
                     }}
                   >

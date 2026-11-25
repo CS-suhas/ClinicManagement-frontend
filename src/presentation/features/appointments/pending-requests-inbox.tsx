@@ -45,7 +45,10 @@ export function PendingRequestsInbox({
           </h2>
           <span
             className="inline-flex min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold"
-            style={{ background: "#fdf3dc", color: "#7a4f00" }}
+            style={{
+              background: "var(--mp-amber-bg)",
+              color: "var(--mp-amber-ink)",
+            }}
           >
             {more ? `${items.length}+` : items.length}
           </span>

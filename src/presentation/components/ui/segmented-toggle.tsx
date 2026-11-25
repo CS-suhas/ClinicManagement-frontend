@@ -25,7 +25,7 @@ export function SegmentedToggle<T extends string>({
   return (
     <fieldset
       aria-label={ariaLabel}
-      className="m-0 inline-flex min-w-0 gap-1 rounded-full bg-white p-1"
+      className="m-0 inline-flex min-w-0 gap-1 rounded-full bg-[var(--mp-surface)] p-1"
       style={{ border: "1px solid var(--mp-paper-deep)" }}
     >
       {options.map((option) => {
@@ -39,7 +39,7 @@ export function SegmentedToggle<T extends string>({
             className="inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
             style={{
               background: selected ? "var(--mp-primary)" : "transparent",
-              color: selected ? "#fff" : "var(--mp-muted)",
+              color: selected ? "var(--mp-on-primary)" : "var(--mp-muted)",
               outlineColor: "var(--mp-ink)",
             }}
           >

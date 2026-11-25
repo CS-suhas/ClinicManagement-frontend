@@ -27,7 +27,7 @@ export function PublicNavbar({ crumbs }: { crumbs: Crumb[] }) {
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 bg-white px-6 py-3 md:px-12"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 bg-[var(--mp-surface)] px-6 py-3 md:px-12"
       style={{ borderBottom: "1px solid var(--mp-paper-deep)" }}
     >
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">

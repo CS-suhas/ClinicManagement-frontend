@@ -38,8 +38,14 @@ function LegendSwatch({
       background: "var(--mp-paper-deep)",
       border: "1px solid var(--mp-paper-deep)",
     },
-    available: { background: "#fff", border: "1px solid var(--gray-7)" },
-    selected: { background: "#fff", border: "2px solid var(--mp-primary)" },
+    available: {
+      background: "var(--mp-surface)",
+      border: "1px solid var(--gray-7)",
+    },
+    selected: {
+      background: "var(--mp-surface)",
+      border: "2px solid var(--mp-primary)",
+    },
   }[kind];
   return (
     <Flex align="center" gap="2">
@@ -83,7 +89,7 @@ export function SlotPicker({
   return (
     <section
       aria-label="Select a date and time slot"
-      className="rounded-xl bg-white p-4"
+      className="rounded-xl bg-[var(--mp-surface)] p-4"
       style={{ border: "1px solid var(--mp-paper-deep)" }}
     >
       <Heading as="h3" size="3" mb="3">
@@ -172,7 +178,7 @@ export function SlotPicker({
                           : "var(--mp-ink)",
                         background: slot.unavailable
                           ? "var(--mp-paper-deep)"
-                          : "#fff",
+                          : "var(--mp-surface)",
                         border: isSelected
                           ? "2px solid var(--mp-primary)"
                           : `1px solid ${slot.unavailable ? "var(--mp-paper-deep)" : "var(--gray-7)"}`,

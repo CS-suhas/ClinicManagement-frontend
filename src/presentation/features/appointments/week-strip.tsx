@@ -28,8 +28,8 @@ export function WeekStrip({
             aria-label={dayHeading(day)}
             className="flex min-h-11 cursor-pointer flex-col items-center justify-center rounded-xl text-xs"
             style={{
-              background: selected ? "var(--mp-primary)" : "#fff",
-              color: selected ? "#fff" : "var(--mp-ink)",
+              background: selected ? "var(--mp-primary)" : "var(--mp-surface)",
+              color: selected ? "var(--mp-on-primary)" : "var(--mp-ink)",
               border: `${isToday && !selected ? 2 : 1}px solid ${isToday ? "var(--mp-primary)" : "var(--mp-paper-deep)"}`,
             }}
           >

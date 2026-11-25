@@ -50,7 +50,7 @@ export default function LoginCallbackPage() {
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={{ background: "#f3f8f7" }}
+      style={{ background: "var(--mp-bg)" }}
     >
       <PublicNavbar
         crumbs={[{ label: "Home", href: "/" }, { label: "Sign in" }]}

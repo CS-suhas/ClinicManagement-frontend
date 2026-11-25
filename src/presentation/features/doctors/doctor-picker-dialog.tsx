@@ -80,7 +80,7 @@ export function DoctorPickerDialog({
                   <button
                     type="button"
                     onClick={() => onPick(doctor)}
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-white p-3 text-left transition-colors hover:bg-[var(--mp-primary-tint)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-[var(--mp-surface)] p-3 text-left transition-colors hover:bg-[var(--mp-primary-tint)] focus-visible:outline-2 focus-visible:outline-offset-2"
                     style={{
                       border: "1px solid var(--mp-paper-deep)",
                       color: "var(--mp-ink)",

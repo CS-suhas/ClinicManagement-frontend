@@ -264,8 +264,8 @@ export function GlancePopover({
           padding: 0,
           borderRadius: 16,
           border: "1px solid var(--mp-paper-deep)",
-          background: "#fff",
-          boxShadow: "0 16px 40px -16px rgb(19 41 45 / 0.28)",
+          background: "var(--mp-surface)",
+          boxShadow: "0 16px 40px -16px var(--mp-shadow)",
         }}
       >
         <div className="p-4">{body}</div>
@@ -382,7 +382,7 @@ export function GlanceError({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <Text size="2" style={{ color: "#9b1c1c" }}>
+      <Text size="2" style={{ color: "var(--mp-red-ink)" }}>
         {message}
       </Text>
       <Button size="1" variant="soft" color="red" onClick={onRetry}>

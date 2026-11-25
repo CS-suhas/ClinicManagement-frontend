@@ -16,11 +16,11 @@ export type StatusKind = "appointment" | "verification" | "joinRequest";
 type Palette = { background: string; color: string };
 
 const PALETTE = {
-  amber: { background: "#fdf3dc", color: "#7a4f00" },
-  teal: { background: "#dff3f1", color: "#006873" },
-  red: { background: "#fde8e8", color: "#9b1c1c" },
-  slate: { background: "#eceff1", color: "#44565a" },
-  blue: { background: "#e6effa", color: "#1f4e8c" },
+  amber: { background: "var(--mp-amber-bg)", color: "var(--mp-amber-ink)" },
+  teal: { background: "var(--mp-teal-bg)", color: "var(--mp-teal-ink)" },
+  red: { background: "var(--mp-red-bg)", color: "var(--mp-red-ink)" },
+  slate: { background: "var(--mp-slate-bg)", color: "var(--mp-slate-ink)" },
+  blue: { background: "var(--mp-blue-bg)", color: "var(--mp-blue-ink)" },
 } satisfies Record<string, Palette>;
 
 type Tone = keyof typeof PALETTE;
@@ -151,7 +151,8 @@ function AppointmentStepper({ status }: { status: string }) {
               style={{
                 background:
                   done || active ? "var(--mp-primary)" : "var(--mp-paper-deep)",
-                color: done || active ? "#fff" : "var(--mp-muted)",
+                color:
+                  done || active ? "var(--mp-on-primary)" : "var(--mp-muted)",
               }}
             >
               {done ? "✓" : index + 1}

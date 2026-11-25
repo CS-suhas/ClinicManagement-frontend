@@ -1,10 +1,53 @@
 @import "tailwindcss";
 
+/* MediPulse Life palette, shared by every page. light-dark() follows the
+   OS colour scheme, so dark mode is automatic (no toggle). */
+:root {
+  color-scheme: light dark;
+
+  --mp-ink: light-dark(#13292d, #e2eef0);
+  --mp-muted: light-dark(#5b6e72, #94a8ac);
+  --mp-bg: light-dark(#f3f8f7, #0c1a1c);
+  --mp-surface: light-dark(#ffffff, #142427);
+  --mp-paper: light-dark(#e6f2f3, #1a2e32);
+  --mp-paper-deep: light-dark(#d5e1e3, #28403f);
+  --mp-primary: light-dark(#007d8a, #2fb1be);
+  --mp-primary-dark: light-dark(#006873, #6fd0d9);
+  --mp-primary-tint: light-dark(#e0f0f2, #123a3f);
+  --mp-on-primary: light-dark(#ffffff, #041b1e);
+  --mp-shadow: light-dark(rgb(19 41 45 / 0.25), rgb(0 0 0 / 0.55));
+
+  /* Soft chip tones: background + readable text on it. */
+  --mp-amber-bg: light-dark(#fdf3dc, #3a2d10);
+  --mp-amber-ink: light-dark(#7a4f00, #f2c66d);
+  --mp-teal-bg: light-dark(#dff3f1, #0f393a);
+  --mp-teal-ink: light-dark(#006873, #7fd8db);
+  --mp-red-bg: light-dark(#fde8e8, #3f1a1a);
+  --mp-red-ink: light-dark(#9b1c1c, #f6a5a5);
+  --mp-red-line: light-dark(#f0c4c4, #6b2a2a);
+  --mp-slate-bg: light-dark(#eceff1, #263336);
+  --mp-slate-ink: light-dark(#44565a, #b8c6c9);
+  --mp-blue-bg: light-dark(#e6effa, #172a48);
+  --mp-blue-ink: light-dark(#1f4e8c, #a2c4f2);
+  --mp-pink-bg: light-dark(#fbe6ec, #3d1a26);
+  --mp-pink-ink: light-dark(#9b2c4f, #f2a6be);
+  --mp-violet-bg: light-dark(#ece8fb, #282048);
+  --mp-violet-ink: light-dark(#5b3fb0, #c4b5f6);
+  --mp-green-bg: light-dark(#e3f4e8, #15331f);
+  --mp-green-ink: light-dark(#1f6b35, #93d9a6);
+  --mp-orange-ink: light-dark(#9a4a00, #f5b073);
+}
+
+body {
+  background: var(--mp-bg);
+  color: var(--mp-ink);
+}
+
 .lp-page {
-  --paper: #f4f8f8;
-  --ink: #13292d;
-  --muted: #5b6e72;
-  --primary: #007d8a;
+  --paper: var(--mp-bg);
+  --ink: var(--mp-ink);
+  --muted: var(--mp-muted);
+  --primary: var(--mp-primary);
 
   position: relative;
   display: flex;
@@ -126,15 +169,15 @@
   padding: 0.5rem 0.5rem 0.5rem 1.25rem;
   border: 2px solid var(--ink);
   border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 10px 30px -12px rgb(19 41 45 / 0.25);
+  background: var(--mp-surface);
+  box-shadow: 0 10px 30px -12px var(--mp-shadow);
 }
 
 .lp-search:focus-within {
   border-color: var(--primary);
   box-shadow:
     0 0 0 4px color-mix(in srgb, var(--primary) 20%, transparent),
-    0 10px 30px -12px rgb(19 41 45 / 0.25);
+    0 10px 30px -12px var(--mp-shadow);
 }
 
 .lp-searchIcon {
@@ -209,11 +252,11 @@
 
 .lp-primary {
   background: var(--primary);
-  color: #fff;
+  color: var(--mp-on-primary);
 }
 
 .lp-primary:hover {
-  background: #006873;
+  background: var(--mp-primary-dark);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -240,17 +283,6 @@
     flex-basis: 100%;
     justify-content: center;
   }
-}
-
-/* MediPulse Life palette, shared by the public pages. */
-:root {
-  --mp-ink: #13292d;
-  --mp-muted: #5b6e72;
-  --mp-paper: #e6f2f3;
-  --mp-paper-deep: #d5e1e3;
-  --mp-primary: #007d8a;
-  --mp-primary-dark: #006873;
-  --mp-primary-tint: #e0f0f2;
 }
 
 /* Admin tables inside a Surface: paper header, hairline rows, soft teal hover. */

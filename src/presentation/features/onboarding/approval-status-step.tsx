@@ -54,7 +54,7 @@ export function ApprovalStatusStep({
 
   if (status === "REJECTED") {
     return (
-      <Surface padding="md" style={{ borderColor: "#f0c4c4" }}>
+      <Surface padding="md" style={{ borderColor: "var(--mp-red-line)" }}>
         <Flex direction="column" gap="3" align="start">
           <StatusPill kind="verification" status="REJECTED" />
           <Text size="2" style={{ color: "var(--mp-ink)" }}>

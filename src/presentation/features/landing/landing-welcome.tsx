@@ -54,7 +54,7 @@ function SignedIn() {
   return (
     <div className="flex flex-col gap-6">
       <div
-        className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-4"
+        className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[var(--mp-surface)] p-4"
         style={{ border: "1px solid var(--mp-paper-deep)" }}
       >
         <div className="flex min-w-0 items-center gap-3">

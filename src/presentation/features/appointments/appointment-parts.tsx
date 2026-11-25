@@ -329,7 +329,7 @@ export function AppointmentCard({
   const soon = isSoon(item, now);
   return (
     <article
-      className="flex flex-col gap-2 rounded-xl bg-white p-3"
+      className="flex flex-col gap-2 rounded-xl bg-[var(--mp-surface)] p-3"
       style={{
         border: "1px solid var(--mp-paper-deep)",
         borderLeft: `4px solid ${soon ? AMBER : accent}`,
@@ -384,11 +384,11 @@ export function AppointmentCard({
 
 /** Pill colours by status tone, matching the status chips. */
 const PILL_COLORS: Record<string, { background: string; color: string }> = {
-  amber: { background: "#fdf3dc", color: "#7a4f00" },
-  teal: { background: "#dff3f1", color: "#006873" },
-  red: { background: "#fde8e8", color: "#9b1c1c" },
-  slate: { background: "#eceff1", color: "#44565a" },
-  blue: { background: "#e6effa", color: "#1f4e8c" },
+  amber: { background: "var(--mp-amber-bg)", color: "var(--mp-amber-ink)" },
+  teal: { background: "var(--mp-teal-bg)", color: "var(--mp-teal-ink)" },
+  red: { background: "var(--mp-red-bg)", color: "var(--mp-red-ink)" },
+  slate: { background: "var(--mp-slate-bg)", color: "var(--mp-slate-ink)" },
+  blue: { background: "var(--mp-blue-bg)", color: "var(--mp-blue-ink)" },
 };
 
 export const pillColorsFor = (status: string) =>

@@ -78,7 +78,7 @@ export function RoleStep({
               tabIndex={checked || (selected === null && index === 0) ? 0 : -1}
               onClick={() => setSelected(option.value)}
               onKeyDown={(event) => onKeyDown(event, index)}
-              className="flex cursor-pointer flex-col items-start gap-3 rounded-2xl bg-white p-4 text-left transition-shadow hover:shadow-md"
+              className="flex cursor-pointer flex-col items-start gap-3 rounded-2xl bg-[var(--mp-surface)] p-4 text-left transition-shadow hover:shadow-md"
               style={{
                 border: checked
                   ? "2px solid var(--mp-primary)"

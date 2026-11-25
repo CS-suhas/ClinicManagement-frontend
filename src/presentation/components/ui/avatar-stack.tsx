@@ -22,10 +22,10 @@ export function AvatarStack({
       {shown.map((person, index) => (
         <span
           key={`${person.name}-${index}`}
-          className="inline-flex rounded-full bg-white"
+          className="inline-flex rounded-full bg-[var(--mp-surface)]"
           style={{
             marginLeft: index === 0 ? 0 : -Math.round(size / 4),
-            boxShadow: "0 0 0 2px #fff",
+            boxShadow: "0 0 0 2px var(--mp-surface)",
           }}
         >
           <PersonAvatar name={person.name} size={size} />
@@ -41,7 +41,7 @@ export function AvatarStack({
             marginLeft: -Math.round(size / 4),
             background: "var(--mp-paper)",
             color: "var(--mp-muted)",
-            boxShadow: "0 0 0 2px #fff",
+            boxShadow: "0 0 0 2px var(--mp-surface)",
           }}
         >
           +{extra}

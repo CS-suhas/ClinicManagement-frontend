@@ -51,7 +51,7 @@ export function DayAgenda({
           className="flex flex-col gap-3"
         >
           <h3
-            className="sticky top-0 z-10 m-0 bg-[#f3f8f7] py-1 text-sm font-semibold"
+            className="sticky top-0 z-10 m-0 bg-[var(--mp-bg)] py-1 text-sm font-semibold"
             style={{
               color: day === todayKey ? "var(--mp-primary)" : "var(--mp-ink)",
             }}
