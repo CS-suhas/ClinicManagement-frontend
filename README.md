@@ -26,14 +26,14 @@ No API URL is baked into the build, so one image runs on any host:
   relative URL, so it calls `API_INTERNAL_URL`, read from the environment at
   request time (default: `http://localhost:8080/api`).
 
-| Variable | When it is read | Purpose |
-| --- | --- | --- |
-| `API_INTERNAL_URL` | Runtime (server) | API base URL for server-side code, e.g. `http://api:8080/api` in Docker. In `npm run dev` it is also where `/api/*` is forwarded. |
-| `NEXT_PUBLIC_DATA_SOURCE` | Build time | `rest` to use the API, `mock` (default) for in-browser sample data. The Docker image is built with `rest`. |
-| `KEYCLOAK_URL` | Runtime (served to the browser) | Keycloak base URL including its relative path, e.g. `http://localhost:8081/auth`. Default (unset or empty): same origin, `<page origin>/auth`. |
-| `KEYCLOAK_REALM` | Runtime (served to the browser) | Keycloak realm. Default `clinic`. |
-| `KEYCLOAK_CLIENT_ID` | Runtime (served to the browser) | Public OIDC client used for sign-in. Default `clinic-spa`. |
-| `PUBLIC_DOCTORS` | Runtime (served to the browser) | `true` (default): `/doctors` and `/doctors/[id]` open without sign-in. `false`: they redirect to sign-in like every other page. |
+| Variable                  | When it is read                 | Purpose                                                                                                                                        |
+| ------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_INTERNAL_URL`        | Runtime (server)                | API base URL for server-side code, e.g. `http://api:8080/api` in Docker. In `npm run dev` it is also where `/api/*` is forwarded.              |
+| `NEXT_PUBLIC_DATA_SOURCE` | Build time                      | `rest` to use the API, `mock` (default) for in-browser sample data. The Docker image is built with `rest`.                                     |
+| `KEYCLOAK_URL`            | Runtime (served to the browser) | Keycloak base URL including its relative path, e.g. `http://localhost:8081/auth`. Default (unset or empty): same origin, `<page origin>/auth`. |
+| `KEYCLOAK_REALM`          | Runtime (served to the browser) | Keycloak realm. Default `clinic`.                                                                                                              |
+| `KEYCLOAK_CLIENT_ID`      | Runtime (served to the browser) | Public OIDC client used for sign-in. Default `clinic-spa`.                                                                                     |
+| `PUBLIC_DOCTORS`          | Runtime (served to the browser) | `true` (default): `/doctors` and `/doctors/[id]` open without sign-in. `false`: they redirect to sign-in like every other page.                |
 
 Copy `.env.example` to `.env` to get started.
 
