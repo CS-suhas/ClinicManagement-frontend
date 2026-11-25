@@ -28,7 +28,6 @@ export interface DoctorProfile {
   experienceYears?: number;
   consultationFee?: number;
   gender?: Lowercase<ProviderGender>;
-  consultTypes?: string[];
 }
 
 /** `clinic` supplies the address and phone, which the directory does not carry. */

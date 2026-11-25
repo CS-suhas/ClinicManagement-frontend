@@ -6,9 +6,22 @@ const feeFilterActive = (fee: DoctorFilterValues["fee"]) =>
   fee[0] > FEE_RANGE.min || fee[1] < FEE_RANGE.max;
 
 /**
+ * The distinct specialties among `doctors`, sorted. Specialty is free text, so
+ * entries differing only in case or surrounding spaces count as one.
+ */
+export function specialtyOptions(doctors: DoctorProfile[]): string[] {
+  const byKey = new Map<string, string>();
+  for (const s of doctors.flatMap((d) => d.specialties)) {
+    const label = s.trim();
+    const key = label.toLowerCase();
+    if (label && !byKey.has(key)) byKey.set(key, label);
+  }
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+}
+
+/**
  * Applies the sidebar filters and the search box. A doctor without the data a
  * filter needs (for example no fee) is hidden while that filter is active.
- * Availability is not applied: it needs per-doctor slots, not profile data.
  */
 export function filterDoctors(
   doctors: DoctorProfile[],
@@ -26,8 +39,10 @@ export function filterDoctors(
       return false;
     if (filters.gender !== "all" && d.gender !== filters.gender) return false;
     if (
-      filters.minExperience > 0 &&
-      (d.experienceYears ?? 0) < filters.minExperience
+      filters.specialty &&
+      !d.specialties.some(
+        (s) => s.trim().toLowerCase() === filters.specialty.toLowerCase(),
+      )
     )
       return false;
     if (
@@ -35,11 +50,6 @@ export function filterDoctors(
       (d.consultationFee === undefined ||
         d.consultationFee < filters.fee[0] ||
         d.consultationFee > filters.fee[1])
-    )
-      return false;
-    if (
-      filters.consultTypes.length > 0 &&
-      !filters.consultTypes.some((type) => d.consultTypes?.includes(type))
     )
       return false;
     return true;

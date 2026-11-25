@@ -1,6 +1,5 @@
 import {
   Button,
-  Checkbox,
   Flex,
   Heading,
   RadioGroup,
@@ -9,46 +8,27 @@ import {
   Text,
 } from "@radix-ui/themes";
 import type { ReactNode } from "react";
+import type { Clinic } from "@/domain/entities";
 import { formatFeeShort } from "@/presentation/lib/format";
 
 /** LKR consultation fees. */
 export const FEE_RANGE = { min: 0, max: 10000, step: 250 };
 
-export const CONSULT_TYPES = [
-  { value: "televisit", label: "Televisit" },
-  { value: "on-site", label: "On-site" },
-  { value: "home-visit", label: "Home visit" },
-] as const;
-
 export interface DoctorFilterValues {
-  gender: "all" | "male" | "female";
-  minExperience: number;
+  gender: "all" | "male" | "female" | "other";
+  /** "" means any specialty. */
+  specialty: string;
   fee: [number, number];
-  availability: "any" | "morning" | "afternoon" | "evening";
-  consultTypes: string[];
 }
 
 export const DEFAULT_FILTERS: DoctorFilterValues = {
   gender: "all",
-  minExperience: 0,
+  specialty: "",
   fee: [FEE_RANGE.min, FEE_RANGE.max],
-  availability: "any",
-  consultTypes: [],
 };
 
-const EXPERIENCE_OPTIONS = [
-  { value: "0", label: "Any experience" },
-  { value: "2", label: "2+ years" },
-  { value: "5", label: "5+ years" },
-  { value: "10", label: "10+ years" },
-];
-
-const AVAILABILITY_OPTIONS = [
-  { value: "any", label: "Any time" },
-  { value: "morning", label: "Morning" },
-  { value: "afternoon", label: "Afternoon" },
-  { value: "evening", label: "Evening" },
-];
+/** Select value for "nothing chosen"; Radix Select items cannot be empty. */
+const ALL = "__all__";
 
 function Group({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -63,17 +43,37 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/**
+ * The clinic is kept apart from the other values: it lives in the URL and is
+ * applied by the directory request, not on the client.
+ */
 export function DoctorFilters({
   values,
   onChange,
+  clinics,
+  clinicId,
+  onClinicChange,
+  specialties,
 }: {
   values: DoctorFilterValues;
   onChange: (values: DoctorFilterValues) => void;
+  clinics: Clinic[];
+  /** The specialties to offer, e.g. those of the loaded doctors. */
+  specialties: string[];
+  clinicId: string;
+  onClinicChange: (clinicId: string) => void;
 }) {
   const set = <K extends keyof DoctorFilterValues>(
     key: K,
     value: DoctorFilterValues[K],
   ) => onChange({ ...values, [key]: value });
+
+  // Keep the chosen specialty listed even when the loaded doctors (e.g. after
+  // a clinic change) no longer include it, so the select never shows blank.
+  const specialtyOptions =
+    values.specialty && !specialties.includes(values.specialty)
+      ? [...specialties, values.specialty].sort((a, b) => a.localeCompare(b))
+      : specialties;
 
   return (
     <aside aria-label="Filters" style={{ color: "var(--mp-ink)" }}>
@@ -85,13 +85,50 @@ export function DoctorFilters({
           variant="ghost"
           color="gray"
           highContrast
-          onClick={() => onChange(DEFAULT_FILTERS)}
+          onClick={() => {
+            onChange(DEFAULT_FILTERS);
+            if (clinicId) onClinicChange("");
+          }}
         >
           Clear all
         </Button>
       </Flex>
 
       <Flex direction="column" gap="6">
+        <Group label="Clinic">
+          <Select.Root
+            value={clinicId || ALL}
+            onValueChange={(v) => onClinicChange(v === ALL ? "" : v)}
+          >
+            <Select.Trigger aria-label="Clinic" />
+            <Select.Content>
+              <Select.Item value={ALL}>All clinics</Select.Item>
+              {clinics.map((c) => (
+                <Select.Item key={c.id} value={c.id}>
+                  {c.name}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+        </Group>
+
+        <Group label="Specialty">
+          <Select.Root
+            value={values.specialty || ALL}
+            onValueChange={(v) => set("specialty", v === ALL ? "" : v)}
+          >
+            <Select.Trigger aria-label="Specialty" />
+            <Select.Content>
+              <Select.Item value={ALL}>All specialties</Select.Item>
+              {specialtyOptions.map((s) => (
+                <Select.Item key={s} value={s}>
+                  {s}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+        </Group>
+
         <Group label="Gender">
           <RadioGroup.Root
             value={values.gender}
@@ -103,23 +140,8 @@ export function DoctorFilters({
             <RadioGroup.Item value="all">All</RadioGroup.Item>
             <RadioGroup.Item value="male">Male doctor</RadioGroup.Item>
             <RadioGroup.Item value="female">Female doctor</RadioGroup.Item>
+            <RadioGroup.Item value="other">Other</RadioGroup.Item>
           </RadioGroup.Root>
-        </Group>
-
-        <Group label="Experience">
-          <Select.Root
-            value={String(values.minExperience)}
-            onValueChange={(v) => set("minExperience", Number(v))}
-          >
-            <Select.Trigger aria-label="Experience" />
-            <Select.Content>
-              {EXPERIENCE_OPTIONS.map((o) => (
-                <Select.Item key={o.value} value={o.value}>
-                  {o.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Root>
         </Group>
 
         <Group label="Visiting fees">
@@ -137,46 +159,6 @@ export function DoctorFilters({
             color="teal"
             aria-label="Visiting fees"
           />
-        </Group>
-
-        <Group label="Availability">
-          <Select.Root
-            value={values.availability}
-            onValueChange={(v) =>
-              set("availability", v as DoctorFilterValues["availability"])
-            }
-          >
-            <Select.Trigger aria-label="Availability" />
-            <Select.Content>
-              {AVAILABILITY_OPTIONS.map((o) => (
-                <Select.Item key={o.value} value={o.value}>
-                  {o.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Root>
-        </Group>
-
-        <Group label="Consult type">
-          {CONSULT_TYPES.map((type) => (
-            <Text as="label" size="2" key={type.value}>
-              <Flex align="center" gap="2">
-                <Checkbox
-                  color="teal"
-                  checked={values.consultTypes.includes(type.value)}
-                  onCheckedChange={(checked) =>
-                    set(
-                      "consultTypes",
-                      checked
-                        ? [...values.consultTypes, type.value]
-                        : values.consultTypes.filter((t) => t !== type.value),
-                    )
-                  }
-                />
-                {type.label}
-              </Flex>
-            </Text>
-          ))}
         </Group>
       </Flex>
     </aside>

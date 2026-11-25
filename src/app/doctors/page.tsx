@@ -2,7 +2,7 @@
 
 import { Heading, Text } from "@radix-ui/themes";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { useService } from "@/di/container-provider";
 import { AsyncContent } from "@/presentation/components/async-content";
@@ -19,7 +19,10 @@ import {
   type DoctorProfile,
   toDoctorProfile,
 } from "@/presentation/features/doctors/doctor-profile";
-import { filterDoctors } from "@/presentation/features/doctors/filter-doctors";
+import {
+  filterDoctors,
+  specialtyOptions,
+} from "@/presentation/features/doctors/filter-doctors";
 import { useBookingGate } from "@/presentation/features/doctors/use-booking-gate";
 import { useAsyncData } from "@/presentation/hooks/use-async-data";
 
@@ -35,6 +38,7 @@ export default function DoctorsPage() {
 function DoctorDirectory() {
   const providerService = useService("providerService");
   const clinicService = useService("clinicService");
+  const router = useRouter();
   const searchParams = useSearchParams();
   const clinicId = searchParams.get("clinicId") ?? "";
   const gate = useBookingGate();
@@ -47,9 +51,12 @@ function DoctorDirectory() {
     ? `/doctors?clinicId=${encodeURIComponent(clinicId)}`
     : "/doctors";
 
+  // Loaded once, so the clinic filter's options stay put while doctors reload.
+  const clinics = useAsyncData(() => clinicService.list());
+
   const { data, loading, error, reload } = useAsyncData(async () => {
     // The directory holds only bookable doctors: verified, and in a clinic.
-    const [directory, clinics] = await Promise.all([
+    const [directory, clinicList] = await Promise.all([
       providerService.directory({
         page: 1,
         pageSize: 100,
@@ -57,7 +64,7 @@ function DoctorDirectory() {
       }),
       clinicService.list(),
     ]);
-    const clinicById = new Map(clinics.map((c) => [c.id, c]));
+    const clinicById = new Map(clinicList.map((c) => [c.id, c]));
     return {
       clinicName: clinicId ? (clinicById.get(clinicId)?.name ?? null) : null,
       doctors: directory.items.map((p) =>
@@ -66,9 +73,19 @@ function DoctorDirectory() {
     };
   }, clinicId);
 
+  const setClinicId = (id: string) =>
+    router.replace(
+      id ? `/doctors?clinicId=${encodeURIComponent(id)}` : "/doctors",
+      { scroll: false },
+    );
+
   const doctors = useMemo(
     () => filterDoctors(data?.doctors ?? [], filters, query),
     [data, filters, query],
+  );
+  const specialties = useMemo(
+    () => specialtyOptions(data?.doctors ?? []),
+    [data],
   );
 
   return (
@@ -79,7 +96,14 @@ function DoctorDirectory() {
 
       <main className="grid gap-8 px-6 py-8 md:px-12 lg:grid-cols-[260px_1fr]">
         <div className="lg:sticky lg:top-6 lg:self-start">
-          <DoctorFilters values={filters} onChange={setFilters} />
+          <DoctorFilters
+            values={filters}
+            onChange={setFilters}
+            clinics={clinics.data ?? []}
+            clinicId={clinicId}
+            onClinicChange={setClinicId}
+            specialties={specialties}
+          />
         </div>
         <div className="min-w-0">
           <Heading as="h1" size="6" mb="2" style={{ color: "var(--mp-ink)" }}>
