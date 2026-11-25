@@ -65,3 +65,39 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Points the deploy repo's versions.env at this build; that push redeploys the server
+  # (ClinicManagement-Deploy, .github/workflows/deploy.yml). main only, after publish.
+  deploy:
+    needs: publish
+    if: github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    permissions: {}
+    concurrency:
+      group: bump-deploy-repo
+      cancel-in-progress: false
+    steps:
+      - name: Check out deploy repo
+        uses: actions/checkout@v4
+        with:
+          repository: CS-suhas/ClinicManagement-Deploy
+          ssh-key: ${{ secrets.DEPLOY_REPO_SSH_KEY }}
+
+      - name: Set FRONTEND_TAG in versions.env and push
+        shell: bash
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          tag="sha-${HEAD_SHA::7}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Retry: the other app repo may push a bump at the same time.
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            sed -i "s/^FRONTEND_TAG=.*/FRONTEND_TAG=$tag/" versions.env
+            if git diff --quiet; then echo "versions.env already has FRONTEND_TAG=$tag"; exit 0; fi
+            git commit -qam "chore: deploy frontend $tag"
+            if git push -q origin HEAD:main; then echo "Pushed FRONTEND_TAG=$tag"; exit 0; fi
+            sleep $((attempt * 5))
+          done
+          echo "::error::Could not push to ClinicManagement-Deploy"; exit 1
