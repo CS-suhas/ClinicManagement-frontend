@@ -36,6 +36,10 @@
   --mp-green-bg: light-dark(#e3f4e8, #15331f);
   --mp-green-ink: light-dark(#1f6b35, #93d9a6);
   --mp-orange-ink: light-dark(#9a4a00, #f5b073);
+
+  /* Warning and danger accents (allergy flags, "starting soon"). */
+  --mp-warn: light-dark(#b7791f, #e5ad4f);
+  --mp-danger: light-dark(#c53030, #f07c7c);
 }
 
 body {

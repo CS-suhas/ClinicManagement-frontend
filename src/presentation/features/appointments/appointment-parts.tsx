@@ -18,8 +18,8 @@ import { startsSoon } from "@/presentation/lib/relative-time";
 import { clockOf, toneOf } from "./schedule-time";
 import { ACTION_LABEL } from "./use-appointment-actions";
 
-const AMBER = "#b7791f";
-const RED = "#c53030";
+const AMBER = "var(--mp-warn)";
+const RED = "var(--mp-danger)";
 
 /** Cancelled and rejected visits stay visible but read as done. */
 export const isMuted = (status: AppointmentStatus) =>
@@ -260,7 +260,7 @@ export function AppointmentBlock({
         ...style,
         background: muted
           ? "var(--mp-paper)"
-          : `color-mix(in srgb, ${accent} 10%, white)`,
+          : `light-dark(color-mix(in srgb, ${accent} 10%, white), color-mix(in srgb, ${accent} 22%, var(--mp-surface)))`,
         borderTop: muted ? "1px dashed var(--mp-paper-deep)" : undefined,
         borderRight: muted ? "1px dashed var(--mp-paper-deep)" : undefined,
         borderBottom: muted ? "1px dashed var(--mp-paper-deep)" : undefined,

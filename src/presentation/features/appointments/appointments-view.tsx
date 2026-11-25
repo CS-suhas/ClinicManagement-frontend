@@ -580,7 +580,7 @@ export function AppointmentsView() {
                     as="p"
                     size="2"
                     weight="bold"
-                    style={{ color: "#c53030" }}
+                    style={{ color: "var(--mp-danger)" }}
                   >
                     {pending.item.patientName} has a SEVERE allergy on record.
                     Check before the visit.

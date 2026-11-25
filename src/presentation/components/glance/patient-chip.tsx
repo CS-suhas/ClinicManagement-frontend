@@ -125,7 +125,7 @@ export function SevereMark() {
         aria-hidden="true"
         width={11}
         height={11}
-        style={{ color: "#c53030" }}
+        style={{ color: "var(--mp-danger)" }}
       />
       <span className="sr-only">Severe allergy</span>
     </span>
