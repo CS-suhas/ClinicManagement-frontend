@@ -9,6 +9,11 @@ updates:
     # Skip releases younger than a week: hijacked versions are usually pulled by then.
     cooldown:
       default-days: 7
+    # Major base image upgrades (Node 22 -> 26, .NET 10 -> 11) need code and CI
+    # changes, so they are done deliberately; patch and digest updates still come.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
