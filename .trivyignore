@@ -1,0 +1,4 @@
+# Vulnerabilities accepted after review, one CVE ID per line.
+# Add a comment above each with the reason and a review date, e.g.:
+# Not reachable: we never call the affected API. Review 2027-01-01.
+# CVE-2026-00000

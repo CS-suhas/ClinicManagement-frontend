@@ -1,0 +1,18 @@
+# Keeps the pinned base image digests and action SHAs current. Security fixes for
+# npm packages come from Dependabot security updates (enabled in repo settings).
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    # Skip releases younger than a week: hijacked versions are usually pulled by then.
+    cooldown:
+      default-days: 7
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Skip releases younger than a week: hijacked versions are usually pulled by then.
+    cooldown:
+      default-days: 7

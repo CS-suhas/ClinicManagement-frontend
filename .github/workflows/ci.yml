@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -18,3 +18,21 @@ jobs:
         run: npm run lint
       - name: Build (includes type check)
         run: npm run build
+
+  # Static analysis. Any finding fails CI, and image publishing only runs after CI
+  # passes. False positives: `// nosemgrep: <rule-id>` on the line, with the reason.
+  sast:
+    name: Static analysis (Semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    container:
+      image: semgrep/semgrep:1.186.0@sha256:6e1b04340e60e910fbb4ddbf3c857ab0918f064417ad5ac530014ccb3cf8c8f1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Semgrep scan
+        run: >-
+          semgrep scan --metrics=off --error
+          --config p/owasp-top-ten --config p/secrets --config p/typescript
+          --config p/react --config p/nextjs --config p/dockerfile --config p/github-actions

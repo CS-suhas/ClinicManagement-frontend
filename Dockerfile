@@ -1,9 +1,9 @@
-FROM node:22-alpine AS deps
+FROM node:22.23.5-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:22-alpine AS build
+FROM node:22.23.5-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS build
 WORKDIR /app
 # NEXT_PUBLIC_* values are inlined at build time. The API URL is deliberately
 # not one of them: browsers call /api on the same origin and the server reads
@@ -15,7 +15,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine AS runtime
+FROM node:22.23.5-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS runtime
+# Patch OS packages and drop the bundled npm/corepack: server.js runs on plain
+# node, and npm's own dependencies were most of the image scanner's findings.
+RUN apk upgrade --no-cache \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 WORKDIR /app
 # API_INTERNAL_URL: base URL server-side code uses to reach the API. Read at
 # runtime, so override it per deployment (docker run -e / compose environment).
