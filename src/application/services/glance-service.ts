@@ -34,6 +34,8 @@ import type { ProviderService } from "./provider-service";
 
 const DIRECTORY_PAGE_SIZE = 100;
 const MAX_DIRECTORY_PAGES = 5;
+/** Doctors kept per clinic for the list preview and its glance. */
+const PREVIEW_DOCTORS = 8;
 const SLOT_SEARCH_DAYS = 7;
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -342,7 +344,8 @@ export class GlanceService {
     for (const entry of entries) {
       const preview = byClinic.get(entry.clinicId) ?? { count: 0, doctors: [] };
       preview.count++;
-      if (preview.doctors.length < 4) preview.doctors.push(toDoctorRef(entry));
+      if (preview.doctors.length < PREVIEW_DOCTORS)
+        preview.doctors.push(toDoctorRef(entry));
       byClinic.set(entry.clinicId, preview);
     }
     return byClinic;

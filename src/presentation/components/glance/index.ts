@@ -1,6 +1,10 @@
 export { AllergyChip, type AllergyChipProps } from "./allergy-chip";
 export { ClinicChip, type ClinicChipProps } from "./clinic-chip";
 export {
+  ClinicDoctorsChip,
+  type ClinicDoctorsChipProps,
+} from "./clinic-doctors-chip";
+export {
   DoctorChip,
   type DoctorChipProps,
   doctorShortName,

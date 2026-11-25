@@ -5,10 +5,12 @@ import { useService } from "@/di/container-provider";
 import type { Clinic } from "@/domain/entities";
 import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/presentation/components/data-table";
-import { ClinicChip } from "@/presentation/components/glance/clinic-chip";
+import {
+  ClinicChip,
+  ClinicDoctorsChip,
+} from "@/presentation/components/glance";
 import { ListPage } from "@/presentation/components/list-page";
 import { RowActions } from "@/presentation/components/row-actions";
-import { AvatarStack } from "@/presentation/components/ui/avatar-stack";
 import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
 import { ClinicDetails } from "@/presentation/features/clinics/clinic-details";
 import { ClinicFormDialog } from "@/presentation/features/clinics/clinic-form-dialog";
@@ -86,17 +88,10 @@ export default function Page() {
             </Text>
           );
         return (
-          <span className="inline-flex items-center gap-2">
-            <AvatarStack
-              max={4}
-              people={found.doctors.map((d) => ({
-                name: `${d.firstName} ${d.lastName}`,
-              }))}
-            />
-            <Text size="2" style={{ color: "var(--mp-ink)" }}>
-              {found.count}
-            </Text>
-          </span>
+          <ClinicDoctorsChip
+            clinic={{ id: c.id, name: c.name }}
+            preview={found}
+          />
         );
       },
     },
