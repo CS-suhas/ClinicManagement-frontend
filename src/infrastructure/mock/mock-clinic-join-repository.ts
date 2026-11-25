@@ -235,7 +235,7 @@ export class MockClinicJoinRequestRepository
     );
     if (decision === "APPROVED") {
       const provider = providers[providerIndex];
-      if (!provider || provider.verificationStatus !== "VERIFIED")
+      if (provider?.verificationStatus !== "VERIFIED")
         throw new ConflictError("This doctor is no longer verified.");
       if (provider.clinicId)
         throw new ConflictError("This doctor has already joined a clinic.");

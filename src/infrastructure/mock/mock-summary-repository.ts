@@ -280,7 +280,7 @@ export function createMockSummaryRepository(
       const clinic = provider?.clinicId
         ? data.clinics.get(provider.clinicId)
         : undefined;
-      if (!provider || provider.verificationStatus !== "VERIFIED" || !clinic)
+      if (provider?.verificationStatus !== "VERIFIED" || !clinic)
         throw new NotFoundError("Provider", id);
 
       const settings = sources.settings;

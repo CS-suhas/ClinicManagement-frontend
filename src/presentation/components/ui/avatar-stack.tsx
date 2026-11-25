@@ -21,6 +21,7 @@ export function AvatarStack({
       <span className="sr-only">{people.map((p) => p.name).join(", ")}</span>
       {shown.map((person, index) => (
         <span
+          // biome-ignore lint/suspicious/noArrayIndexKey: names can repeat and the list is never reordered
           key={`${person.name}-${index}`}
           className="inline-flex rounded-full bg-[var(--mp-surface)]"
           style={{
