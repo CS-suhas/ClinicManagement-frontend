@@ -6,7 +6,10 @@ export const CLINIC_JOIN_STATUSES = [
 ] as const;
 export type ClinicJoinStatus = (typeof CLINIC_JOIN_STATUSES)[number];
 
-/** A doctor's request to join a clinic. Names are joined in by the API. */
+/**
+ * A verified doctor's request to move to another clinic (they always belong to
+ * one). Approval moves them. Names are joined in by the API.
+ */
 export interface ClinicJoinRequest {
   id: string;
   providerId: string;

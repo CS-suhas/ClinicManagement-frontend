@@ -13,7 +13,7 @@ export const PROVIDER_GENDER_LABELS: Record<ProviderGender, string> = {
 
 export interface Provider {
   id: string;
-  /** Normalised to "" when the API has none (a self-registered doctor). */
+  /** Every provider belongs to a clinic, including a PENDING self-registered one. */
   clinicId: string;
   firstName: string;
   lastName: string;
@@ -45,8 +45,10 @@ export interface ProviderDetails {
   gender?: ProviderGender | null;
 }
 
-/** What a doctor sends to register themself. The clinic is set later, through a join request. */
-export type ProviderRegistrationInput = ProviderDetails;
+/** What a doctor sends to register themself, at the clinic they practise at. */
+export interface ProviderRegistrationInput extends ProviderDetails {
+  clinicId: string;
+}
 
 function validateProviderDetails(input: ProviderDetails): FieldErrors {
   const errors: FieldErrors = {};
@@ -73,8 +75,9 @@ export function validateProvider(input: ProviderInput): FieldErrors {
   return errors;
 }
 
+/** Same rules as the admin form: the clinic is required here too. */
 export function validateProviderRegistration(
   input: ProviderRegistrationInput,
 ): FieldErrors {
-  return validateProviderDetails(input);
+  return validateProvider(input);
 }

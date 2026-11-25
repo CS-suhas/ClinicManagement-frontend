@@ -44,7 +44,7 @@ export function ProviderDetails({ provider }: { provider: Provider }) {
         {summary.data && (
           <Flex direction="column" gap="1">
             <Text size="2" weight="medium" style={{ color: "var(--mp-ink)" }}>
-              {clinic?.name ?? "Not at a clinic yet"}
+              {clinic?.name ?? "Clinic details unavailable"}
             </Text>
             {clinic?.location && (
               <Text size="2" style={{ color: "var(--mp-muted)" }}>

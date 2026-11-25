@@ -82,15 +82,6 @@ export function buildLandingCards(
       tone: pending ? "attention" : "default",
       rank: 1,
     });
-    if (user.provider && user.provider.clinicId === null)
-      cards.push({
-        href: "/onboarding",
-        title: "Join a clinic",
-        hint: "Request to join a clinic so patients can book you.",
-        icon: <HomeIcon />,
-        tone: "attention",
-        rank: 1,
-      });
     cards.push({
       href: "/appointments",
       title: "Today's schedule",
@@ -116,7 +107,7 @@ export function buildLandingCards(
     cards.push({
       href: "/join-requests",
       title: "Join requests",
-      hint: "Doctors asking to join your clinic.",
+      hint: "Doctors asking to move to your clinic.",
       icon: <ReaderIcon />,
       count: joins,
       tone: joins ? "attention" : "default",

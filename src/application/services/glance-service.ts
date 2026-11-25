@@ -191,7 +191,7 @@ export class GlanceService {
     );
     const provider: Provider | null = data?.provider ?? null;
     const clinic = data?.clinic ?? null;
-    const clinicId = provider?.clinicId || null;
+    const clinicId = provider?.clinicId ?? null;
     const seesSchedule =
       !!user &&
       (hasRole(user, "admin") ||

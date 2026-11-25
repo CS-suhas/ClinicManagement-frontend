@@ -5,12 +5,17 @@ import type {
   Role,
 } from "@/domain/auth";
 import type {
+  Clinic,
   Patient,
   PatientInput,
   Provider,
   ProviderRegistrationInput,
 } from "@/domain/entities";
-import { ConflictError, UnauthorizedError } from "@/domain/errors";
+import {
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+} from "@/domain/errors";
 import type { PatientRepository } from "@/domain/repositories";
 import { delay, type LocalStorageCollection } from "./local-storage-collection";
 import { newId } from "./mock-repositories";
@@ -62,7 +67,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       displayName: "Alice Moreno",
       roles: ["doctor"],
       patient: null,
-      provider: { id: "pr1", verificationStatus: "VERIFIED" },
+      provider: { id: "pr1", verificationStatus: "VERIFIED", clinicId: "c1" },
       clinicAdminOf: [],
     },
   },
@@ -76,7 +81,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       displayName: "Chen Li",
       roles: [],
       patient: null,
-      provider: { id: "pr3", verificationStatus: "PENDING" },
+      provider: { id: "pr3", verificationStatus: "PENDING", clinicId: "c2" },
       clinicAdminOf: [],
     },
   },
@@ -102,7 +107,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
       displayName: "Ben Okafor",
       roles: ["patient", "doctor"],
       patient: { id: "p2" },
-      provider: { id: "pr2", verificationStatus: "VERIFIED" },
+      provider: { id: "pr2", verificationStatus: "VERIFIED", clinicId: "c1" },
       clinicAdminOf: [],
     },
   },
@@ -198,7 +203,7 @@ function currentUserFor(
     ? {
         id: provider.id,
         verificationStatus: provider.verificationStatus ?? "PENDING",
-        clinicId: provider.clinicId || null,
+        clinicId: provider.clinicId,
       }
     : null;
 
@@ -213,11 +218,13 @@ function currentUserFor(
 export class MockAuthRepository implements AuthRepository {
   /**
    * Patient profiles live in the patients store. Provider records live in the
-   * providers store, which the provider pages share.
+   * providers store, which the provider pages share. Clinics are read to check
+   * the clinic a doctor registers at.
    */
   constructor(
     private readonly patients: PatientRepository,
     private readonly providers: LocalStorageCollection<Provider>,
+    private readonly clinics: LocalStorageCollection<Clinic>,
   ) {}
 
   async getCurrentUser(): Promise<CurrentUser | null> {
@@ -254,8 +261,9 @@ export class MockAuthRepository implements AuthRepository {
   }
 
   /**
-   * Creates a PENDING provider with no clinic and links it to the current persona.
-   * A persona that already has a provider (including a rejected one) gets a 409.
+   * Creates a PENDING provider at the chosen clinic and links it to the current
+   * persona. A persona that already has a provider (including a rejected one)
+   * gets a 409; an unknown clinic gets a 404.
    */
   async registerAsProvider(
     input: ProviderRegistrationInput,
@@ -265,9 +273,11 @@ export class MockAuthRepository implements AuthRepository {
     if (!persona) throw new UnauthorizedError();
     if (currentUserFor(persona, this.providers.read()).provider)
       throw new ConflictError("This account is already linked to a provider.");
+    if (!this.clinics.read().some((clinic) => clinic.id === input.clinicId))
+      throw new NotFoundError("Clinic", input.clinicId);
     const provider: Provider = {
       id: newId(),
-      clinicId: "",
+      clinicId: input.clinicId,
       firstName: input.firstName,
       lastName: input.lastName,
       specialty: input.specialty,

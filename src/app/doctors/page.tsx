@@ -77,7 +77,7 @@ function DoctorDirectory() {
   const clinics = useAsyncData(() => clinicService.list());
 
   const { data, loading, error, reload } = useAsyncData(async () => {
-    // The directory holds only bookable doctors: verified, and in a clinic.
+    // The directory holds only bookable doctors, i.e. verified ones.
     const [directory, clinicList] = await Promise.all([
       providerService.directory({
         page: 1,

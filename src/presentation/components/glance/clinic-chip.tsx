@@ -24,8 +24,8 @@ import {
 export interface ClinicChipProps {
   clinic: { id: string; name: string };
   /**
-   * The signed-in doctor's provider id when they are verified and not yet at a
-   * clinic. The card then offers "Request to join" for this clinic.
+   * The signed-in doctor's provider id when they are verified and this is not
+   * their current clinic. The card then offers "Request to move here".
    */
   joinAs?: string;
   variant?: "chip" | "inline";
@@ -86,11 +86,11 @@ function ClinicCard({
     setRequesting(true);
     try {
       await clinicJoins.createForProvider(joinAs, clinic.id);
-      notifySuccess(`Request sent to ${clinic.name}`);
+      notifySuccess(`Request to move sent to ${clinic.name}`);
       summaryState.retry();
     } catch (e) {
       notifyError(
-        `Could not request to join ${clinic.name}: ${getErrorMessage(e)}`,
+        `Could not request to move to ${clinic.name}: ${getErrorMessage(e)}`,
       );
     } finally {
       setRequesting(false);
@@ -199,7 +199,7 @@ function ClinicCard({
             loading={requesting}
             onClick={() => void requestJoin()}
           >
-            Request to join
+            Request to move here
           </Button>
         )}
         <GlanceAction href={`/clinics/${clinic.id}`} primary={!joinAs}>

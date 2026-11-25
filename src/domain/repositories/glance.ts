@@ -57,7 +57,7 @@ export interface PatientSummary {
 export interface ProviderSummary {
   /** Null when the provider record is not readable by the caller. */
   provider: Provider | null;
-  /** Null when the doctor has no clinic or the clinic is not readable. */
+  /** Null when the clinic is not readable (e.g. the doctor is not verified yet). */
   clinic: Clinic | null;
   /** Appointments today. Null unless the caller sees the doctor's full schedule. */
   todayAppointmentCount: number | null;

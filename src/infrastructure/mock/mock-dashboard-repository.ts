@@ -160,9 +160,7 @@ export function createMockDashboardRepository(
       let clinicAdmin: ClinicAdminDashboard | null = null;
       if (isClinicAdmin) {
         const mine = new Set(user.clinicAdminOf);
-        const myProviders = providers.filter(
-          (p) => !!p.clinicId && mine.has(p.clinicId),
-        );
+        const myProviders = providers.filter((p) => mine.has(p.clinicId));
         const myProviderIds = new Set(myProviders.map((p) => p.id));
         const myItems = items.filter((item) =>
           myProviderIds.has(item.providerId),

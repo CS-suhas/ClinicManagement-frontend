@@ -79,13 +79,17 @@ export class RestAuthRepository implements AuthRepository {
     return { ...input, id: created.id };
   }
 
-  /** The API links the new provider to the caller and returns 409 when they already have one. */
+  /**
+   * The API links the new provider to the caller. It returns 404 when the clinic
+   * does not exist and 409 when the caller already has a provider.
+   */
   async registerAsProvider(
     input: ProviderRegistrationInput,
   ): Promise<Provider> {
     const id = crypto.randomUUID();
     await this.http.post<unknown>("/providers/register", {
       id,
+      clinicId: input.clinicId,
       firstName: input.firstName,
       lastName: input.lastName,
       specialty: input.specialty,
@@ -94,7 +98,7 @@ export class RestAuthRepository implements AuthRepository {
     });
     return {
       id,
-      clinicId: "",
+      clinicId: input.clinicId,
       firstName: input.firstName,
       lastName: input.lastName,
       specialty: input.specialty,

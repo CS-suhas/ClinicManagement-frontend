@@ -9,7 +9,7 @@ const PAGE_SIZE = 100;
 const MAX_PAGES = 10;
 
 /**
- * Finds one bookable doctor (verified, in a clinic) through the public
+ * Finds one bookable (verified) doctor through the public
  * directory, which has no by-id read. Resolves to null when not listed.
  */
 export async function findBookableDoctor(

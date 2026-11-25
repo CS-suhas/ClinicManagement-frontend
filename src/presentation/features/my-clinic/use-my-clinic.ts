@@ -13,14 +13,15 @@ import { getErrorMessage } from "@/presentation/lib/errors";
 export const CLINIC_SEARCH_DEBOUNCE_MS = 250;
 const CLINIC_RESULTS = 20;
 
-/** Shown when a second request is refused, or the doctor already belongs to a clinic. */
+/** Shown when a second request is refused, or the doctor is already at that clinic. */
 export const JOIN_CONFLICT_MESSAGE =
-  "You already have a request waiting, or you already belong to a clinic. Refresh to see where things stand.";
+  "You already have a request waiting, or you already practise at this clinic. Refresh to see where things stand.";
 
 /**
- * A doctor's clinic position: the clinic they belong to (if any), their join
- * requests, and a searchable list of clinics to ask to join. Only one request
- * can be pending at a time, which the list enforces by disabling the buttons.
+ * A doctor's clinic position: the clinic they belong to (every doctor has
+ * one), their requests to move, and a searchable list of other clinics to ask
+ * to move to. Only one request can be pending at a time, which the list
+ * enforces by disabling the buttons.
  */
 export function useMyClinic(providerId: string | null) {
   const providerService = useService("providerService");
@@ -45,8 +46,8 @@ export function useMyClinic(providerId: string | null) {
       providerId ? providerService.get(providerId) : Promise.resolve(null),
     providerId ?? "",
   );
-  // `clinicId` is "" when the doctor has no clinic.
-  const clinicId = provider.data?.clinicId || null;
+  // Null only until the provider has loaded.
+  const clinicId = provider.data?.clinicId ?? null;
 
   const summary = useAsyncData<ClinicSummary | null>(
     () =>
@@ -68,26 +69,29 @@ export function useMyClinic(providerId: string | null) {
   );
   const pending = pendingRequestFor(requests.data ?? []);
 
+  // The doctor's own clinic is never a target: asking for it is a 409.
   const clinics = useAsyncData<Clinic[]>(
     () =>
       clinicId
-        ? Promise.resolve([])
-        : clinicService
+        ? clinicService
             .search({
               search: search || undefined,
               page: 1,
               pageSize: CLINIC_RESULTS,
             })
-            .then((result) => result.items),
+            .then((result) =>
+              result.items.filter((clinic) => clinic.id !== clinicId),
+            )
+        : Promise.resolve([]),
     `${clinicId ?? ""}|${search}`,
   );
 
-  const requestJoin = async (clinic: Clinic) => {
+  const requestMove = async (clinic: Clinic) => {
     if (!providerId) return;
     setBusyId(clinic.id);
     try {
       await clinicJoinService.createForProvider(providerId, clinic.id);
-      notifySuccess(`Request sent to ${clinic.name}`);
+      notifySuccess(`Request to move sent to ${clinic.name}`);
       await requests.reload();
     } catch (e) {
       notifyError(
@@ -127,7 +131,7 @@ export function useMyClinic(providerId: string | null) {
     searchText,
     setSearchText,
     clinics,
-    requestJoin,
+    requestMove,
     cancel,
     busyId,
   };

@@ -55,10 +55,10 @@ export const seedProviders: Provider[] = [
     gender: null,
     verificationStatus: "PENDING",
   },
-  // Verified but clinic-less: can request to join a clinic.
+  // Verified at Northside, with a request to move to Downtown waiting.
   {
     id: "pr4",
-    clinicId: "",
+    clinicId: "c2",
     firstName: "Sam",
     lastName: "Rivera",
     specialty: "Dermatology",
@@ -81,7 +81,7 @@ export const seedClinicJoinRequests: ClinicJoinRequestRecord[] = [
   {
     id: "jr2",
     providerId: "pr4",
-    clinicId: "c2",
+    clinicId: "c1",
     status: "REJECTED",
     createdAtUtc: "2026-11-10T06:00:00.000Z",
     decidedAtUtc: "2026-11-11T09:30:00.000Z",

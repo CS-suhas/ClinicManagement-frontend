@@ -153,7 +153,7 @@ export const clinicMapper: RestMapper<Clinic, ClinicInput, ClinicResponse> = {
 
 export interface ProviderResponse {
   id: string;
-  clinicId: string | null;
+  clinicId: string;
   firstName: string;
   lastName: string;
   specialty: string;
@@ -170,8 +170,7 @@ export const providerMapper: RestMapper<
 > = {
   fromResponse: (provider) => ({
     id: provider.id,
-    // A self-registered doctor may have no clinic yet; the form treats "" as unset.
-    clinicId: provider.clinicId ?? "",
+    clinicId: provider.clinicId,
     firstName: provider.firstName,
     lastName: provider.lastName,
     specialty: provider.specialty,
@@ -475,7 +474,7 @@ export class RestProviderDirectoryRepository
         clinicName:
           typeof item.clinicName === "string"
             ? item.clinicName
-            : (clinicNames.get(item.clinicId ?? "") ?? null),
+            : (clinicNames.get(item.clinicId) ?? null),
       })),
     };
   }

@@ -185,8 +185,8 @@ export interface ProviderDirectoryOptions extends SearchOptions {
 export type ProviderDirectoryEntry = Provider & { clinicName: string | null };
 
 /**
- * Port: the public list of bookable doctors, i.e. verified providers that
- * belong to a clinic. `search` matches first name, last name, specialty or clinic name.
+ * Port: the public list of bookable doctors, i.e. verified providers.
+ * `search` matches first name, last name, specialty or clinic name.
  */
 export interface ProviderDirectoryRepository {
   list(
@@ -216,9 +216,9 @@ export interface AppointmentAvailabilityRepository {
   getBusyStarts(providerId: string, date: string): Promise<string[]>;
 }
 
-/** Port: a doctor's requests to join a clinic. */
+/** Port: a verified doctor's requests to move to another clinic. */
 export interface ClinicJoinRequestRepository {
-  /** Throws ConflictError when the doctor already has a clinic or a PENDING request. */
+  /** Throws ConflictError when `clinicId` is the doctor's current clinic or they have a PENDING request. */
   createForProvider(
     providerId: string,
     clinicId: string,
@@ -230,7 +230,7 @@ export interface ClinicJoinRequestRepository {
     clinicId: string,
     status?: ClinicJoinStatus,
   ): Promise<ClinicJoinRequest[]>;
-  /** Clinic admins of the request's clinic, and admins. Also sets the provider's clinic. */
+  /** Clinic admins of the request's clinic, and admins. Also moves the provider to that clinic. */
   approve(id: string): Promise<void>;
   reject(id: string): Promise<void>;
   /** Only by the requesting doctor, and only while PENDING. */

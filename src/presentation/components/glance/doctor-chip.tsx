@@ -148,13 +148,9 @@ function DoctorCard({
       <GlanceSection>
         <Flex direction="column" gap="2">
           {status && <StatusPill kind="verification" status={status} />}
-          {clinicName ? (
+          {clinicName && (
             <Text size="2" style={{ color: "var(--mp-ink)" }}>
               {clinicName}
-            </Text>
-          ) : (
-            <Text size="2" style={{ color: "var(--mp-muted)" }}>
-              Not at a clinic yet
             </Text>
           )}
           {fee !== undefined && (

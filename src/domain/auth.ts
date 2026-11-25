@@ -16,11 +16,11 @@ export interface MeResponse {
   subject: string;
   roles: Role[];
   patient: { id: string } | null;
-  /** `clinicId` is null when the doctor has no clinic; absent on older responses. */
+  /** `clinicId` is the doctor's clinic; set even while the application is PENDING. */
   provider: {
     id: string;
     verificationStatus: VerificationStatus;
-    clinicId?: string | null;
+    clinicId: string;
   } | null;
   /** Null when the API has no display name for the user. */
   displayName: string | null;
@@ -76,8 +76,9 @@ export interface AuthRepository {
   /** Creates the signed-in user's own patient record and links it to their account. */
   createPatientProfile(input: PatientInput): Promise<Patient>;
   /**
-   * Creates a PENDING provider with no clinic and links it to the signed-in user.
-   * Throws ConflictError (409) when the user is already linked to a provider.
+   * Creates a PENDING provider at `input.clinicId` and links it to the signed-in user.
+   * Throws NotFoundError (404) when the clinic does not exist, and ConflictError
+   * (409) when the user is already linked to a provider.
    */
   registerAsProvider(input: ProviderRegistrationInput): Promise<Provider>;
 }

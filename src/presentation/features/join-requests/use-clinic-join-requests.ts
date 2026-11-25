@@ -50,7 +50,7 @@ export function useClinicJoinRequests(
       rollback: () => restoreRow(row, index),
       request: () => clinicJoinService.approve(row.id),
       failureMessage: `Could not approve ${row.providerName}`,
-      successMessage: `${row.providerName} joined ${row.clinicName}`,
+      successMessage: `${row.providerName} moved to ${row.clinicName}`,
     });
   };
 

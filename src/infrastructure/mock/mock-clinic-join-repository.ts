@@ -15,7 +15,7 @@ import type { ClinicJoinRequestRepository } from "@/domain/repositories";
 import { delay, type LocalStorageCollection } from "./local-storage-collection";
 import { newId } from "./mock-repositories";
 
-/** A join request as stored: the names are joined in when it is read. */
+/** A request to move clinic as stored: the names are joined in when it is read. */
 export interface ClinicJoinRequestRecord {
   id: string;
   providerId: string;
@@ -35,8 +35,9 @@ const newestFirst = (
 ) => Date.parse(b.createdAtUtc) - Date.parse(a.createdAtUtc);
 
 /**
- * Clinic join requests. Enforces the API's rules, reading the caller from
- * `currentUser`. Approval also writes the provider's clinic into the provider store.
+ * Clinic join requests, i.e. a verified doctor asking to move to another
+ * clinic. Enforces the API's rules, reading the caller from `currentUser`.
+ * Approval also writes the new clinic into the provider store.
  */
 export class MockClinicJoinRequestRepository
   implements ClinicJoinRequestRepository
@@ -96,7 +97,10 @@ export class MockClinicJoinRequestRepository
     });
   }
 
-  /** Doctor only, for their own verified provider with no clinic. One PENDING request at a time. */
+  /**
+   * Doctor only, for their own verified provider and a clinic other than their
+   * current one. One PENDING request at a time.
+   */
   async createForProvider(
     providerId: string,
     clinicId: string,
@@ -110,14 +114,14 @@ export class MockClinicJoinRequestRepository
       user.roles.includes("doctor") && this.isOwnProvider(user, providerId);
     if (!isOwnDoctor || !provider || provider.verificationStatus !== "VERIFIED")
       throw new ForbiddenError(
-        "Only a verified doctor can request to join a clinic.",
+        "Only a verified doctor can request to move to another clinic.",
       );
     const clinic = (await this.clinics.list()).find(
       (item) => item.id === clinicId,
     );
     if (!clinic) throw new NotFoundError("Clinic", clinicId);
-    if (provider.clinicId)
-      throw new ConflictError("You already belong to a clinic.");
+    if (provider.clinicId === clinicId)
+      throw new ConflictError("You already belong to this clinic.");
     const records = this.store.read();
     if (
       records.some(
@@ -209,7 +213,8 @@ export class MockClinicJoinRequestRepository
 
   /**
    * Approve or reject. Clinic admins of the request's clinic, and admins. Approval
-   * also needs the doctor to still be verified and clinic-less, and then sets the clinic.
+   * also needs the doctor to still be verified and not already at that clinic,
+   * and then moves them there.
    */
   private async decide(
     id: string,
@@ -237,8 +242,8 @@ export class MockClinicJoinRequestRepository
       const provider = providers[providerIndex];
       if (provider?.verificationStatus !== "VERIFIED")
         throw new ConflictError("This doctor is no longer verified.");
-      if (provider.clinicId)
-        throw new ConflictError("This doctor has already joined a clinic.");
+      if (provider.clinicId === record.clinicId)
+        throw new ConflictError("This doctor already belongs to this clinic.");
       providers[providerIndex] = { ...provider, clinicId: record.clinicId };
       this.providers.write(providers);
     }

@@ -135,8 +135,8 @@ function createMockRepositories(): Repositories {
     new LocalStorageCollection<T>(STORAGE_PREFIX + key, data);
   // Stores are shared by every adapter that reads them, so the summaries see the same data.
   const clinicsStore = col("clinics", seed.seedClinics);
-  // Versioned key: providers-v2 adds the seeded pr4 and the verification fields.
-  const providersStore = col("providers-v2", seed.seedProviders);
+  // Versioned key: providers-v3 gives every seeded provider a clinic (pr4 had none).
+  const providersStore = col("providers-v3", seed.seedProviders);
   const providers = new MockProviderRepository(providersStore);
   const clinics = new MockClinicRepository(clinicsStore, providers);
   const patientsStore = col("patients", seed.seedPatients);
@@ -157,7 +157,7 @@ function createMockRepositories(): Repositories {
     patientAllergiesStore,
     allergyTypesStore,
   );
-  const auth = new MockAuthRepository(patients, providersStore);
+  const auth = new MockAuthRepository(patients, providersStore, clinicsStore);
   const currentUser = (): Promise<CurrentUser | null> => auth.getCurrentUser();
   // Versioned key: stored appointments from before statuses existed are not reused.
   const appointmentsStore = col("appointments-v2", seed.seedAppointments);
@@ -183,8 +183,9 @@ function createMockRepositories(): Repositories {
     { patients, providers, appointments },
     currentUser,
   );
+  // Versioned key: v2 seeds requests to move clinic, since pr4 now has one.
   const joinRequestsStore = col(
-    "clinic-join-requests",
+    "clinic-join-requests-v2",
     seed.seedClinicJoinRequests,
   );
   const clinicJoinRequests = new MockClinicJoinRequestRepository(

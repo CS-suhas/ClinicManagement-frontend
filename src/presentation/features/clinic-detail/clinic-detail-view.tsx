@@ -34,22 +34,23 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
   );
 
   const provider = user?.provider ?? null;
-  const canRequestJoin =
+  // A verified doctor may ask to move here from their current clinic.
+  const canRequestMove =
     provider !== null &&
     provider.verificationStatus === "VERIFIED" &&
-    provider.clinicId === null &&
+    provider.clinicId !== clinicId &&
     hasRole(user, "doctor");
   const isStaff =
     hasRole(user, "admin") || (user?.clinicAdminOf ?? []).includes(clinicId);
 
-  const requestJoin = async () => {
+  const requestMove = async () => {
     if (!provider) return;
     setRequesting(true);
     try {
       await clinicJoinService.createForProvider(provider.id, clinicId);
       setRequested(true);
       notifySuccess(
-        `Request sent to ${summary.data?.clinic?.name ?? "the clinic"}`,
+        `Request to move sent to ${summary.data?.clinic?.name ?? "the clinic"}`,
       );
     } catch (e) {
       notifyError(
@@ -101,7 +102,7 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
         title={clinic.name}
         subtitle={clinic.location ?? "No address on record"}
         actions={
-          canRequestJoin ? (
+          canRequestMove ? (
             requested ? (
               <Button asChild variant="soft" color="teal">
                 <Link href="/my-clinic">See my request</Link>
@@ -110,9 +111,9 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
               <Button
                 color="teal"
                 loading={requesting}
-                onClick={() => void requestJoin()}
+                onClick={() => void requestMove()}
               >
-                Request to join
+                Request to move here
               </Button>
             )
           ) : undefined

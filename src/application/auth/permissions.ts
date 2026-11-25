@@ -118,8 +118,8 @@ export function canAccessRoute(
 
 /**
  * True when the signed-in user has to finish setting up before using the app:
- * no roles at all, a doctor application that is pending or rejected without a
- * patient profile, or a verified doctor with no clinic and no other role.
+ * no roles at all, or a doctor application that is pending or rejected without
+ * a patient profile.
  */
 export function needsOnboarding(
   user: Pick<CurrentUser, "roles" | "patient" | "provider"> | null,
@@ -127,30 +127,23 @@ export function needsOnboarding(
   if (!user) return false;
   if (user.roles.length === 0) return true;
   const provider = user.provider;
-  if (
-    provider &&
+  return (
+    provider !== null &&
     user.patient === null &&
     (provider.verificationStatus === "PENDING" ||
       provider.verificationStatus === "REJECTED")
-  )
-    return true;
-  return (
-    provider?.verificationStatus === "VERIFIED" &&
-    provider.clinicId === null &&
-    user.roles.every((role) => role === "doctor")
   );
 }
 
 /**
  * Pages a user may open while still needing onboarding. Without these the gate
- * would bounce them in a loop: onboarding itself, the public directory, and the
- * clinic pages a clinic-less doctor uses to join.
+ * would bounce them in a loop: onboarding itself, the public directory, and
+ * clinic pages (e.g. the clinic a pending doctor applied to).
  */
 export function isOnboardingExempt(pathname: string): boolean {
   return (
     matchesRoute("/onboarding", pathname) ||
     matchesRoute("/doctors", pathname) ||
-    matchesRoute("/my-clinic", pathname) ||
     matchesRoute("/clinics/[id]", pathname) ||
     pathname === "/" ||
     pathname === "/login" ||

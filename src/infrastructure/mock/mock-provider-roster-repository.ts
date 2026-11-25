@@ -52,7 +52,6 @@ export function createMockProviderRosterRepository(
         user.roles.includes("doctor") && user.provider?.id === providerId;
       const isClinicAdmin =
         user.roles.includes("clinicadmin") &&
-        !!provider.clinicId &&
         user.clinicAdminOf.includes(provider.clinicId);
       if (!(user.roles.includes("admin") || isSelf || isClinicAdmin))
         throw new ForbiddenError();

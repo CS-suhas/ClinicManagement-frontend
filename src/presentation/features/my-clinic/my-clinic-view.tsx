@@ -20,16 +20,16 @@ import { Surface } from "@/presentation/components/ui/surface";
 import { useMyClinic } from "./use-my-clinic";
 
 /**
- * A doctor's own clinic. With a clinic, it shows the clinic and its summary.
- * Without one, it shows the request status, a searchable list of clinics to
- * ask to join, and the history of past requests.
+ * A doctor's own clinic and its summary. Below it, moving to another clinic:
+ * the request status, a searchable list of other clinics to ask to move to,
+ * and the history of past requests.
  */
 export function MyClinicView() {
   const { user, refresh } = useAuth();
   const providerId = user?.provider?.id ?? null;
   const state = useMyClinic(providerId);
 
-  // The session may be stale after an admin approves a join; re-read it once.
+  // The session may be stale after an admin approves a move; re-read it once.
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -38,11 +38,7 @@ export function MyClinicView() {
     <>
       <PageHeader
         title="My clinic"
-        subtitle={
-          state.clinicId
-            ? "The clinic you practise at."
-            : "Ask to join the clinic you practise at. Its administrator confirms the request."
-        }
+        subtitle="The clinic you practise at. To move to another one, send that clinic a request; its administrator confirms it."
       />
       <AsyncContent
         loading={state.provider.loading}
@@ -50,23 +46,24 @@ export function MyClinicView() {
         isEmpty={false}
         onRetry={() => void state.provider.reload()}
       >
-        {state.clinicId ? (
-          <JoinedClinic
-            clinicId={state.clinicId}
-            name={state.summary.data?.clinic?.name ?? "Your clinic"}
-            location={state.summary.data?.clinic?.location ?? null}
-            phone={state.summary.data?.clinic?.phoneNumber ?? null}
-            doctorCount={state.summary.data?.providerCount ?? null}
-          />
-        ) : (
-          <JoinFlow state={state} />
+        {state.clinicId && (
+          <Flex direction="column" gap="5">
+            <CurrentClinic
+              clinicId={state.clinicId}
+              name={state.summary.data?.clinic?.name ?? "Your clinic"}
+              location={state.summary.data?.clinic?.location ?? null}
+              phone={state.summary.data?.clinic?.phoneNumber ?? null}
+              doctorCount={state.summary.data?.providerCount ?? null}
+            />
+            <MoveFlow state={state} />
+          </Flex>
         )}
       </AsyncContent>
     </>
   );
 }
 
-function JoinedClinic({
+function CurrentClinic({
   clinicId,
   name,
   location,
@@ -103,17 +100,14 @@ function JoinedClinic({
         <Button asChild variant="soft" color="teal">
           <Link href={`/clinics/${clinicId}`}>View clinic</Link>
         </Button>
-        <Text size="1" style={{ color: "var(--mp-muted)" }}>
-          Leaving or switching clinic is not supported yet.
-        </Text>
       </Flex>
     </Surface>
   );
 }
 
-type JoinState = ReturnType<typeof useMyClinic>;
+type MoveState = ReturnType<typeof useMyClinic>;
 
-function JoinFlow({ state }: { state: JoinState }) {
+function MoveFlow({ state }: { state: MoveState }) {
   const pending = state.pending;
   const historyColumns: Column<ClinicJoinRequest>[] = [
     {
@@ -137,7 +131,7 @@ function JoinFlow({ state }: { state: JoinState }) {
         <Surface padding="lg">
           <Flex direction="column" gap="3" align="start">
             <Text size="2" weight="bold" style={{ color: "var(--mp-ink)" }}>
-              Your request is waiting for a decision
+              Your request to move is waiting for a decision
             </Text>
             <Flex gap="3" align="center" wrap="wrap">
               <StatusChip
@@ -164,8 +158,8 @@ function JoinFlow({ state }: { state: JoinState }) {
         </Surface>
       ) : (
         <Text size="2" style={{ color: "var(--mp-muted)" }}>
-          Pick a clinic below and ask to join. You can have one request waiting
-          at a time.
+          To move to another clinic, pick it below and send a request. You can
+          have one request waiting at a time.
         </Text>
       )}
 
@@ -178,7 +172,7 @@ function JoinFlow({ state }: { state: JoinState }) {
             weight="bold"
             style={{ color: "var(--mp-ink)" }}
           >
-            Find a clinic
+            Move to another clinic
           </Heading>
           <div className="w-full max-w-xs">
             <SearchField
@@ -200,7 +194,7 @@ function JoinFlow({ state }: { state: JoinState }) {
               title={
                 state.searchText.trim()
                   ? "No clinics match your search"
-                  : "No clinics to show"
+                  : "No other clinics to show"
               }
               description="Try a different name, or check with your clinic's administrator."
               onClearFilters={() => state.setSearchText("")}
@@ -238,10 +232,10 @@ function JoinFlow({ state }: { state: JoinState }) {
                         ? "Cancel your current request before asking another clinic."
                         : undefined
                     }
-                    aria-label={`Request to join ${clinic.name}`}
-                    onClick={() => void state.requestJoin(clinic)}
+                    aria-label={`Request to move to ${clinic.name}`}
+                    onClick={() => void state.requestMove(clinic)}
                   >
-                    Request to join
+                    Request to move
                   </Button>
                 </Surface>
               </li>
@@ -265,13 +259,13 @@ function JoinFlow({ state }: { state: JoinState }) {
           loading={state.requests.loading}
           error={state.requests.error}
           isEmpty={state.history.length === 0}
-          emptyText="You have not asked to join a clinic yet."
+          emptyText="You have not asked to move to another clinic yet."
         >
           <DataTable
             columns={historyColumns}
             rows={state.history}
             rowLabel={(r) => r.clinicName}
-            caption="Your clinic join requests"
+            caption="Your requests to move clinic"
           />
         </AsyncContent>
       </section>

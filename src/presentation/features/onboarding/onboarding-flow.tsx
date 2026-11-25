@@ -10,7 +10,6 @@ import { Surface } from "@/presentation/components/ui/surface";
 import { safeNext } from "@/presentation/lib/safe-next";
 import { ApprovalStatusStep } from "./approval-status-step";
 import { DoctorStep } from "./doctor-step";
-import { JoinClinicStep } from "./join-clinic-step";
 import { OnboardingStepper } from "./onboarding-stepper";
 import {
   type DoctorDetails,
@@ -38,15 +37,11 @@ const TITLES: Record<OnboardingStep, { title: string; subtitle: string }> = {
   doctor: {
     title: "Register as a doctor",
     subtitle:
-      "Tell us about your practice. An administrator reviews the details before you can take bookings.",
+      "Tell us about your practice and the clinic you work at. An administrator reviews the details before you can take bookings.",
   },
   status: {
     title: "Waiting for approval",
     subtitle: "Your application is with the administrators.",
-  },
-  clinic: {
-    title: "Join a clinic",
-    subtitle: "Bookings open once you are part of a clinic.",
   },
   done: {
     title: "You are all set",
@@ -54,7 +49,7 @@ const TITLES: Record<OnboardingStep, { title: string; subtitle: string }> = {
   },
 };
 
-/** The guided setup at /onboarding: role, details, approval and clinic, resumed from the user's state. */
+/** The guided setup at /onboarding: role, details and approval, resumed from the user's state. */
 export function OnboardingFlow() {
   const { user, refresh } = useAuth();
   const router = useRouter();
@@ -138,7 +133,6 @@ export function OnboardingFlow() {
               onRefresh={onRefresh}
             />
           )}
-        {step === "clinic" && <JoinClinicStep />}
         {step === "done" && (
           <Button asChild color="teal">
             <Link href={destination}>Continue</Link>

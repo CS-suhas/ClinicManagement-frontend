@@ -277,9 +277,7 @@ export function createMockSummaryRepository(
       await delay();
       const data = await readAll();
       const provider = data.providers.get(id);
-      const clinic = provider?.clinicId
-        ? data.clinics.get(provider.clinicId)
-        : undefined;
+      const clinic = provider ? data.clinics.get(provider.clinicId) : undefined;
       if (provider?.verificationStatus !== "VERIFIED" || !clinic)
         throw new NotFoundError("Provider", id);
 
@@ -389,7 +387,7 @@ export function createMockSummaryRepository(
           id: p.id,
           name: providerFullName(p),
           specialty: p.specialty,
-          clinicName: data.clinics.get(p.clinicId)?.name ?? null,
+          clinicName: data.clinics.get(p.clinicId)?.name ?? "",
         }))
         .filter(
           (hit) =>

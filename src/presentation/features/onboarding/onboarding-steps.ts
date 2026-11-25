@@ -9,13 +9,7 @@ export type OnboardingChoice = "patient" | "doctor";
  * Where the user is in onboarding. Derived from the signed-in user, so a
  * refresh after each mutation moves the flow on by itself.
  */
-export type OnboardingStep =
-  | "role"
-  | "patient"
-  | "doctor"
-  | "status"
-  | "clinic"
-  | "done";
+export type OnboardingStep = "role" | "patient" | "doctor" | "status" | "done";
 
 /**
  * The step to show. A doctor application comes first, because it decides what
@@ -32,12 +26,6 @@ export function resolveStep(
       provider.verificationStatus === "REJECTED")
   )
     return "status";
-  if (
-    provider &&
-    provider.verificationStatus === "VERIFIED" &&
-    provider.clinicId === null
-  )
-    return "clinic";
   if (!needsOnboarding(user)) return "done";
   if (choice === "doctor") return "doctor";
   if (choice === "patient") return "patient";
@@ -49,18 +37,9 @@ export function stepLabels(
   step: OnboardingStep,
   path: OnboardingChoice | null,
 ): { labels: string[]; current: number } {
-  if (path === "doctor" || step === "status" || step === "clinic") {
-    const labels = ["Your role", "Your details", "Approval", "Join a clinic"];
-    const current =
-      step === "role"
-        ? 0
-        : step === "doctor"
-          ? 1
-          : step === "status"
-            ? 2
-            : step === "clinic"
-              ? 3
-              : 2;
+  if (path === "doctor" || step === "status") {
+    const labels = ["Your role", "Your details", "Approval"];
+    const current = step === "role" ? 0 : step === "doctor" ? 1 : 2;
     return { labels, current };
   }
   const labels = ["Your role", "Your details", "Done"];
@@ -95,6 +74,10 @@ export function patientDefaults(user: CurrentUser | null): PatientInput {
 
 /** The doctor form keeps the fee as typed text until it is submitted. */
 export interface DoctorDetails {
+  /** The clinic the doctor practises at; "" until one is picked. */
+  clinicId: string;
+  /** The picked clinic's name, so the picker can show it after the search changes. */
+  clinicName: string;
   firstName: string;
   lastName: string;
   specialty: string;
@@ -105,6 +88,8 @@ export interface DoctorDetails {
 
 export function doctorDefaults(user: CurrentUser | null): DoctorDetails {
   return {
+    clinicId: "",
+    clinicName: "",
     ...splitDisplayName(user?.displayName ?? ""),
     specialty: "",
     fee: "",

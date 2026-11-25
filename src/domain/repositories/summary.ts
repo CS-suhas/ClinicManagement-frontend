@@ -78,7 +78,8 @@ export interface SearchProviderHit {
   id: string;
   name: string;
   specialty: string;
-  clinicName: string | null;
+  /** Every provider belongs to a clinic. */
+  clinicName: string;
 }
 
 export interface SearchClinicHit {
@@ -99,7 +100,7 @@ export interface SummaryRepository {
   getPatientSummary(id: string): Promise<PatientSummaryData>;
   /** Signed in. 404 for an unknown clinic. */
   getClinicSummary(id: string): Promise<ClinicSummaryData>;
-  /** Public. 404 unless the provider is VERIFIED and has a clinic. */
+  /** Public. 404 unless the provider is VERIFIED. */
   getProviderSummary(id: string): Promise<ProviderSummaryData>;
   /** Signed in. `q` must be at least 2 characters (ValidationError on "q"); `limit` is 1-20. */
   search(q: string, limit: number): Promise<SearchResults>;

@@ -7,12 +7,15 @@ import type {
   ProviderGender,
   ProviderRegistrationInput,
 } from "@/domain/entities";
-import { ConflictError } from "@/domain/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/domain/errors";
 import { useAuth } from "@/presentation/auth/auth-provider";
+import { ErrorCallout } from "@/presentation/components/error-callout";
 import { FormField } from "@/presentation/components/form-field";
+import { SearchSelectField } from "@/presentation/components/form-fields";
 import { useNotify } from "@/presentation/components/notifications";
 import { SegmentedToggle } from "@/presentation/components/ui/segmented-toggle";
 import { useFormSubmit } from "@/presentation/hooks/use-form-submit";
+import { useSearchOptions } from "@/presentation/hooks/use-search-options";
 import { COMMON_SPECIALTIES, type DoctorDetails } from "./onboarding-steps";
 
 const GENDER_OPTIONS: { value: DoctorDetails["gender"]; label: string }[] = [
@@ -22,10 +25,18 @@ const GENDER_OPTIONS: { value: DoctorDetails["gender"]; label: string }[] = [
   { value: "NONE", label: "Prefer not to say" },
 ];
 
+const CLINIC_OPTIONS_PAGE = { page: 1, pageSize: 100 };
+
+/** Shown when the picked clinic was removed before the form was sent (404). */
+export const CLINIC_GONE_MESSAGE =
+  "This clinic no longer exists. Choose another one.";
+
 /**
- * The doctor registration form. It creates a PENDING doctor; an administrator
- * verifies the details before the doctor can take bookings. A 409 means the
- * account is already linked to a doctor, so the flow moves to the status step.
+ * The doctor registration form. It creates a PENDING doctor at the picked
+ * clinic; an administrator verifies the details before the doctor can take
+ * bookings. A 409 means the account is already linked to a doctor, so the flow
+ * moves to the status step. A 404 means the clinic was removed meanwhile, so the
+ * pick is cleared and the clinic list reloaded.
  */
 export function DoctorStep({
   values,
@@ -37,10 +48,24 @@ export function DoctorStep({
   onBack: () => void;
 }) {
   const authService = useService("authService");
+  const clinicService = useService("clinicService");
   const { refresh } = useAuth();
   const { notifySuccess, notifyInfo } = useNotify();
   const { submitting, fieldErrors, formError, run } = useFormSubmit();
   const specialtyListId = useId();
+  const clinics = useSearchOptions(true, (search) =>
+    clinicService.search({ search, ...CLINIC_OPTIONS_PAGE }),
+  );
+  const clinicOptions = clinics.items.map((c) => ({
+    value: c.id,
+    label: c.name,
+  }));
+  // Keep the picked clinic selectable when a new search leaves it out.
+  if (
+    values.clinicId &&
+    !clinicOptions.some((option) => option.value === values.clinicId)
+  )
+    clinicOptions.unshift({ value: values.clinicId, label: values.clinicName });
 
   const set = <K extends keyof DoctorDetails>(
     field: K,
@@ -50,6 +75,7 @@ export function DoctorStep({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const input: ProviderRegistrationInput = {
+      clinicId: values.clinicId,
       firstName: values.firstName.trim(),
       lastName: values.lastName.trim(),
       specialty: values.specialty.trim(),
@@ -63,6 +89,11 @@ export function DoctorStep({
         await authService.registerAsProvider(input);
         registered = true;
       } catch (error) {
+        if (error instanceof NotFoundError) {
+          onChange({ ...values, clinicId: "", clinicName: "" });
+          void clinics.reload();
+          throw new ValidationError({ clinicId: CLINIC_GONE_MESSAGE });
+        }
         if (!(error instanceof ConflictError)) throw error;
         notifyInfo("You already have a doctor profile.");
       }
@@ -75,6 +106,33 @@ export function DoctorStep({
   return (
     <form onSubmit={submit} noValidate>
       <Flex direction="column" gap="3">
+        {clinics.error && (
+          <ErrorCallout
+            message={clinics.error}
+            onRetry={() => void clinics.reload()}
+          />
+        )}
+        <SearchSelectField
+          label="Clinic"
+          id="doctor-clinic"
+          error={fieldErrors.clinicId}
+          query={clinics.query}
+          onQueryChange={clinics.setQuery}
+          searchPlaceholder="Search clinics…"
+          placeholder="Select the clinic you work at…"
+          disabled={clinics.loading && clinicOptions.length === 0}
+          value={values.clinicId}
+          onValueChange={(id) =>
+            onChange({
+              ...values,
+              clinicId: id,
+              clinicName:
+                clinicOptions.find((option) => option.value === id)?.label ??
+                "",
+            })
+          }
+          options={clinicOptions}
+        />
         <Grid columns={{ initial: "1", sm: "2" }} gap="3">
           <FormField
             label="First name"
@@ -149,7 +207,8 @@ export function DoctorStep({
           </FormField>
         </Grid>
         <Text size="1" style={{ color: "var(--mp-muted)" }}>
-          Your details are reviewed before you can take bookings.
+          Your details are reviewed before you can take bookings at this clinic.
+          You can ask to move to another clinic later.
         </Text>
       </Flex>
 

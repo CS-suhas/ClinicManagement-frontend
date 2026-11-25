@@ -43,7 +43,7 @@ export class ProviderService extends CrudService<
     );
   }
 
-  /** The public, bookable doctors: verified and in a clinic. Needs no sign-in. */
+  /** The public, bookable doctors, i.e. verified ones. Needs no sign-in. */
   directory(
     options: ProviderDirectoryOptions,
   ): Promise<PagedResult<ProviderDirectoryEntry>> {

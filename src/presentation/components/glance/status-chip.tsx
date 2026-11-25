@@ -34,7 +34,7 @@ export interface StatusPresentation {
 const KIND_TITLE: Record<StatusKind, string> = {
   appointment: "Appointment",
   verification: "Doctor approval",
-  joinRequest: "Clinic request",
+  joinRequest: "Clinic move request",
 };
 
 const PRESENTATION: Record<StatusKind, Record<string, StatusPresentation>> = {

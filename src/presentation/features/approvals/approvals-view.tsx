@@ -67,7 +67,7 @@ export function ApprovalsView() {
             firstName: p.firstName,
             lastName: p.lastName,
             specialty: p.specialty,
-            clinicId: p.clinicId || undefined,
+            clinicId: p.clinicId,
             fee: p.fee,
           }}
         />
@@ -153,7 +153,7 @@ export function ApprovalsView() {
     <>
       <PageHeader
         title="Doctor approvals"
-        subtitle="Review doctor applications. Approved doctors can take bookings once they join a clinic."
+        subtitle="Review doctor applications. Approved doctors can take bookings at their clinic right away."
       />
 
       <Tabs.Root

@@ -59,7 +59,7 @@ export class MockProviderRepository
 }
 
 /**
- * Public directory: VERIFIED providers that belong to a clinic. Needs no sign-in,
+ * Public directory: VERIFIED providers. Needs no sign-in,
  * and every mock read is a public one, as the API's directory is.
  */
 export function createMockProviderDirectoryRepository(repositories: {
@@ -79,10 +79,7 @@ export function createMockProviderDirectoryRepository(repositories: {
         clinics.map((clinic) => [clinic.id, clinic.name]),
       );
       const matches = providers
-        .filter(
-          (provider) =>
-            provider.verificationStatus === "VERIFIED" && !!provider.clinicId,
-        )
+        .filter((provider) => provider.verificationStatus === "VERIFIED")
         .map((provider) => ({
           ...provider,
           clinicName: clinicNames.get(provider.clinicId) ?? null,

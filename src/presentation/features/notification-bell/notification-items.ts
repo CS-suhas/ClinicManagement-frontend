@@ -30,7 +30,7 @@ export function notificationItems(
     if (joins > 0)
       items.push({
         id: `joins:admin:${joins}`,
-        text: plural(joins, "clinic join request", "waiting for a decision"),
+        text: plural(joins, "clinic move request", "waiting for a decision"),
         href: "/join-requests",
       });
   }
@@ -39,7 +39,7 @@ export function notificationItems(
     const joins = mine.clinicAdmin.pendingJoinRequestCount;
     items.push({
       id: `joins:clinic:${joins}`,
-      text: plural(joins, "clinic join request", "waiting for a decision"),
+      text: plural(joins, "clinic move request", "waiting for a decision"),
       href: "/join-requests",
     });
   }

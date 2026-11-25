@@ -46,7 +46,7 @@ export class AuthService {
 
   /**
    * Validates the details, then registers the signed-in user as a doctor. The
-   * new provider is PENDING with no clinic until an admin verifies it.
+   * new provider is PENDING at the chosen clinic until an admin verifies it.
    */
   registerAsProvider(input: ProviderRegistrationInput): Promise<Provider> {
     assertValid(validateProviderRegistration(input));

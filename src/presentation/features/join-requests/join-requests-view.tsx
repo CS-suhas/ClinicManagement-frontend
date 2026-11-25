@@ -43,9 +43,10 @@ export function splitProviderName(name: string): {
 }
 
 /**
- * Doctors asking to join a clinic. A clinic admin sees the clinics they
- * administer (with a picker when there are several); a platform admin picks any
- * clinic. Approving a request sets the doctor's clinic.
+ * Verified doctors asking to move to a clinic from the one they are at. A
+ * clinic admin sees the clinics they administer (with a picker when there are
+ * several); a platform admin picks any clinic. Approving a request moves the
+ * doctor to that clinic.
  */
 export function JoinRequestsView() {
   const clinicService = useService("clinicService");
@@ -138,8 +139,8 @@ export function JoinRequestsView() {
         title="Join requests"
         subtitle={
           clinicName
-            ? `Doctors asking to join ${clinicName}. Approving sets the clinic on their profile.`
-            : "Doctors asking to join a clinic. Approving sets the clinic on their profile."
+            ? `Doctors at other clinics asking to move to ${clinicName}. Approving moves them here.`
+            : "Doctors at other clinics asking to move. Approving moves them to the requested clinic."
         }
         actions={
           options.length > 1 ? (
@@ -195,7 +196,7 @@ export function JoinRequestsView() {
                   }
                   description={
                     pending
-                      ? "Doctors who ask to join this clinic appear here."
+                      ? "Doctors who ask to move to this clinic appear here."
                       : "Requests with this status show up here."
                   }
                 />

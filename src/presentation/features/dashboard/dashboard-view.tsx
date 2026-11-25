@@ -79,7 +79,7 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
           href="/join-requests"
           icon={<ReaderIcon />}
           title="Join requests"
-          hint="Doctors asking to join a clinic."
+          hint="Doctors asking to move to another clinic."
           count={data.admin.pendingJoinRequestCount}
           tone={data.admin.pendingJoinRequestCount ? "attention" : "default"}
         />
@@ -121,7 +121,7 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
           href="/join-requests"
           icon={<ReaderIcon />}
           title="Join requests"
-          hint="Doctors asking to join your clinic."
+          hint="Doctors asking to move to your clinic."
           count={data.clinicAdmin.pendingJoinRequestCount}
           tone={
             data.clinicAdmin.pendingJoinRequestCount ? "attention" : "default"
@@ -174,11 +174,7 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
           href="/my-clinic"
           icon={<HomeIcon />}
           title="My clinic"
-          hint={
-            user.provider?.clinicId === null
-              ? "You are not at a clinic yet. Join one."
-              : "Your clinic and its details."
-          }
+          hint="Your clinic, or ask to move to another."
         />
         <NextVisit appointment={data.doctor.nextAppointment} />
       </Section>,

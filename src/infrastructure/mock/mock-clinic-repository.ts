@@ -25,7 +25,7 @@ export class MockClinicRepository
   private async withProviderCounts(clinics: Clinic[]): Promise<Clinic[]> {
     const counts = new Map<string, number>();
     for (const provider of await this.providers.list())
-      if (provider.verificationStatus === "VERIFIED" && provider.clinicId)
+      if (provider.verificationStatus === "VERIFIED")
         counts.set(provider.clinicId, (counts.get(provider.clinicId) ?? 0) + 1);
     return clinics.map((clinic) => ({
       ...clinic,
