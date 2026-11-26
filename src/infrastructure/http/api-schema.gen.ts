@@ -684,7 +684,7 @@ export interface paths {
     };
     /**
      * List a clinic's providers
-     * @description Signed-in users. Returns every provider at the clinic, whatever their verification status.
+     * @description Signed-in users. Administrators and administrators of this clinic get every provider at the clinic, whatever their verification status; everyone else gets verified providers only.
      */
     get: operations["GetClinicProviders"];
     put?: never;

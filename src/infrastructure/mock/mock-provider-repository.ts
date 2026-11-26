@@ -137,10 +137,18 @@ export class MockProviderVerificationRepository
 
   async listByClinic(clinicId: string): Promise<Provider[]> {
     await delay();
-    if (!(await this.currentUser())) throw new UnauthorizedError();
+    const user = await this.currentUser();
+    if (!user) throw new UnauthorizedError();
+    // Applicants are visible only to admins and to this clinic's admins.
+    const seesApplicants =
+      user.roles.includes("admin") || user.clinicAdminOf.includes(clinicId);
     return this.store
       .read()
-      .filter((provider) => provider.clinicId === clinicId);
+      .filter(
+        (provider) =>
+          provider.clinicId === clinicId &&
+          (seesApplicants || provider.verificationStatus === "VERIFIED"),
+      );
   }
 
   verify(id: string): Promise<void> {

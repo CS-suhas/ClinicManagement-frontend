@@ -202,7 +202,7 @@ export interface ProviderVerificationRepository {
   searchByStatus(
     options: VerificationSearchOptions,
   ): Promise<PagedResult<Provider>>;
-  /** Every doctor at the clinic, whatever their verification status. Signed-in users only. */
+  /** Every doctor at the clinic for admins and its clinic admins; verified ones only for anyone else. */
   listByClinic(clinicId: string): Promise<Provider[]>;
   /** From PENDING or REJECTED. Throws ConflictError when already VERIFIED. */
   verify(id: string): Promise<void>;
