@@ -28,6 +28,14 @@ export function notificationItems(
       });
   }
 
+  const joinRequests = mine.clinicAdmin?.pendingProviderVerificationCount ?? 0;
+  if (joinRequests > 0)
+    items.push({
+      id: `join-requests:${joinRequests}`,
+      text: plural(joinRequests, "doctor join request", "to review"),
+      href: "/clinic-doctors",
+    });
+
   const requests = mine.doctor?.pendingRequestCount ?? 0;
   if (requests > 0)
     items.push({

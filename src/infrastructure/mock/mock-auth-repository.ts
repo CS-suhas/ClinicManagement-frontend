@@ -48,7 +48,7 @@ export const MOCK_PERSONAS: AuthPersona[] = [
   {
     id: "clinicadmin",
     label: "Clinic admin",
-    description: "Manages clinics and sees the dashboard and appointments.",
+    description: "Admits doctors into their clinic.",
     user: {
       subject: "mock-clinicadmin",
       displayName: "Casey Clinic",

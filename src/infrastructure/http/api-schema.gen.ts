@@ -1001,8 +1001,8 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Verify a provider (admin)
-     * @description Administrators only. Moves a PENDING or REJECTED provider to VERIFIED, which lists them in the directory and lets patients book them. Returns 409 when the provider is already verified or changed concurrently.
+     * Verify a provider
+     * @description Administrators, and administrators of the provider's clinic; other callers get 403. Moves a PENDING or REJECTED provider to VERIFIED, which lists them in the directory and lets patients book them. Returns 409 when the provider is already verified or changed concurrently.
      */
     post: operations["VerifyProvider"];
     delete?: never;
@@ -1021,8 +1021,8 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Reject a pending provider (admin)
-     * @description Administrators only. Moves a PENDING provider to REJECTED. Returns 409 from any other status, or when the provider changed concurrently.
+     * Reject a pending provider
+     * @description Administrators, and administrators of the provider's clinic; other callers get 403. Moves a PENDING provider to REJECTED. Returns 409 from any other status, or when the provider changed concurrently.
      */
     post: operations["RejectProvider"];
     delete?: never;

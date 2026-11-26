@@ -193,11 +193,17 @@ export interface VerificationSearchOptions extends SearchOptions {
   verificationStatus?: VerificationStatus;
 }
 
-/** Port: doctor verification. Admin only; each action throws ConflictError on an invalid transition. */
+/**
+ * Port: doctor verification. Admins act on any doctor, clinic admins on doctors
+ * at a clinic they administer; each action throws ConflictError on an invalid
+ * transition.
+ */
 export interface ProviderVerificationRepository {
   searchByStatus(
     options: VerificationSearchOptions,
   ): Promise<PagedResult<Provider>>;
+  /** Every doctor at the clinic, whatever their verification status. Signed-in users only. */
+  listByClinic(clinicId: string): Promise<Provider[]>;
   /** From PENDING or REJECTED. Throws ConflictError when already VERIFIED. */
   verify(id: string): Promise<void>;
   /** From PENDING only. Throws ConflictError otherwise. */

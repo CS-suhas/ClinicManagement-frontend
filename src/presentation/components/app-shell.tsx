@@ -73,6 +73,8 @@ function badgeCount(
   switch (badge) {
     case "approvals":
       return mine.admin?.pendingProviderVerificationCount ?? 0;
+    case "clinicApprovals":
+      return mine.clinicAdmin?.pendingProviderVerificationCount ?? 0;
   }
 }
 

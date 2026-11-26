@@ -102,6 +102,17 @@ export function buildLandingCards(
   }
 
   if (has("clinicadmin")) {
+    const joinRequests =
+      mine?.clinicAdmin?.pendingProviderVerificationCount ?? null;
+    cards.push({
+      href: "/clinic-doctors",
+      title: "Join requests",
+      hint: "Doctors waiting for you to admit them.",
+      icon: <CheckCircledIcon />,
+      count: joinRequests,
+      tone: joinRequests ? "attention" : "default",
+      rank: 1,
+    });
     cards.push({
       href: "/appointments",
       title: "Clinic schedule",

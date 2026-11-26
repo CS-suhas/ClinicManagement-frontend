@@ -57,12 +57,17 @@ export class ProviderService extends CrudService<
     return this.verificationRepo.searchByStatus(options);
   }
 
-  /** Admin only. From PENDING or REJECTED. */
+  /** Every doctor at a clinic, including pending and rejected applications. */
+  clinicRoster(clinicId: string): Promise<Provider[]> {
+    return this.verificationRepo.listByClinic(clinicId);
+  }
+
+  /** Admins, or admins of the doctor's clinic. From PENDING or REJECTED. */
   verify(id: string): Promise<void> {
     return this.verificationRepo.verify(id);
   }
 
-  /** Admin only. From PENDING. */
+  /** Admins, or admins of the doctor's clinic. From PENDING. */
   reject(id: string): Promise<void> {
     return this.verificationRepo.reject(id);
   }

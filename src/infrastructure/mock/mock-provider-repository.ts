@@ -101,8 +101,8 @@ export function createMockProviderDirectoryRepository(repositories: {
 }
 
 /**
- * Doctor verification. Admin only for verify and reject, with the API's order:
- * 401, 403, then 404, then 409.
+ * Doctor verification. Verify and reject are for admins and for admins of the
+ * doctor's clinic, with the API's order: 401, 404, 403, then 409.
  */
 export class MockProviderVerificationRepository
   implements ProviderVerificationRepository
@@ -135,6 +135,14 @@ export class MockProviderVerificationRepository
     return paginate(matches, options);
   }
 
+  async listByClinic(clinicId: string): Promise<Provider[]> {
+    await delay();
+    if (!(await this.currentUser())) throw new UnauthorizedError();
+    return this.store
+      .read()
+      .filter((provider) => provider.clinicId === clinicId);
+  }
+
   verify(id: string): Promise<void> {
     return this.transition(id, "verify", ["PENDING", "REJECTED"], "VERIFIED");
   }
@@ -152,10 +160,13 @@ export class MockProviderVerificationRepository
     await delay();
     const user = await this.currentUser();
     if (!user) throw new UnauthorizedError();
-    if (!user.roles.includes("admin")) throw new ForbiddenError();
     const providers = this.store.read();
     const index = providers.findIndex((provider) => provider.id === id);
     if (index < 0) throw new NotFoundError("Provider", id);
+    const mayDecide =
+      user.roles.includes("admin") ||
+      user.clinicAdminOf.includes(providers[index].clinicId);
+    if (!mayDecide) throw new ForbiddenError();
     const current = providers[index].verificationStatus ?? "PENDING";
     if (!allowedFrom.includes(current))
       throw new ConflictError(

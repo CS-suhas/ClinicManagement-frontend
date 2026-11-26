@@ -515,7 +515,10 @@ export class RestProviderDirectoryRepository
   }
 }
 
-/** Doctor verification. Search is forced to VERIFIED for non-admins by the API. */
+/**
+ * Doctor verification. Search is forced to VERIFIED for non-admins by the API;
+ * verify and reject are open to admins and to admins of the doctor's clinic.
+ */
 export class RestProviderVerificationRepository
   implements ProviderVerificationRepository
 {
@@ -535,6 +538,13 @@ export class RestProviderVerificationRepository
       ...result,
       items: result.items.map((item) => providerMapper.fromResponse(item)),
     };
+  }
+
+  async listByClinic(clinicId: string) {
+    const result = await this.http.get<ApiGet<"/clinics/{id}/providers">>(
+      `/clinics/${encodeURIComponent(clinicId)}/providers`,
+    );
+    return result.map((item) => providerMapper.fromResponse(item));
   }
 
   verify(id: string) {

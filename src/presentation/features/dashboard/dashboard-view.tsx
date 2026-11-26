@@ -109,6 +109,25 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
     sections.push(
       <Section key="clinicadmin" title="Clinic admin" icon={<HomeIcon />}>
         <QuickLinkCard
+          href="/clinic-doctors"
+          icon={<CheckCircledIcon />}
+          title="Join requests"
+          hint="Doctors waiting for you to admit them."
+          count={data.clinicAdmin.pendingProviderVerificationCount}
+          tone={
+            data.clinicAdmin.pendingProviderVerificationCount
+              ? "attention"
+              : "default"
+          }
+        />
+        <QuickLinkCard
+          href="/clinic-doctors"
+          icon={<PersonIcon />}
+          title="Clinic doctors"
+          hint="Doctors practising at your clinic."
+          count={data.clinicAdmin.providerCount}
+        />
+        <QuickLinkCard
           href="/appointments"
           icon={<CalendarIcon />}
           title="Clinic schedule"

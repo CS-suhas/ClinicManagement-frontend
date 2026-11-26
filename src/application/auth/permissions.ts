@@ -9,7 +9,7 @@ import type { CurrentUser, Role } from "@/domain/auth";
 export const ROUTE_ROLES = {
   "/dashboard": null,
   "/appointments": null,
-  "/clinics": ["admin", "clinicadmin"],
+  "/clinics": ["admin"],
   "/clinics/[id]": null,
   "/providers": ["admin"],
   "/patients": ["admin", "doctor"],
@@ -18,6 +18,8 @@ export const ROUTE_ROLES = {
   "/allergies": ["admin"],
   "/approvals": ["admin"],
   "/my-clinic": ["doctor"],
+  /** A clinic admin's doctors and join requests, for the clinics they administer. */
+  "/clinic-doctors": ["clinicadmin"],
   /** Public directory: no sign-in needed unless the deployment sets PUBLIC_DOCTORS=false. */
   "/doctors": null,
   /** Any signed-in user may create their own patient profile or registration. */
@@ -26,7 +28,7 @@ export const ROUTE_ROLES = {
 } as const satisfies Record<string, readonly Role[] | null>;
 
 /** Nav badges the shell fills from the signed-in user's dashboard counts. */
-export type NavBadge = "approvals";
+export type NavBadge = "approvals" | "clinicApprovals";
 
 export interface NavItem {
   href: string;
@@ -54,6 +56,12 @@ export const NAV_ITEMS: NavItem[] = [
     badge: "approvals",
   },
   { href: "/my-clinic", label: "My clinic", roles: ROUTE_ROLES["/my-clinic"] },
+  {
+    href: "/clinic-doctors",
+    label: "Clinic doctors",
+    roles: ROUTE_ROLES["/clinic-doctors"],
+    badge: "clinicApprovals",
+  },
 ];
 
 /** True when the user holds at least one of the given roles. */
