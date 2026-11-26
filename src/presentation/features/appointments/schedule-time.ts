@@ -3,8 +3,18 @@ import type { AppointmentSettings } from "@/domain/entities";
 /** Which view the page shows. Each role gets a subset, see appointments-view. */
 export type AppointmentView = "month" | "day" | "week" | "list";
 
-/** About 150px per hour: room for a time, a name and a status pill in one block. */
-export const CALENDAR_PX_PER_MINUTE = 2.5;
+/** About 150px per hour at the least. */
+const BASE_PX_PER_MINUTE = 2.5;
+
+/** Smallest block that fits a time-and-name row above a status pill. */
+const MIN_BLOCK_PX = 64;
+
+/**
+ * Vertical scale of the time grids. Short slots stretch the grid so every
+ * block still fits its time, name and status pill without clipping.
+ */
+export const calendarPxPerMinute = (duration: number) =>
+  Math.max(BASE_PX_PER_MINUTE, MIN_BLOCK_PX / Math.max(duration, 1));
 
 const pad = (n: number) => String(n).padStart(2, "0");
 

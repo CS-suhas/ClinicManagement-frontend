@@ -255,7 +255,7 @@ export function AppointmentBlock({
   const soon = isSoon(item, now);
   return (
     <div
-      className="absolute flex flex-col gap-0.5 overflow-hidden rounded-md px-1.5 py-1"
+      className="@container absolute flex flex-col gap-0.5 overflow-hidden rounded-md px-1.5 py-1"
       style={{
         ...style,
         background: muted
@@ -271,7 +271,7 @@ export function AppointmentBlock({
     >
       <div className="flex min-w-0 items-center gap-1">
         <span
-          className="shrink-0 text-[11px] font-semibold tabular-nums"
+          className="shrink-0 text-[11px] font-semibold tabular-nums @max-[140px]:hidden"
           style={{ color: "var(--mp-ink)" }}
         >
           {clockOf(item.appointmentDateTime)}

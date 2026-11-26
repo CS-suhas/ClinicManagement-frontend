@@ -11,8 +11,8 @@ import {
 import { NowLine } from "./now-line";
 import type { ScheduleColumn } from "./schedule-columns";
 import {
-  CALENDAR_PX_PER_MINUTE,
   type ClinicWindow,
+  calendarPxPerMinute,
   clock24,
   minutesOfDay,
   toneOf,
@@ -20,7 +20,6 @@ import {
 
 const GUTTER = 64;
 const COLUMN_MIN_WIDTH = 200;
-const HOUR = 60 * CALENDAR_PX_PER_MINUTE;
 
 /** Shared inputs for the block grids. */
 export interface GridCommon {
@@ -50,7 +49,9 @@ export function DayCalendar({
   toneOrder: string[];
 }) {
   const { opening, closing, duration } = clinic;
-  const height = (closing - opening) * CALENDAR_PX_PER_MINUTE;
+  const scale = calendarPxPerMinute(duration);
+  const hour = 60 * scale;
+  const height = (closing - opening) * scale;
   const hourMarks: number[] = [];
   for (let minute = opening; minute < closing; minute += 60)
     hourMarks.push(minute);
@@ -102,7 +103,7 @@ export function DayCalendar({
             className="relative flex"
             style={{
               height,
-              backgroundImage: `repeating-linear-gradient(to bottom, var(--mp-paper-deep) 0 1px, transparent 1px ${HOUR}px)`,
+              backgroundImage: `repeating-linear-gradient(to bottom, var(--mp-paper-deep) 0 1px, transparent 1px ${hour}px)`,
             }}
           >
             <div className="relative shrink-0" style={{ width: GUTTER }}>
@@ -111,7 +112,7 @@ export function DayCalendar({
                   key={minute}
                   className="absolute right-2 text-xs tabular-nums"
                   style={{
-                    top: (minute - opening) * CALENDAR_PX_PER_MINUTE + 4,
+                    top: (minute - opening) * scale + 4,
                     color: "var(--mp-muted)",
                   }}
                 >
@@ -135,7 +136,7 @@ export function DayCalendar({
                     const start = minutesOfDay(
                       Date.parse(item.appointmentDateTime),
                     );
-                    const blockHeight = duration * CALENDAR_PX_PER_MINUTE - 2;
+                    const blockHeight = duration * scale - 2;
                     return (
                       <AppointmentBlock
                         key={item.id}
@@ -144,7 +145,7 @@ export function DayCalendar({
                         accent={toneOf(item.providerId, toneOrder)}
                         tall={blockHeight >= 80}
                         style={{
-                          top: (start - opening) * CALENDAR_PX_PER_MINUTE + 1,
+                          top: (start - opening) * scale + 1,
                           height: blockHeight,
                           left: 4,
                           right: 4,
@@ -156,7 +157,7 @@ export function DayCalendar({
             ))}
 
             {nowOffset !== null && (
-              <NowLine top={nowOffset * CALENDAR_PX_PER_MINUTE} left={GUTTER} />
+              <NowLine top={nowOffset * scale} left={GUTTER} />
             )}
           </div>
         </div>

@@ -7,8 +7,8 @@ import { dayHeading } from "./appointment-range";
 import { type GridCommon, viewFor } from "./day-calendar";
 import { NowLine } from "./now-line";
 import {
-  CALENDAR_PX_PER_MINUTE,
   type ClinicWindow,
+  calendarPxPerMinute,
   clock24,
   dateKeyOf,
   minutesOfDay,
@@ -16,7 +16,6 @@ import {
 
 const GUTTER = 56;
 const DAY_MIN_WIDTH = 120;
-const HOUR = 60 * CALENDAR_PX_PER_MINUTE;
 const ACCENT = "var(--mp-primary)";
 
 /**
@@ -42,7 +41,9 @@ export function WeekCalendar({
   onPickDay: (dateKey: string) => void;
 }) {
   const { opening, closing, duration } = clinic;
-  const height = (closing - opening) * CALENDAR_PX_PER_MINUTE;
+  const scale = calendarPxPerMinute(duration);
+  const hour = 60 * scale;
+  const height = (closing - opening) * scale;
   const hourMarks: number[] = [];
   for (let minute = opening; minute < closing; minute += 60)
     hourMarks.push(minute);
@@ -96,7 +97,7 @@ export function WeekCalendar({
             className="relative flex"
             style={{
               height,
-              backgroundImage: `repeating-linear-gradient(to bottom, var(--mp-paper-deep) 0 1px, transparent 1px ${HOUR}px)`,
+              backgroundImage: `repeating-linear-gradient(to bottom, var(--mp-paper-deep) 0 1px, transparent 1px ${hour}px)`,
             }}
           >
             <div className="relative shrink-0" style={{ width: GUTTER }}>
@@ -105,7 +106,7 @@ export function WeekCalendar({
                   key={minute}
                   className="absolute right-2 text-xs tabular-nums"
                   style={{
-                    top: (minute - opening) * CALENDAR_PX_PER_MINUTE + 4,
+                    top: (minute - opening) * scale + 4,
                     color: "var(--mp-muted)",
                   }}
                 >
@@ -135,7 +136,7 @@ export function WeekCalendar({
                     const start = minutesOfDay(
                       Date.parse(item.appointmentDateTime),
                     );
-                    const blockHeight = duration * CALENDAR_PX_PER_MINUTE - 2;
+                    const blockHeight = duration * scale - 2;
                     return (
                       <AppointmentBlock
                         key={item.id}
@@ -144,7 +145,7 @@ export function WeekCalendar({
                         accent={ACCENT}
                         tall={blockHeight >= 80}
                         style={{
-                          top: (start - opening) * CALENDAR_PX_PER_MINUTE + 1,
+                          top: (start - opening) * scale + 1,
                           height: blockHeight,
                           left: 3,
                           right: 3,
@@ -153,10 +154,7 @@ export function WeekCalendar({
                     );
                   })}
                   {isToday && nowOffset !== null && (
-                    <NowLine
-                      top={nowOffset * CALENDAR_PX_PER_MINUTE}
-                      left={0}
-                    />
+                    <NowLine top={nowOffset * scale} left={0} />
                   )}
                 </div>
               );
