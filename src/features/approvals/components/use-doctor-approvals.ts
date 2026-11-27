@@ -1,51 +1,44 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNotify } from "@/components/notifications";
+import { useMutation } from "@tanstack/react-query";
+import { notify } from "@/components/notifications";
 import type { VerificationStatus } from "@/features/auth/schemas";
 import {
-  rejectProvider,
-  searchProvidersByStatus,
-  verifyProvider,
+  type Decision,
+  decideProvider,
+  useProvidersByStatus,
 } from "@/features/providers/api";
 import type { Provider } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
 import { getErrorMessage } from "@/lib/errors";
-import { PROVIDER_KEYS } from "@/lib/query-client";
+import { PROVIDER_CHANGES } from "@/lib/query-client";
 
 export type ApprovalTab = VerificationStatus;
 
-type Decision = "verify" | "reject";
-
 export function useDoctorApprovals(tab: ApprovalTab, search: string) {
-  const { notifyError, notifySuccess } = useNotify();
-  const query = useQuery({
-    queryKey: ["providers", "verification", tab, search],
-    queryFn: async () =>
-      (await searchProvidersByStatus(tab, search || undefined)).items,
-  });
+  const query = useProvidersByStatus(tab, search);
 
   const decide = useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
+    meta: { invalidates: PROVIDER_CHANGES },
     mutationFn: ({ row, decision }: { row: Provider; decision: Decision }) =>
-      decision === "verify" ? verifyProvider(row.id) : rejectProvider(row.id),
+      decideProvider(row.id, decision),
     onSuccess: (_, { row, decision }) =>
-      notifySuccess(
+      notify.success(
         `${providerFullName(row)} ${decision === "verify" ? "verified" : "rejected"}`,
       ),
     onError: (e, { row, decision }) =>
-      notifyError(
+      notify.error(
         `Could not ${decision} ${providerFullName(row)}: ${getErrorMessage(e)}`,
       ),
   });
 
   const verifyAll = useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
+    meta: { invalidates: PROVIDER_CHANGES },
     mutationFn: async (rows: Provider[]) => {
       const failed: Provider[] = [];
       for (const row of rows) {
         try {
-          await verifyProvider(row.id);
+          await decideProvider(row.id, "verify");
         } catch {
           failed.push(row);
         }
@@ -54,11 +47,11 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
     },
     onSuccess: ({ verified, failed }) => {
       if (failed.length > 0)
-        notifyError(
+        notify.error(
           `Could not verify ${failed.map(providerFullName).join(", ")}`,
         );
       if (verified > 0)
-        notifySuccess(
+        notify.success(
           failed.length > 0
             ? `${verified} verified, ${failed.length} failed`
             : `${verified} verified`,

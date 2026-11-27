@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Callout, Flex, Grid } from "@radix-ui/themes";
 import { FormProvider, useForm } from "react-hook-form";
 import { setFormErrors, TextInput } from "@/components/form";
-import { useNotify } from "@/components/notifications";
+import { notify } from "@/components/notifications";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useCreatePatientProfile } from "../api";
 import { type PatientForm, patientForm } from "../schemas";
@@ -21,7 +21,6 @@ export function PatientStep({
   onDone: () => void;
 }) {
   const { refresh } = useAuth();
-  const { notifySuccess } = useNotify();
   const createProfile = useCreatePatientProfile();
   const form = useForm<PatientForm>({
     resolver: zodResolver(patientForm),
@@ -32,13 +31,13 @@ export function PatientStep({
   const submit = form.handleSubmit(async (input) => {
     form.clearErrors("root");
     try {
-      await createProfile.mutateAsync(input);
+      await createProfile(input);
       await refresh();
     } catch (e) {
       setFormErrors(form, e);
       return;
     }
-    notifySuccess("Profile created");
+    notify.success("Profile created");
     onDone();
   });
 

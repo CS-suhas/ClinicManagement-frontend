@@ -1,17 +1,13 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNotify } from "@/components/notifications";
+import { useMutation } from "@tanstack/react-query";
+import { notify } from "@/components/notifications";
 import type { VerificationStatus } from "@/features/auth/schemas";
-import {
-  fetchClinicProviders,
-  rejectProvider,
-  verifyProvider,
-} from "@/features/providers/api";
+import { decideProvider, useClinicProviders } from "@/features/providers/api";
 import type { Provider } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
 import { getErrorMessage } from "@/lib/errors";
-import { PROVIDER_KEYS } from "@/lib/query-client";
+import { PROVIDER_CHANGES } from "@/lib/query-client";
 
 const statusOf = (p: Provider): VerificationStatus =>
   p.verificationStatus ?? "PENDING";
@@ -19,23 +15,19 @@ const statusOf = (p: Provider): VerificationStatus =>
 type Decision = "admit" | "decline";
 
 export function useClinicDoctors(clinicId: string | null) {
-  const { notifyError, notifySuccess } = useNotify();
-  const query = useQuery({
-    queryKey: ["providers", "clinic", clinicId ?? ""],
-    queryFn: () => (clinicId ? fetchClinicProviders(clinicId) : []),
-  });
+  const query = useClinicProviders(clinicId);
   const doctors = query.data ?? [];
 
   const decide = useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
+    meta: { invalidates: PROVIDER_CHANGES },
     mutationFn: ({ row, decision }: { row: Provider; decision: Decision }) =>
-      decision === "admit" ? verifyProvider(row.id) : rejectProvider(row.id),
+      decideProvider(row.id, decision === "admit" ? "verify" : "reject"),
     onSuccess: (_, { row, decision }) =>
-      notifySuccess(
+      notify.success(
         `${providerFullName(row)} ${decision === "admit" ? "admitted" : "declined"}`,
       ),
     onError: (e, { row, decision }) =>
-      notifyError(
+      notify.error(
         `Could not ${decision} ${providerFullName(row)}: ${getErrorMessage(e)}`,
       ),
   });
@@ -44,7 +36,7 @@ export function useClinicDoctors(clinicId: string | null) {
     doctors,
     byStatus: (status: VerificationStatus) =>
       doctors.filter((p) => statusOf(p) === status),
-    loading: query.isPending,
+    loading: query.isLoading,
     error: query.error ? getErrorMessage(query.error) : null,
     reload: () => void query.refetch(),
     verify: (row: Provider) => decide.mutate({ row, decision: "admit" }),

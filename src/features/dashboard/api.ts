@@ -1,13 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { api, unwrap } from "@/lib/api";
+import { $api } from "@/lib/api";
 
 const REFRESH_MS = 60_000;
 
-export function useDashboard(enabled = true) {
-  return useQuery({
-    queryKey: ["dashboard", "me"],
-    queryFn: () => unwrap(api.GET("/api/me/dashboard")),
+export const useDashboard = (enabled = true) =>
+  $api.useQuery("get", "/api/me/dashboard", undefined, {
     enabled,
     refetchInterval: REFRESH_MS,
   });
-}

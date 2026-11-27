@@ -1,163 +1,126 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNotify } from "@/components/notifications";
+import { useQuery } from "@tanstack/react-query";
 import type { VerificationStatus } from "@/features/auth/schemas";
 import {
   fetchProviderBusyCount,
   fetchProviderSummary,
   resolveNextFreeSlot,
-  unlessDenied,
 } from "@/features/doctors/api";
 import { localDayOf } from "@/features/doctors/utils";
-import { type PageParams, usePagedList } from "@/hooks/use-paged-list";
-import { api, newId, unwrap } from "@/lib/api";
+import { pageQuery, usePagedList } from "@/hooks/use-paged-list";
+import { $api, api, byId, newId, orNull, unwrap } from "@/lib/api";
 import { toOffsetDateTime } from "@/lib/dates";
-import { getErrorMessage } from "@/lib/errors";
-import { PROVIDER_KEYS } from "@/lib/query-client";
+import { PROVIDER_CHANGES, resourceKey } from "@/lib/query-client";
 import type { ProviderForm } from "./schemas";
 
 export const ALL_CLINICS = "all";
 
-const asVerificationQuery = (status: VerificationStatus) =>
-  status as unknown as number;
-
-export const searchProviders = ({
-  search,
-  page,
-  pageSize,
-  clinicId,
-}: PageParams & { clinicId?: string }) =>
-  unwrap(
-    api.GET("/api/providers/search", {
-      params: {
-        query: { Search: search, Page: page, PageSize: pageSize, clinicId },
-      },
-    }),
-  );
+export type Decision = "verify" | "reject";
 
 export function useProviderList(clinicFilter: string) {
   const clinicId = clinicFilter === ALL_CLINICS ? undefined : clinicFilter;
-  return usePagedList(["providers", "list", clinicFilter], (params) =>
-    searchProviders({ ...params, clinicId }),
+  return usePagedList((page) =>
+    $api.queryOptions("get", "/api/providers/search", {
+      params: { query: { ...pageQuery(page), clinicId } },
+    }),
   );
 }
 
-export const searchProvidersByStatus = (
-  verificationStatus: VerificationStatus,
-  search: string | undefined,
+export const useProvidersByStatus = (
+  status: VerificationStatus,
+  search: string,
 ) =>
-  unwrap(
-    api.GET("/api/providers/search", {
+  $api.useQuery(
+    "get",
+    "/api/providers/search",
+    {
       params: {
         query: {
-          verificationStatus: asVerificationQuery(verificationStatus),
-          Search: search,
+          verificationStatus: status as unknown as number,
+          Search: search || undefined,
           Page: 1,
           PageSize: 100,
         },
       },
-    }),
+    },
+    { select: (page) => page.items },
   );
 
-export const fetchClinicProviders = (clinicId: string) =>
-  unwrap(
-    api.GET("/api/clinics/{id}/providers", {
-      params: { path: { id: clinicId } },
-    }),
-  );
+export const useClinicProviders = (clinicId: string | null) =>
+  $api.useQuery("get", "/api/clinics/{id}/providers", byId(clinicId ?? ""), {
+    enabled: clinicId !== null,
+  });
 
 export const fetchClinic = (id: string) =>
-  unwrap(api.GET("/api/clinics/{id}", { params: { path: { id } } }));
+  unwrap(api.GET("/api/clinics/{id}", byId(id)));
 
-export const verifyProvider = (id: string) =>
-  unwrap(api.POST("/api/providers/{id}/verify", { params: { path: { id } } }));
-
-export const rejectProvider = (id: string) =>
-  unwrap(api.POST("/api/providers/{id}/reject", { params: { path: { id } } }));
+export const decideProvider = (id: string, decision: Decision) =>
+  decision === "verify"
+    ? api.POST("/api/providers/{id}/verify", byId(id))
+    : api.POST("/api/providers/{id}/reject", byId(id));
 
 export function useSaveProvider() {
-  const { notifySuccess } = useNotify();
-  return useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
-    mutationFn: ({ id, values }: { id?: string; values: ProviderForm }) => {
-      const body = {
-        clinicId: values.clinicId,
-        firstName: values.firstName,
-        lastName: values.lastName,
-        specialty: values.specialty,
-        fee: values.fee ?? null,
-        gender: values.gender ?? null,
-      };
-      return id
-        ? unwrap(
-            api.PUT("/api/providers/{id}", {
-              params: { path: { id } },
-              body: { id, ...body },
-            }),
-          )
-        : unwrap(
-            api.POST("/api/providers", { body: { id: newId(), ...body } }),
-          );
+  const create = $api.useMutation("post", "/api/providers", {
+    meta: { invalidates: PROVIDER_CHANGES, success: "Provider added" },
+  });
+  const update = $api.useMutation("put", "/api/providers/{id}", {
+    meta: { invalidates: PROVIDER_CHANGES, success: "Provider saved" },
+  });
+  return (id: string | undefined, values: ProviderForm) =>
+    id
+      ? update.mutateAsync({
+          params: { path: { id } },
+          body: { id, ...values },
+        })
+      : create.mutateAsync({ body: { id: newId(), ...values } });
+}
+
+export const useDeleteProvider = () =>
+  $api.useMutation("delete", "/api/providers/{id}", {
+    meta: {
+      invalidates: PROVIDER_CHANGES,
+      success: "Provider deleted",
+      error: "Could not delete provider",
     },
-    onSuccess: (_, { id }) =>
-      notifySuccess(id ? "Provider saved" : "Provider added"),
   });
-}
 
-export function useDeleteProvider() {
-  const { notifySuccess, notifyError } = useNotify();
-  return useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
-    mutationFn: (id: string) =>
-      unwrap(api.DELETE("/api/providers/{id}", { params: { path: { id } } })),
-    onSuccess: () => notifySuccess("Provider deleted"),
-    onError: (e) =>
-      notifyError(`Could not delete provider: ${getErrorMessage(e)}`),
-  });
-}
-
-export async function fetchProviderPanel(providerId: string) {
-  const data = await unlessDenied(() => fetchProviderSummary(providerId));
-  const todaySlots = data
-    ? await fetchProviderBusyCount(providerId, localDayOf(Date.now()))
-    : null;
-  const nextAvailableStart = data
-    ? await resolveNextFreeSlot(
-        providerId,
-        data.nextAvailableStart ?? null,
-        Date.now(),
-      )
-    : null;
-  return { clinic: data?.clinic ?? null, nextAvailableStart, todaySlots };
+async function fetchProviderPanel(providerId: string) {
+  const data = await orNull(() => fetchProviderSummary(providerId));
+  if (!data)
+    return { clinic: null, nextAvailableStart: null, todaySlots: null };
+  return {
+    clinic: data.clinic ?? null,
+    todaySlots: await fetchProviderBusyCount(
+      providerId,
+      localDayOf(Date.now()),
+    ),
+    nextAvailableStart: await resolveNextFreeSlot(
+      providerId,
+      data.nextAvailableStart ?? null,
+      Date.now(),
+    ),
+  };
 }
 
 export function useProviderPanel(providerId: string) {
   return useQuery({
-    queryKey: ["providers", providerId, "panel"],
+    queryKey: resourceKey("providers", providerId, "panel"),
     queryFn: () => fetchProviderPanel(providerId),
   });
 }
 
-export async function fetchProviderUpcoming(providerId: string, limit: number) {
-  const result = await unlessDenied(() =>
-    unwrap(
-      api.GET("/api/appointments/search", {
-        params: {
-          query: {
-            ProviderId: providerId,
-            From: toOffsetDateTime(`${localDayOf(Date.now())}T00:00`),
-            Page: 1,
-            PageSize: limit,
-          },
+export const useProviderUpcoming = (providerId: string, allowed: boolean) =>
+  $api.useQuery(
+    "get",
+    "/api/appointments/search",
+    {
+      params: {
+        query: {
+          ProviderId: providerId,
+          From: toOffsetDateTime(`${localDayOf(Date.now())}T00:00`),
+          Page: 1,
+          PageSize: 5,
         },
-      }),
-    ),
+      },
+    },
+    { enabled: allowed, select: (page) => page.items },
   );
-  return result?.items ?? null;
-}
-
-export function useProviderUpcoming(providerId: string, allowed: boolean) {
-  return useQuery({
-    queryKey: ["providers", providerId, "upcoming", allowed],
-    queryFn: () => (allowed ? fetchProviderUpcoming(providerId, 5) : null),
-  });
-}

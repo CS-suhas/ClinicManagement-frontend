@@ -55,6 +55,14 @@
   },
   "overrides": [
     {
+      "includes": ["src/lib/query-client.ts"],
+      "linter": {
+        "rules": {
+          "style": { "useConsistentTypeDefinitions": "off" }
+        }
+      }
+    },
+    {
       "includes": ["src/lib/api-schema.gen.ts"],
       "linter": {
         "enabled": false

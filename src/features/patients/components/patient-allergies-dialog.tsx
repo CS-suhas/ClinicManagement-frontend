@@ -23,16 +23,11 @@ import {
   type Patient,
   type PatientAllergy,
   type PatientAllergyForm,
+  patientAllergyDefaults,
   patientAllergyForm,
 } from "../schemas";
 import { patientFullName } from "../utils";
 import { SeverityBadge, severityLabel } from "./severity-badge";
-
-const EMPTY_FORM: PatientAllergyForm = {
-  allergyId: "",
-  severity: "",
-  notes: "",
-};
 
 type DialogProps = {
   open: boolean;
@@ -80,7 +75,7 @@ function AllergiesDialogContent({
   );
   const form = useForm<PatientAllergyForm>({
     resolver: zodResolver(patientAllergyForm),
-    defaultValues: EMPTY_FORM,
+    defaultValues: patientAllergyDefaults,
   });
 
   const allergies = (records.data ?? []).map((allergy) => ({
@@ -97,7 +92,7 @@ function AllergiesDialogContent({
 
   const cancelEdit = () => {
     setEditing(null);
-    form.reset(EMPTY_FORM);
+    form.reset(patientAllergyDefaults);
   };
 
   const startEdit = (allergy: PatientAllergy) => {
@@ -116,25 +111,27 @@ function AllergiesDialogContent({
 
   const submit = form.handleSubmit(async (values) => {
     if (!patient || readOnly) return;
-    const write = editing ? update : add;
-    const saved = await write
-      .mutateAsync({
-        patientId: patient.id,
-        allergyId: values.allergyId,
-        severity: values.severity,
-        notes: values.notes.trim(),
-      })
-      .then(
-        () => true,
-        () => false,
-      );
+    const id = patient.id;
+    const body = { ...values, notes: values.notes.trim() };
+    const saved = await (editing
+      ? update.mutateAsync({
+          params: { path: { id, allergyId: values.allergyId } },
+          body,
+        })
+      : add.mutateAsync({ params: { path: { id } }, body })
+    ).then(
+      () => true,
+      () => false,
+    );
     if (saved) cancelEdit();
   });
 
   const confirmRemove = () => {
     if (!removing || !patient || readOnly) return;
     if (editing?.allergyId === removing.allergyId) cancelEdit();
-    remove.mutate({ patientId: patient.id, allergyId: removing.allergyId });
+    remove.mutate({
+      params: { path: { id: patient.id, allergyId: removing.allergyId } },
+    });
   };
 
   const columns: Column<(typeof allergies)[number]>[] = [

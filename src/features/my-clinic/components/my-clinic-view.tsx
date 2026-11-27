@@ -29,8 +29,8 @@ export function MyClinicView() {
         subtitle="The clinic you practise at. To change it, contact a platform administrator."
       />
       <AsyncContent
-        loading={provider.isPending}
-        error={provider.error ? getErrorMessage(provider.error) : null}
+        loading={provider.isLoading}
+        error={provider.isError ? getErrorMessage(provider.error) : null}
         isEmpty={false}
         onRetry={() => void provider.refetch()}
       >

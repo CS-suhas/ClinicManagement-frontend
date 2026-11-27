@@ -3,7 +3,7 @@
 import { Grid } from "@radix-ui/themes";
 import { FormDialog, TextInput } from "@/components/form";
 import { useSavePatient } from "../api";
-import { type Patient, patientForm } from "../schemas";
+import { type Patient, patientDefaults, patientForm } from "../schemas";
 
 export function PatientFormDialog({
   open,
@@ -20,17 +20,11 @@ export function PatientFormDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={patient ? "Edit patient" : "New patient"}
-      submitLabel={patient ? "Save changes" : "Create patient"}
+      noun="patient"
+      entity={patient}
+      defaults={patientDefaults}
       schema={patientForm}
-      defaultValues={{
-        firstName: patient?.firstName ?? "",
-        lastName: patient?.lastName ?? "",
-        dateOfBirth: patient?.dateOfBirth ?? "",
-        email: patient?.email ?? "",
-        phoneNumber: patient?.phoneNumber ?? "",
-      }}
-      onSubmit={(values) => save.mutateAsync({ id: patient?.id, values })}
+      onSubmit={(values) => save(patient?.id, values)}
     >
       <Grid columns="2" gap="3">
         <TextInput name="firstName" label="First name" />

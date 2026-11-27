@@ -27,26 +27,41 @@ import { ErrorCallout } from "./error-callout";
 import { FormField } from "./form-field";
 import { SearchField } from "./search-field";
 
+export function fillDefaults<T extends object>(
+  defaults: T,
+  entity?: Partial<Record<keyof T, unknown>> | null,
+): T {
+  if (!entity) return defaults;
+  const values = { ...defaults } as Record<string, unknown>;
+  for (const key of Object.keys(defaults))
+    values[key] = entity[key as keyof T] ?? values[key];
+  return values as T;
+}
+
 export function FormDialog<
   TSchema extends z.ZodType<FieldValues, FieldValues>,
 >({
   open,
   onOpenChange,
-  title,
+  noun,
+  entity,
+  defaults,
+  title = entity ? `Edit ${noun}` : `New ${noun}`,
   description = "Fill in the details below.",
-  submitLabel = "Save",
+  submitLabel = entity ? "Save changes" : `Create ${noun}`,
   schema,
-  defaultValues,
   onSubmit,
   children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
+  noun: string;
+  entity?: Partial<Record<keyof z.input<TSchema>, unknown>> | null;
+  defaults: z.input<TSchema>;
+  title?: string;
   description?: string;
   submitLabel?: string;
   schema: TSchema;
-  defaultValues: DefaultValues<z.input<TSchema>>;
   onSubmit: (values: z.output<TSchema>) => unknown;
   children:
     | ReactNode
@@ -54,6 +69,9 @@ export function FormDialog<
         form: UseFormReturn<z.input<TSchema>, unknown, z.output<TSchema>>,
       ) => ReactNode);
 }) {
+  const defaultValues = fillDefaults(defaults, entity) as DefaultValues<
+    z.input<TSchema>
+  >;
   const form = useForm<z.input<TSchema>, unknown, z.output<TSchema>>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -204,6 +222,9 @@ export function TextAreaInput({
 }
 
 export type Option = { value: string; label: string };
+
+export const optionsFrom = (labels: Record<string, string>): Option[] =>
+  Object.entries(labels).map(([value, label]) => ({ value, label }));
 
 const NONE = "__none__";
 

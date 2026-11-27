@@ -1,63 +1,26 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/auth-provider";
-import { ApiError, api, newId, unwrap } from "@/lib/api";
+import { hasRole } from "@/features/auth/permissions";
+import { $api, api, byId, newId, orNull, unwrap } from "@/lib/api";
 import { addDays, toOffsetDateTime } from "@/lib/dates";
-import { APPOINTMENT_KEYS } from "@/lib/query-client";
+import { APPOINTMENT_CHANGES, resourceKey } from "@/lib/query-client";
 import { freeSlotStarts, localDayOf, slotCount } from "./utils";
 
 const FREE_SLOT_SEARCH_DAYS = 7;
 
-export async function unlessDenied<T>(
-  read: () => Promise<T>,
-): Promise<T | null> {
-  try {
-    return await read();
-  } catch (e) {
-    if (e instanceof ApiError && (e.status === 403 || e.status === 404))
-      return null;
-    throw e;
-  }
-}
-
-export const fetchDirectory = (params: {
-  search?: string;
-  clinicId?: string;
-  page: number;
-  pageSize: number;
-}) =>
-  unwrap(
-    api.GET("/api/providers/directory", {
-      params: {
-        query: {
-          Search: params.search,
-          clinicId: params.clinicId,
-          Page: params.page,
-          PageSize: params.pageSize,
-        },
-      },
-    }),
-  );
-
 export const fetchAppointmentSettings = () =>
   unwrap(api.GET("/api/appointment-settings"));
 
-export const fetchPatient = (id: string) =>
-  unwrap(api.GET("/api/patients/{id}", { params: { path: { id } } }));
-
 export const fetchProviderSummary = (providerId: string) =>
-  unwrap(
-    api.GET("/api/providers/{id}/summary", {
-      params: { path: { id: providerId } },
-    }),
-  );
+  unwrap(api.GET("/api/providers/{id}/summary", byId(providerId)));
 
 export async function fetchBusyStarts(providerId: string, date: string) {
-  const raw = await unwrap(
+  const { busyStartTimes } = await unwrap(
     api.GET("/api/providers/{id}/busy-slots", {
       params: { path: { id: providerId }, query: { date } },
     }),
   );
-  return raw.busyStartTimes;
+  return busyStartTimes;
 }
 
 export async function fetchProviderBusyCount(
@@ -94,8 +57,8 @@ export async function resolveNextFreeSlot(
   }
 }
 
-export async function fetchNextFreeSlot(providerId: string) {
-  const summary = await unlessDenied(() => fetchProviderSummary(providerId));
+async function fetchNextFreeSlot(providerId: string) {
+  const summary = await orNull(() => fetchProviderSummary(providerId));
   if (!summary) return null;
   return resolveNextFreeSlot(
     providerId,
@@ -104,74 +67,62 @@ export async function fetchNextFreeSlot(providerId: string) {
   );
 }
 
-export function useDirectory(clinicId: string) {
-  return useQuery({
-    queryKey: ["providers", "directory", { clinicId }],
-    queryFn: () =>
-      fetchDirectory({
-        clinicId: clinicId || undefined,
-        page: 1,
-        pageSize: 100,
-      }),
+export const useDirectory = (clinicId: string) =>
+  $api.useQuery("get", "/api/providers/directory", {
+    params: {
+      query: { clinicId: clinicId || undefined, Page: 1, PageSize: 100 },
+    },
   });
-}
 
-export function useBusyStarts(providerId: string | undefined, date: string) {
-  return useQuery({
-    queryKey: ["providers", providerId, "busy-starts", date],
-    queryFn: () => fetchBusyStarts(providerId as string, date),
-    enabled: !!providerId && !!date,
-  });
-}
+export const useBusyStarts = (providerId: string | undefined, date: string) =>
+  $api.useQuery(
+    "get",
+    "/api/providers/{id}/busy-slots",
+    { params: { path: { id: providerId ?? "" }, query: { date } } },
+    { enabled: !!providerId && !!date, select: (r) => r.busyStartTimes },
+  );
 
 export function useNextFreeSlot(providerId: string) {
   return useQuery({
-    queryKey: ["providers", providerId, "next-free-slot"],
+    queryKey: resourceKey("providers", providerId, "next-free-slot"),
     queryFn: () => fetchNextFreeSlot(providerId),
   });
 }
 
-export function usePatient(id: string | undefined) {
-  return useQuery({
-    queryKey: ["patients", id],
-    queryFn: () => fetchPatient(id as string),
+export const usePatient = (id: string | undefined) =>
+  $api.useQuery("get", "/api/patients/{id}", byId(id ?? ""), {
     enabled: !!id,
   });
-}
 
 export function useBookAppointment() {
-  return useMutation({
-    meta: { invalidates: APPOINTMENT_KEYS },
-    mutationFn: ({
-      patientId,
-      providerId,
+  const book = $api.useMutation("post", "/api/appointments", {
+    meta: { invalidates: APPOINTMENT_CHANGES },
+  });
+  return {
+    isPending: book.isPending,
+    mutateAsync: ({
       dateTime,
-      reasonForVisit,
+      ...booking
     }: {
       patientId: string;
       providerId: string;
       dateTime: string;
       reasonForVisit: string;
     }) =>
-      unwrap(
-        api.POST("/api/appointments", {
-          body: {
-            id: newId(),
-            patientId,
-            providerId,
-            appointmentDateTime: toOffsetDateTime(dateTime),
-            reasonForVisit,
-          },
-        }),
-      ),
-  });
+      book.mutateAsync({
+        body: {
+          id: newId(),
+          ...booking,
+          appointmentDateTime: toOffsetDateTime(dateTime),
+        },
+      }),
+  };
 }
 
 export function useCanViewProviderSchedule(providerId: string) {
   const { user } = useAuth();
   return (
-    !!user &&
-    (user.roles.includes("admin") ||
-      (user.roles.includes("doctor") && user.provider?.id === providerId))
+    hasRole(user, "admin") ||
+    (hasRole(user, "doctor") && user?.provider?.id === providerId)
   );
 }

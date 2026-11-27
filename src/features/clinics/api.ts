@@ -1,10 +1,17 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNotify } from "@/components/notifications";
 import { useAuth } from "@/features/auth/auth-provider";
 import { hasRole } from "@/features/auth/permissions";
-import { type PageParams, usePagedList } from "@/hooks/use-paged-list";
-import { ApiError, api, newId, type Schemas, unwrap } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { pageQuery, usePagedList } from "@/hooks/use-paged-list";
+import {
+  $api,
+  api,
+  byId,
+  newId,
+  orNull,
+  type Schemas,
+  unwrap,
+} from "@/lib/api";
+import { resourceKey } from "@/lib/query-client";
 import type { ClinicForm } from "./schemas";
 
 const TOP_DOCTORS = 5;
@@ -12,12 +19,10 @@ const PREVIEW_DOCTORS = 8;
 const DIRECTORY_PAGE_SIZE = 100;
 const MAX_DIRECTORY_PAGES = 5;
 
-export type ClinicDoctorRef = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  specialty: string;
-};
+export type ClinicDoctorRef = Pick<
+  Schemas["ProviderResponse"],
+  "id" | "firstName" | "lastName" | "specialty"
+>;
 
 export type ClinicDoctorPreview = {
   count: number;
@@ -40,70 +45,64 @@ const EMPTY_SUMMARY: ClinicSummary = {
   todayAppointmentCount: null,
 };
 
-const toDoctorRef = (doctor: Schemas["ProviderResponse"]): ClinicDoctorRef => ({
-  id: doctor.id,
-  firstName: doctor.firstName,
-  lastName: doctor.lastName,
-  specialty: doctor.specialty,
+const toDoctorRef = ({
+  id,
+  firstName,
+  lastName,
+  specialty,
+}: ClinicDoctorRef): ClinicDoctorRef => ({
+  id,
+  firstName,
+  lastName,
+  specialty,
 });
 
-const isDenied = (e: unknown) =>
-  e instanceof ApiError && (e.status === 403 || e.status === 404);
-
-const searchClinics = ({ search, page, pageSize }: PageParams) =>
-  unwrap(
-    api.GET("/api/clinics/search", {
-      params: { query: { Search: search, Page: page, PageSize: pageSize } },
+export function useClinicList() {
+  return usePagedList((page) =>
+    $api.queryOptions("get", "/api/clinics/search", {
+      params: { query: pageQuery(page) },
     }),
   );
-
-export function useClinicList() {
-  return usePagedList(["clinics"], searchClinics);
 }
 
 export function useSaveClinic() {
-  const { notifySuccess } = useNotify();
-  return useMutation({
-    meta: { invalidates: [["clinics"], ["providers"], ["dashboard"]] },
-    mutationFn: ({ id, values }: { id?: string; values: ClinicForm }) =>
-      id
-        ? unwrap(
-            api.PUT("/api/clinics/{id}", {
-              params: { path: { id } },
-              body: { id, ...values },
-            }),
-          )
-        : unwrap(
-            api.POST("/api/clinics", {
-              body: { id: newId(), ...values },
-            }),
-          ),
-    onSuccess: (_, { id }) =>
-      notifySuccess(id ? "Clinic saved" : "Clinic added"),
+  const invalidates = ["clinics", "providers", "dashboard"] as const;
+  const create = $api.useMutation("post", "/api/clinics", {
+    meta: { invalidates, success: "Clinic added" },
   });
+  const update = $api.useMutation("put", "/api/clinics/{id}", {
+    meta: { invalidates, success: "Clinic saved" },
+  });
+  return (id: string | undefined, values: ClinicForm) =>
+    id
+      ? update.mutateAsync({
+          params: { path: { id } },
+          body: { id, ...values },
+        })
+      : create.mutateAsync({ body: { id: newId(), ...values } });
+}
+
+async function deleteClinic(id: string) {
+  const { totalCount } = await unwrap(
+    api.GET("/api/providers/search", {
+      params: { query: { clinicId: id, Page: 1, PageSize: 1 } },
+    }),
+  );
+  if (totalCount > 0)
+    throw new Error(
+      `Cannot delete: ${totalCount} provider(s) still belong to this clinic.`,
+    );
+  await api.DELETE("/api/clinics/{id}", byId(id));
 }
 
 export function useDeleteClinic() {
-  const { notifySuccess, notifyError } = useNotify();
   return useMutation({
-    meta: { invalidates: [["clinics"], ["dashboard"]] },
-    mutationFn: async (id: string) => {
-      const { totalCount } = await unwrap(
-        api.GET("/api/providers/search", {
-          params: { query: { clinicId: id, Page: 1, PageSize: 1 } },
-        }),
-      );
-      if (totalCount > 0)
-        throw new Error(
-          `Cannot delete: ${totalCount} provider(s) still belong to this clinic.`,
-        );
-      return unwrap(
-        api.DELETE("/api/clinics/{id}", { params: { path: { id } } }),
-      );
+    meta: {
+      invalidates: ["clinics", "dashboard"],
+      success: "Clinic deleted",
+      error: "Could not delete clinic",
     },
-    onSuccess: () => notifySuccess("Clinic deleted"),
-    onError: (e) =>
-      notifyError(`Could not delete clinic: ${getErrorMessage(e)}`),
+    mutationFn: deleteClinic,
   });
 }
 
@@ -133,7 +132,7 @@ async function fetchDoctorPreviews(): Promise<
 
 export function useClinicDoctorPreview() {
   return useQuery({
-    queryKey: ["clinics", "doctor-preview"],
+    queryKey: resourceKey("clinics", "doctor-preview"),
     queryFn: fetchDoctorPreviews,
   });
 }
@@ -142,45 +141,36 @@ async function fetchClinicSummary(
   clinicId: string,
   staff: boolean,
 ): Promise<ClinicSummary> {
-  try {
-    const data = await unwrap(
-      api.GET("/api/clinics/{id}/summary", {
-        params: { path: { id: clinicId } },
-      }),
-    );
-    return {
-      clinic: data.clinic,
-      providerCount: data.providerCount,
-      providers: data.providers.slice(0, TOP_DOCTORS).map(toDoctorRef),
-      topSpecialties: data.topSpecialties,
-      todayAppointmentCount: staff ? data.todayAppointmentCount : null,
-    };
-  } catch (e) {
-    if (isDenied(e)) return EMPTY_SUMMARY;
-    throw e;
-  }
+  const data = await orNull(() =>
+    unwrap(api.GET("/api/clinics/{id}/summary", byId(clinicId))),
+  );
+  if (!data) return EMPTY_SUMMARY;
+  return {
+    ...data,
+    providers: data.providers.slice(0, TOP_DOCTORS).map(toDoctorRef),
+    todayAppointmentCount: staff ? data.todayAppointmentCount : null,
+  };
 }
 
-export function useClinicSummary(clinicId: string | null) {
+export function useClinicSummary(clinicId: string | null, enabled = true) {
   const { user } = useAuth();
   const staff =
-    !!user &&
-    (hasRole(user, "admin") ||
-      (clinicId !== null && user.clinicAdminOf.includes(clinicId)));
+    hasRole(user, "admin") ||
+    (clinicId !== null && !!user?.clinicAdminOf.includes(clinicId));
   return useQuery({
-    queryKey: ["clinics", clinicId, "summary", { signedIn: !!user, staff }],
+    queryKey: resourceKey("clinics", clinicId, "summary", user?.subject, staff),
     queryFn: () =>
       user && clinicId !== null
         ? fetchClinicSummary(clinicId, staff)
         : EMPTY_SUMMARY,
-    enabled: clinicId !== null,
+    enabled: enabled && clinicId !== null,
   });
 }
 
-export function useAllClinics(enabled = true) {
-  return useQuery({
-    queryKey: ["clinics", "all"],
-    queryFn: () => unwrap(api.GET("/api/clinics")),
-    enabled,
+export const useClinicOptions = (search: string) =>
+  $api.useQuery("get", "/api/clinics/search", {
+    params: { query: { Search: search || undefined, Page: 1, PageSize: 100 } },
   });
-}
+
+export const useAllClinics = (enabled = true) =>
+  $api.useQuery("get", "/api/clinics", undefined, { enabled });

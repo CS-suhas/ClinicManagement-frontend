@@ -1,14 +1,14 @@
 "use client";
 
 import { Button, Flex, Text } from "@radix-ui/themes";
-import { useNotify } from "@/components/notifications";
 import { Chip } from "@/components/ui/chip";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { useAuth } from "@/features/auth/auth-provider";
+import { useProviderDecisions } from "@/features/providers/components/use-provider-decisions";
 import { getErrorMessage } from "@/lib/errors";
 import { formatFee } from "@/lib/format";
-import { useDoctorGlance, useProviderDecision } from "./api";
+import { useDoctorGlance } from "./api";
 import {
   GlanceAction,
   GlanceError,
@@ -81,8 +81,7 @@ function DoctorCard({
   open: boolean;
 }) {
   const { user } = useAuth();
-  const { notifySuccess, notifyError } = useNotify();
-  const decision = useProviderDecision();
+  const { decide, deciding } = useProviderDecisions();
   const summaryState = useDoctorGlance(provider.id, open);
   const summary = summaryState.data;
   const details = summary?.provider ?? null;
@@ -96,17 +95,6 @@ function DoctorCard({
     slots && slots.total > 0
       ? Math.min(100, Math.round((slots.busy / slots.total) * 100))
       : 0;
-
-  const decide = async (action: "verify" | "reject") => {
-    try {
-      await decision.mutateAsync({ id: provider.id, action });
-      notifySuccess(
-        action === "verify" ? `${full} verified` : `${full} rejected`,
-      );
-    } catch (e) {
-      notifyError(`Could not ${action} ${full}: ${getErrorMessage(e)}`);
-    }
-  };
 
   return (
     <>
@@ -212,8 +200,8 @@ function DoctorCard({
             <Button
               size="2"
               color="teal"
-              loading={decision.isPending}
-              onClick={() => void decide("verify")}
+              loading={deciding}
+              onClick={() => decide(provider, "verify")}
             >
               Verify
             </Button>
@@ -221,8 +209,8 @@ function DoctorCard({
               size="2"
               color="red"
               variant="soft"
-              disabled={decision.isPending}
-              onClick={() => void decide("reject")}
+              disabled={deciding}
+              onClick={() => decide(provider, "reject")}
             >
               Reject
             </Button>

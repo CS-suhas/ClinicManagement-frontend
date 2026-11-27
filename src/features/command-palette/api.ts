@@ -1,12 +1,10 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { api, unwrap } from "@/lib/api";
+import { keepPreviousData } from "@tanstack/react-query";
+import { $api } from "@/lib/api";
 
-export function useGlobalSearch(q: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ["search", q],
-    queryFn: () =>
-      unwrap(api.GET("/api/search", { params: { query: { q, limit: "5" } } })),
-    enabled,
-    placeholderData: keepPreviousData,
-  });
-}
+export const useGlobalSearch = (q: string, enabled: boolean) =>
+  $api.useQuery(
+    "get",
+    "/api/search",
+    { params: { query: { q, limit: "5" } } },
+    { enabled, placeholderData: keepPreviousData },
+  );

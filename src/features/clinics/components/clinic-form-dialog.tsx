@@ -2,7 +2,7 @@
 
 import { FormDialog, TextInput } from "@/components/form";
 import { useSaveClinic } from "../api";
-import { type Clinic, clinicForm } from "../schemas";
+import { type Clinic, clinicDefaults, clinicForm } from "../schemas";
 
 export function ClinicFormDialog({
   open,
@@ -19,15 +19,11 @@ export function ClinicFormDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={clinic ? "Edit clinic" : "New clinic"}
-      submitLabel={clinic ? "Save changes" : "Create clinic"}
+      noun="clinic"
+      entity={clinic}
+      defaults={clinicDefaults}
       schema={clinicForm}
-      defaultValues={{
-        name: clinic?.name ?? "",
-        address: clinic?.address ?? "",
-        phoneNumber: clinic?.phoneNumber ?? "",
-      }}
-      onSubmit={(values) => save.mutateAsync({ id: clinic?.id, values })}
+      onSubmit={(values) => save(clinic?.id, values)}
     >
       <TextInput name="name" label="Name" />
       <TextInput name="address" label="Location (optional)" />

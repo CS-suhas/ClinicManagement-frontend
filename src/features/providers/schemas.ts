@@ -40,3 +40,12 @@ export const providerForm = z.object({
   gender: ProviderGender.nullable(),
 });
 export type ProviderForm = z.infer<typeof providerForm>;
+
+export const providerDefaults: ProviderForm = {
+  clinicId: "",
+  firstName: "",
+  lastName: "",
+  specialty: "",
+  fee: null,
+  gender: null,
+};

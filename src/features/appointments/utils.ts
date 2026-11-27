@@ -127,7 +127,11 @@ export function appointmentScopeFor(
 export const canManageAppointments = (scope: AppointmentScope) =>
   scope.mode === "all" && scope.canWrite;
 
-export function scopeFilter(scope: AppointmentScope) {
+export function scopeFilter(scope: AppointmentScope): {
+  clinicId?: string;
+  providerId?: string;
+  patientId?: string;
+} | null {
   switch (scope.mode) {
     case "all":
       return {};

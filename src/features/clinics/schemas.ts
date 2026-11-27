@@ -16,3 +16,9 @@ export const clinicForm = z.object({
     ),
 });
 export type ClinicForm = z.infer<typeof clinicForm>;
+
+export const clinicDefaults: z.input<typeof clinicForm> = {
+  name: "",
+  address: "",
+  phoneNumber: "",
+};

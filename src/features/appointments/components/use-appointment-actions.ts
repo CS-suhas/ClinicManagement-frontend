@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useNotify } from "@/components/notifications";
+import { notify } from "@/components/notifications";
 import { getErrorMessage } from "@/lib/errors";
-import { APPOINTMENT_KEYS } from "@/lib/query-client";
+import { APPOINTMENT_CHANGES } from "@/lib/query-client";
 import { transitionAppointment } from "../api";
 import type { AppointmentAction, AppointmentListItem } from "../schemas";
 import { nextAppointmentStatus } from "../utils";
@@ -42,14 +42,13 @@ export type PendingAction = {
 };
 
 export function useAppointmentActions() {
-  const { notifySuccess, notifyError } = useNotify();
   const mutation = useMutation({
-    meta: { invalidates: APPOINTMENT_KEYS },
+    meta: { invalidates: APPOINTMENT_CHANGES },
     mutationFn: ({ item, action }: PendingAction) =>
       transitionAppointment(item.id, action),
-    onSuccess: (_, { action }) => notifySuccess(SUCCESS[action]),
+    onSuccess: (_, { action }) => notify.success(SUCCESS[action]),
     onError: (e, { action }) =>
-      notifyError(`${FAILURE[action]}: ${getErrorMessage(e)}`),
+      notify.error(`${FAILURE[action]}: ${getErrorMessage(e)}`),
   });
 
   const run = (item: AppointmentListItem, action: AppointmentAction) => {

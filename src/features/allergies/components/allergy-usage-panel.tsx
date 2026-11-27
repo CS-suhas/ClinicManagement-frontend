@@ -14,7 +14,6 @@ export function AllergyUsagePanel({ allergy }: { allergy: AllergyType }) {
   const {
     data: patients,
     error,
-    isPending,
     refetch,
     allowed,
   } = useAllergyPatients(allergy.id);
@@ -27,7 +26,7 @@ export function AllergyUsagePanel({ allergy }: { allergy: AllergyType }) {
     );
   if (error)
     return <GlanceError message={getErrorMessage(error)} onRetry={refetch} />;
-  if (isPending) return <GlanceSkeleton rows={2} />;
+  if (!patients) return <GlanceSkeleton rows={2} />;
 
   return (
     <Flex direction="column" gap="3">

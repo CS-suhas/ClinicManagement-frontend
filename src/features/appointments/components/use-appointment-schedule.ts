@@ -2,10 +2,9 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNotify } from "@/components/notifications";
 import { newId } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { APPOINTMENT_KEYS } from "@/lib/query-client";
+import { APPOINTMENT_CHANGES } from "@/lib/query-client";
 import {
   createAppointment,
   deleteAppointment,
@@ -25,7 +24,6 @@ export function useAppointmentSchedule(
   const settings = useAppointmentSettings();
   const providers = useProviders(scope.mode === "all");
   const items = useAppointmentRange(range, scope);
-  const { notifyError } = useNotify();
   const [form, setForm] = useState<{
     open: boolean;
     editing: AppointmentListItem | null;
@@ -34,7 +32,7 @@ export function useAppointmentSchedule(
   const [deleting, setDeleting] = useState<AppointmentListItem | null>(null);
 
   const saveMutation = useMutation({
-    meta: { invalidates: APPOINTMENT_KEYS },
+    meta: { invalidates: APPOINTMENT_CHANGES },
     mutationFn: ({
       input,
       editing,
@@ -48,10 +46,11 @@ export function useAppointmentSchedule(
   });
 
   const removeMutation = useMutation({
-    meta: { invalidates: APPOINTMENT_KEYS },
+    meta: {
+      invalidates: APPOINTMENT_CHANGES,
+      error: "Could not delete appointment",
+    },
     mutationFn: (item: AppointmentListItem) => deleteAppointment(item.id),
-    onError: (e) =>
-      notifyError(`Could not delete appointment: ${getErrorMessage(e)}`),
   });
 
   const save = (input: AppointmentInput, editing: AppointmentListItem | null) =>

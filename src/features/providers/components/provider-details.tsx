@@ -85,7 +85,7 @@ export function ProviderDetails({ provider }: { provider: Provider }) {
             onRetry={() => void upcoming.refetch()}
           />
         )}
-        {!upcomingError && upcoming.isPending && <GlanceSkeleton rows={3} />}
+        {!upcomingError && upcoming.isLoading && <GlanceSkeleton rows={3} />}
         {upcoming.data && upcoming.data.length === 0 && (
           <Text size="2" style={{ color: "var(--mp-muted)" }}>
             No upcoming appointments.

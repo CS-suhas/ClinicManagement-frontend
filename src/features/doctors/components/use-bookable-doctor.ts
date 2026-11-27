@@ -1,18 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { api, unwrap } from "@/lib/api";
+import { api, byId, orNull, unwrap } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { unlessDenied } from "../api";
+import { resourceKey } from "@/lib/query-client";
 import { type DoctorProfile, toDoctorProfile } from "./doctor-profile";
 
 export async function findBookableDoctor(
   providerId: string,
 ): Promise<DoctorProfile | null> {
-  const provider = await unlessDenied(() =>
-    unwrap(
-      api.GET("/api/providers/{id}", { params: { path: { id: providerId } } }),
-    ),
+  const provider = await orNull(() =>
+    unwrap(api.GET("/api/providers/{id}", byId(providerId))),
   );
   return provider?.verificationStatus === "VERIFIED"
     ? toDoctorProfile(provider, undefined)
@@ -21,7 +19,7 @@ export async function findBookableDoctor(
 
 export function useBookableDoctor(providerId: string) {
   const query = useQuery({
-    queryKey: ["providers", providerId, "bookable"],
+    queryKey: resourceKey("providers", providerId, "bookable"),
     queryFn: () => findBookableDoctor(providerId),
   });
   return {

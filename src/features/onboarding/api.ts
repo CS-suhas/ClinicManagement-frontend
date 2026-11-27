@@ -1,6 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { api, newId, unwrap } from "@/lib/api";
-import { PROVIDER_KEYS } from "@/lib/query-client";
+import { $api, newId } from "@/lib/api";
+import { PROVIDER_CHANGES } from "@/lib/query-client";
 import type { PatientForm } from "./schemas";
 
 export type ProviderRegistration = {
@@ -13,44 +12,24 @@ export type ProviderRegistration = {
 };
 
 export function useCreatePatientProfile() {
-  return useMutation({
-    meta: { invalidates: [["patients"], ["dashboard"]] },
-    mutationFn: (values: PatientForm) =>
-      unwrap(
-        api.POST("/api/me/patient", {
-          body: { id: newId(), ...values },
-        }),
-      ),
+  const create = $api.useMutation("post", "/api/me/patient", {
+    meta: { invalidates: ["patients", "dashboard"] },
   });
+  return (values: PatientForm) =>
+    create.mutateAsync({ body: { id: newId(), ...values } });
 }
 
 export function useRegisterProvider() {
-  return useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
-    mutationFn: (values: ProviderRegistration) =>
-      unwrap(
-        api.POST("/api/providers/register", {
-          body: {
-            id: newId(),
-            ...values,
-            fee: values.fee ?? undefined,
-            gender: values.gender ?? undefined,
-          },
-        }),
-      ),
+  const register = $api.useMutation("post", "/api/providers/register", {
+    meta: { invalidates: PROVIDER_CHANGES },
   });
-}
-
-export function useClinicOptions(search: string) {
-  return useQuery({
-    queryKey: ["clinics", "options", { search }],
-    queryFn: () =>
-      unwrap(
-        api.GET("/api/clinics/search", {
-          params: {
-            query: { Search: search || undefined, Page: 1, PageSize: 100 },
-          },
-        }),
-      ),
-  });
+  return ({ fee, gender, ...values }: ProviderRegistration) =>
+    register.mutateAsync({
+      body: {
+        id: newId(),
+        ...values,
+        fee: fee ?? undefined,
+        gender: gender ?? undefined,
+      },
+    });
 }

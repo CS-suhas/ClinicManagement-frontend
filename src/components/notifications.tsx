@@ -8,11 +8,9 @@ import {
 } from "@radix-ui/react-icons";
 import { Callout, Flex, IconButton } from "@radix-ui/themes";
 import {
-  createContext,
   type ReactNode,
   useCallback,
-  useContext,
-  useMemo,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -29,13 +27,13 @@ type Notification = {
   message: string;
 };
 
-export type Notifier = {
-  notifyError: (message: string) => void;
-  notifySuccess: (message: string) => void;
-  notifyInfo: (message: string) => void;
-};
+let push: ((tone: Tone, message: string) => void) | null = null;
 
-const NotificationContext = createContext<Notifier | null>(null);
+export const notify = {
+  error: (message: string) => push?.("error", message),
+  success: (message: string) => push?.("success", message),
+  info: (message: string) => push?.("info", message),
+};
 
 const TONE_COLOR: Record<Tone, "red" | "teal" | "blue"> = {
   error: "red",
@@ -55,7 +53,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setItems((current) => current.filter((n) => n.id !== id));
   }, []);
 
-  const push = useCallback(
+  const show = useCallback(
     (tone: Tone, message: string) => {
       const id = nextId.current++;
       const duration = tone === "error" ? ERROR_MS : SUCCESS_MS;
@@ -69,17 +67,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     [dismiss],
   );
 
-  const notifier = useMemo<Notifier>(
-    () => ({
-      notifyError: (message) => push("error", message),
-      notifySuccess: (message) => push("success", message),
-      notifyInfo: (message) => push("info", message),
-    }),
-    [push],
-  );
+  useEffect(() => {
+    push = show;
+    return () => {
+      push = null;
+    };
+  }, [show]);
 
   return (
-    <NotificationContext.Provider value={notifier}>
+    <>
       {children}
       <Flex
         direction="column"
@@ -122,13 +118,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           </Callout.Root>
         ))}
       </Flex>
-    </NotificationContext.Provider>
+    </>
   );
-}
-
-export function useNotify(): Notifier {
-  const notifier = useContext(NotificationContext);
-  if (!notifier)
-    throw new Error("useNotify must be used inside <NotificationProvider>");
-  return notifier;
 }

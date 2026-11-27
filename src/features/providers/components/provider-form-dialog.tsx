@@ -1,27 +1,21 @@
 "use client";
 
-import type { Option } from "@/components/form";
 import {
   FormDialog,
   NumberInput,
+  optionsFrom,
   SelectInput,
   TextInput,
 } from "@/components/form";
 import { useSaveProvider } from "../api";
 import {
-  ProviderGender as GenderSchema,
   type Provider,
-  type ProviderGender,
+  providerDefaults,
   providerForm,
   providerGenderLabels,
 } from "../schemas";
 
-const genderOptions: Option[] = GenderSchema.options.map(
-  (g: ProviderGender) => ({
-    value: g,
-    label: providerGenderLabels[g],
-  }),
-);
+const genderOptions = optionsFrom(providerGenderLabels);
 
 export function ProviderFormDialog({
   open,
@@ -40,18 +34,11 @@ export function ProviderFormDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={provider ? "Edit provider" : "New provider"}
-      submitLabel={provider ? "Save changes" : "Create provider"}
+      noun="provider"
+      entity={provider}
+      defaults={providerDefaults}
       schema={providerForm}
-      defaultValues={{
-        clinicId: provider?.clinicId ?? "",
-        firstName: provider?.firstName ?? "",
-        lastName: provider?.lastName ?? "",
-        specialty: provider?.specialty ?? "",
-        fee: provider?.fee ?? null,
-        gender: provider?.gender ?? null,
-      }}
-      onSubmit={(values) => save.mutateAsync({ id: provider?.id, values })}
+      onSubmit={(values) => save(provider?.id, values)}
     >
       <TextInput name="firstName" label="First name" />
       <TextInput name="lastName" label="Last name" />

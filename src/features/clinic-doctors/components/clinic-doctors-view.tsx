@@ -16,6 +16,7 @@ import { fetchClinic } from "@/features/providers/api";
 import type { Provider } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
 import { formatFee } from "@/lib/format";
+import { resourceKey } from "@/lib/query-client";
 import { useClinicDoctors } from "./use-clinic-doctors";
 
 const TABS: { value: VerificationStatus; label: string }[] = [
@@ -53,7 +54,7 @@ export function ClinicDoctorsView() {
       : (clinicIds[0] ?? null);
 
   const clinics = useQuery({
-    queryKey: ["clinics", "administered", clinicIds.join(",")],
+    queryKey: resourceKey("clinics", "administered", clinicIds.join(",")),
     queryFn: () => Promise.all(clinicIds.map((id) => fetchClinic(id))),
   });
   const clinic = clinics.data?.find((c) => c.id === clinicId) ?? null;

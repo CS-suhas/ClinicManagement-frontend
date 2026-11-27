@@ -54,9 +54,23 @@ export const patientForm = z.object({
 });
 export type PatientForm = z.infer<typeof patientForm>;
 
+export const patientDefaults: PatientForm = {
+  firstName: "",
+  lastName: "",
+  dateOfBirth: "",
+  email: "",
+  phoneNumber: "",
+};
+
 export const patientAllergyForm = z.object({
   allergyId: z.string().refine(filled, "Allergy is required"),
   severity: z.string().refine(filled, "Severity is required"),
   notes: z.string(),
 });
 export type PatientAllergyForm = z.infer<typeof patientAllergyForm>;
+
+export const patientAllergyDefaults: PatientAllergyForm = {
+  allergyId: "",
+  severity: "",
+  notes: "",
+};

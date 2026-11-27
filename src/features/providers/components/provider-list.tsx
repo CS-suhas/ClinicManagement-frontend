@@ -15,6 +15,7 @@ import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useAllClinics } from "@/features/clinics/api";
 import { PAGE_SIZE } from "@/hooks/use-paged-list";
+import { byId } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { formatFee } from "@/lib/format";
 import { useDeleteProvider, useProviderList } from "../api";
@@ -182,7 +183,7 @@ export function ProviderList() {
         }
         onClearFilters={clearClinicFilter}
         banner={
-          clinics.error && (
+          clinics.isError && (
             <Flex mb="3">
               <ErrorCallout
                 message={getErrorMessage(clinics.error)}
@@ -281,7 +282,7 @@ export function ProviderList() {
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={() => {
-          if (deleting) remove.mutate(deleting.id);
+          if (deleting) remove.mutate(byId(deleting.id));
           setDeleting(null);
         }}
         title="Delete provider?"

@@ -7,3 +7,5 @@ export const allergyTypeForm = z.object({
   name: z.string().trim().min(1, "Allergy name is required"),
 });
 export type AllergyTypeForm = z.infer<typeof allergyTypeForm>;
+
+export const allergyTypeDefaults: AllergyTypeForm = { name: "" };

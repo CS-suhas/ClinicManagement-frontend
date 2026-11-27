@@ -2,7 +2,11 @@
 
 import { FormDialog, TextInput } from "@/components/form";
 import { useSaveAllergyType } from "../api";
-import { type AllergyType, allergyTypeForm } from "../schemas";
+import {
+  type AllergyType,
+  allergyTypeDefaults,
+  allergyTypeForm,
+} from "../schemas";
 
 export function AllergyTypeFormDialog({
   open,
@@ -19,11 +23,11 @@ export function AllergyTypeFormDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={allergyType ? "Edit allergy" : "New allergy"}
-      submitLabel={allergyType ? "Save changes" : "Create allergy"}
+      noun="allergy"
+      entity={allergyType}
+      defaults={allergyTypeDefaults}
       schema={allergyTypeForm}
-      defaultValues={{ name: allergyType?.name ?? "" }}
-      onSubmit={(values) => save.mutateAsync({ id: allergyType?.id, values })}
+      onSubmit={(values) => save(allergyType?.id, values)}
     >
       <TextInput name="name" label="Allergy name" />
     </FormDialog>

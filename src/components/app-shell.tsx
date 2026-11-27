@@ -29,7 +29,7 @@ import { NotificationBell } from "@/features/notification-bell/components/notifi
 import { useMyDashboard } from "@/features/notification-bell/components/use-my-dashboard";
 import { getErrorMessage } from "@/lib/errors";
 import type { PublicAccess } from "@/lib/runtime-config";
-import { useNotify } from "./notifications";
+import { notify } from "./notifications";
 
 const PAGE_BACKGROUND = "var(--mp-bg)";
 
@@ -81,7 +81,6 @@ function ShellFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
-  const notify = useNotify();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { data: mine } = useMyDashboard(user?.subject ?? null);
   const isActive = (href: string) => pathname.startsWith(href);
@@ -120,7 +119,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
       await signOut();
       router.replace("/login");
     } catch (e) {
-      notify.notifyError(getErrorMessage(e));
+      notify.error(getErrorMessage(e));
     }
   }
 

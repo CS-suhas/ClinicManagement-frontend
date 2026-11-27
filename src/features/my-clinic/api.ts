@@ -1,16 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { api, unwrap } from "@/lib/api";
+import { $api, byId } from "@/lib/api";
 
-export function useMyProvider(providerId: string | null) {
-  return useQuery({
-    queryKey: ["providers", providerId],
-    queryFn: () =>
-      providerId === null
-        ? null
-        : unwrap(
-            api.GET("/api/providers/{id}", {
-              params: { path: { id: providerId } },
-            }),
-          ),
+export const useMyProvider = (providerId: string | null) =>
+  $api.useQuery("get", "/api/providers/{id}", byId(providerId ?? ""), {
+    enabled: providerId !== null,
   });
-}

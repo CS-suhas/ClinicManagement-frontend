@@ -42,7 +42,7 @@ export function DashboardView() {
       <AsyncContent
         loading={dashboard.isPending}
         error={
-          dashboard.error && !dashboard.data
+          dashboard.isError && !dashboard.data
             ? getErrorMessage(dashboard.error)
             : null
         }

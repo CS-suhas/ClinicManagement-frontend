@@ -2,15 +2,14 @@
 
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { Dialog, Flex, IconButton, Spinner, Text } from "@radix-ui/themes";
-import { useQuery } from "@tanstack/react-query";
 import { ErrorCallout } from "@/components/error-callout";
 import { SearchField } from "@/components/search-field";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { providerFullName } from "@/features/providers/utils";
 import { usePagedSearch } from "@/hooks/use-paged-search";
+import { $api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { formatFee } from "@/lib/format";
-import { fetchDirectory } from "../api";
 import { type DoctorProfile, toDoctorProfile } from "./doctor-profile";
 
 export type DoctorPickerDialogProps = {
@@ -25,14 +24,16 @@ export function DoctorPickerDialog({
   onPick,
 }: DoctorPickerDialogProps) {
   const { query, search, setQueryNow } = usePagedSearch();
-  const directory = useQuery({
-    queryKey: ["providers", "directory", "picker", search],
-    queryFn: () =>
-      fetchDirectory({ search: search || undefined, page: 1, pageSize: 50 }),
-    enabled: open,
-  });
+  const directory = $api.useQuery(
+    "get",
+    "/api/providers/directory",
+    {
+      params: { query: { Search: search || undefined, Page: 1, PageSize: 50 } },
+    },
+    { enabled: open },
+  );
   const items = directory.data?.items ?? [];
-  const loading = directory.isPending;
+  const loading = directory.isLoading;
   const error = directory.error ? getErrorMessage(directory.error) : null;
   const reload = () => void directory.refetch();
 

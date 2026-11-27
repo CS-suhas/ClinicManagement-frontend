@@ -9,7 +9,7 @@ export function usePendingRequests(
   providerId: string | null,
   todayKey: string | null,
 ) {
-  const { data, error, isPending, refetch } = usePendingRequestsQuery(
+  const { data, error, isLoading, refetch } = usePendingRequestsQuery(
     providerId,
     todayKey,
   );
@@ -20,7 +20,7 @@ export function usePendingRequests(
     items,
     more: (data?.totalCount ?? 0) > PAGE_SIZE,
     error: error ? getErrorMessage(error) : null,
-    loading: isPending,
+    loading: isLoading,
     reload: () => void refetch(),
   };
 }

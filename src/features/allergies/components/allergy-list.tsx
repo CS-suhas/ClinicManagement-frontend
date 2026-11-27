@@ -8,6 +8,7 @@ import { ListPage } from "@/components/list-page";
 import { RowActions } from "@/components/row-actions";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { PAGE_SIZE } from "@/hooks/use-paged-list";
+import { byId } from "@/lib/api";
 import { useAllergyTypeList, useDeleteAllergyType } from "../api";
 import type { AllergyType } from "../schemas";
 import { AllergyTypeFormDialog } from "./allergy-type-form-dialog";
@@ -83,7 +84,7 @@ export function AllergyList() {
       <ConfirmDeleteDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
-        onConfirm={() => deleting && remove.mutate(deleting.id)}
+        onConfirm={() => deleting && remove.mutate(byId(deleting.id))}
         title="Delete allergy?"
         description={`"${deleting?.name}" will be permanently removed. Allergies recorded on patients block deletion.`}
       />

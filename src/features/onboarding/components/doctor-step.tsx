@@ -7,13 +7,14 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { ErrorCallout } from "@/components/error-callout";
 import { SearchSelectInput, setFormErrors, TextInput } from "@/components/form";
 import { FormField } from "@/components/form-field";
-import { useNotify } from "@/components/notifications";
+import { notify } from "@/components/notifications";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { useAuth } from "@/features/auth/auth-provider";
+import { useClinicOptions } from "@/features/clinics/api";
 import { usePagedSearch } from "@/hooks/use-paged-search";
 import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useClinicOptions, useRegisterProvider } from "../api";
+import { useRegisterProvider } from "../api";
 import { type DoctorForm, doctorForm } from "../schemas";
 import { COMMON_SPECIALTIES } from "../steps";
 
@@ -37,7 +38,6 @@ export function DoctorStep({
   onBack: () => void;
 }) {
   const { refresh } = useAuth();
-  const { notifySuccess, notifyInfo } = useNotify();
   const registerProvider = useRegisterProvider();
   const specialtyListId = useId();
   const { query, search, setQueryNow } = usePagedSearch();
@@ -75,7 +75,7 @@ export function DoctorStep({
     form.clearErrors("root");
     let registered = false;
     try {
-      await registerProvider.mutateAsync({
+      await registerProvider({
         clinicId: input.clinicId,
         firstName: input.firstName,
         lastName: input.lastName,
@@ -96,11 +96,11 @@ export function DoctorStep({
         setFormErrors(form, e);
         return;
       }
-      notifyInfo("You already have a doctor profile.");
+      notify.info("You already have a doctor profile.");
     }
     await refresh();
     if (registered)
-      notifySuccess("Application submitted. An administrator will review it.");
+      notify.success("Application submitted. An administrator will review it.");
   });
 
   return (

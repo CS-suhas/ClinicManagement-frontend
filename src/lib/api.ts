@@ -1,4 +1,5 @@
 import createClient from "openapi-fetch";
+import createQueryClient from "openapi-react-query";
 import type { components, paths } from "./api-schema.gen";
 import { session } from "./auth/session";
 
@@ -70,9 +71,33 @@ function toFieldErrors(errors: unknown): Record<string, string> | undefined {
   );
 }
 
+export const $api = createQueryClient(api);
+
+const isStatus =
+  (...statuses: number[]) =>
+  (e: unknown) =>
+    e instanceof ApiError && statuses.includes(e.status);
+
+export const isForbidden = isStatus(403);
+export const isDenied = isStatus(403, 404);
+
+export async function orNull<T>(
+  read: () => Promise<T>,
+  ignore: (e: unknown) => boolean = isDenied,
+): Promise<T | null> {
+  try {
+    return await read();
+  } catch (e) {
+    if (ignore(e)) return null;
+    throw e;
+  }
+}
+
 export async function unwrap<T>(request: Promise<{ data?: T }>): Promise<T> {
   const { data } = await request;
   return data as T;
 }
 
 export const newId = () => crypto.randomUUID();
+
+export const byId = (id: string) => ({ params: { path: { id } } });

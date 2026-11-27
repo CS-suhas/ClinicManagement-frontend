@@ -11,11 +11,11 @@ import {
   TextAreaInput,
 } from "@/components/form";
 import { FormField } from "@/components/form-field";
+import { useClinicOptions } from "@/features/clinics/api";
 import { getErrorMessage } from "@/lib/errors";
 import { toDateTimeLocal } from "@/lib/format";
 import {
   useAppointmentSettings,
-  useClinicOptions,
   usePatientById,
   usePatientOptions,
   useProviderOptions,
@@ -25,6 +25,7 @@ import {
   type AppointmentInput,
   type AppointmentListItem,
   type AppointmentSettings,
+  appointmentDefaults,
   appointmentForm,
   type Provider,
 } from "../schemas";
@@ -83,13 +84,9 @@ function AppointmentFields({
   const providerQuery =
     providerText.clinicId === clinicId ? providerText.text : "";
 
-  const patients = usePatientOptions(true, patientQuery);
-  const clinics = useClinicOptions(true, clinicQuery);
-  const providers = useProviderOptions(
-    clinicId !== "",
-    clinicId,
-    providerQuery,
-  );
+  const patients = usePatientOptions(patientQuery);
+  const clinics = useClinicOptions(clinicQuery);
+  const providers = useProviderOptions(clinicId, providerQuery);
   const defaultPatient = usePatientById(
     appointment ? undefined : defaultPatientId,
   );
@@ -264,18 +261,19 @@ export function AppointmentFormDialog({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={appointment ? "Edit appointment" : "New appointment"}
-      submitLabel={appointment ? "Save changes" : "Create appointment"}
-      schema={schema}
-      defaultValues={{
-        patientId: appointment?.patientId ?? defaultPatientId ?? "",
-        clinicId: appointment?.clinicId ?? "",
-        providerId: appointment?.providerId ?? "",
-        appointmentDateTime: appointment
-          ? toDateTimeLocal(appointment.appointmentDateTime)
-          : (defaultDateTime ?? ""),
-        reasonForVisit: appointment?.reasonForVisit ?? "",
+      noun="appointment"
+      entity={
+        appointment && {
+          ...appointment,
+          appointmentDateTime: toDateTimeLocal(appointment.appointmentDateTime),
+        }
+      }
+      defaults={{
+        ...appointmentDefaults,
+        patientId: defaultPatientId ?? "",
+        appointmentDateTime: defaultDateTime ?? "",
       }}
+      schema={schema}
       onSubmit={save}
     >
       {(form) => (
@@ -285,7 +283,7 @@ export function AppointmentFormDialog({
           defaultPatientId={defaultPatientId}
           settings={settings}
           settingsError={
-            settingsQuery.error ? getErrorMessage(settingsQuery.error) : null
+            settingsQuery.isError ? getErrorMessage(settingsQuery.error) : null
           }
           onRetrySettings={() => void settingsQuery.refetch()}
           lookups={lookups}

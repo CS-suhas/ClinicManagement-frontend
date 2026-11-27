@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useNotify } from "@/components/notifications";
+import { notify } from "@/components/notifications";
 import { useAppointmentSettings } from "@/features/appointments/api";
 import { useAuth } from "@/features/auth/auth-provider";
 import { canBookOnline } from "@/features/auth/permissions";
@@ -26,7 +26,6 @@ export type BookingChoice = {
 
 export function useDoctorBooking() {
   const { user } = useAuth();
-  const { notifyError } = useNotify();
   const book = useBookAppointment();
 
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
@@ -44,11 +43,11 @@ export function useDoctorBooking() {
   const busy = useBusyStarts(providerId, dateKey);
 
   useEffect(() => {
-    if (settings.error) notifyError(getErrorMessage(settings.error));
-  }, [settings.error, notifyError]);
+    if (settings.isError) notify.error(getErrorMessage(settings.error));
+  }, [settings.isError, settings.error]);
   useEffect(() => {
-    if (busy.error) notifyError(getErrorMessage(busy.error));
-  }, [busy.error, notifyError]);
+    if (busy.isError) notify.error(getErrorMessage(busy.error));
+  }, [busy.isError, busy.error]);
 
   const busyStarts = busy.data ?? [];
 

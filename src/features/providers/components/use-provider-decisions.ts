@@ -1,45 +1,44 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useNotify } from "@/components/notifications";
+import { notify } from "@/components/notifications";
 import { getErrorMessage } from "@/lib/errors";
-import { PROVIDER_KEYS } from "@/lib/query-client";
-import { rejectProvider, verifyProvider } from "../api";
+import { PROVIDER_CHANGES } from "@/lib/query-client";
+import { type Decision, decideProvider } from "../api";
 import type { Provider } from "../schemas";
 import { providerFullName } from "../utils";
 
-export type Decision = "verify" | "reject";
+export type { Decision };
 
 const DECISION_VERB: Record<Decision, string> = {
   verify: "verified",
   reject: "rejected",
 };
 
-const decisionRequest = (decision: Decision, id: string) =>
-  decision === "verify" ? verifyProvider(id) : rejectProvider(id);
+type DecisionTarget = Pick<Provider, "id" | "firstName" | "lastName">;
 
 export function useProviderDecisions() {
-  const { notifyError, notifySuccess } = useNotify();
-
   const single = useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
+    meta: { invalidates: PROVIDER_CHANGES },
     mutationFn: ({
       provider,
       decision,
     }: {
-      provider: Provider;
+      provider: DecisionTarget;
       decision: Decision;
-    }) => decisionRequest(decision, provider.id),
+    }) => decideProvider(provider.id, decision),
     onSuccess: (_, { provider, decision }) =>
-      notifySuccess(`${providerFullName(provider)} ${DECISION_VERB[decision]}`),
+      notify.success(
+        `${providerFullName(provider)} ${DECISION_VERB[decision]}`,
+      ),
     onError: (e, { provider, decision }) =>
-      notifyError(
+      notify.error(
         `Could not ${decision} ${providerFullName(provider)}: ${getErrorMessage(e)}`,
       ),
   });
 
   const bulk = useMutation({
-    meta: { invalidates: PROVIDER_KEYS },
+    meta: { invalidates: PROVIDER_CHANGES },
     mutationFn: async ({
       decision,
       targets,
@@ -50,7 +49,7 @@ export function useProviderDecisions() {
       let failed = 0;
       for (const provider of targets) {
         try {
-          await decisionRequest(decision, provider.id);
+          await decideProvider(provider.id, decision);
         } catch {
           failed++;
         }
@@ -59,13 +58,13 @@ export function useProviderDecisions() {
     },
     onSuccess: ({ decision, done, failed }) => {
       const summary = `${done} ${DECISION_VERB[decision]}${failed ? `, ${failed} failed` : ""}`;
-      if (failed > 0) notifyError(summary);
-      else notifySuccess(summary);
+      if (failed > 0) notify.error(summary);
+      else notify.success(summary);
     },
   });
 
-  const decide = (provider: Provider, decision: Decision) =>
+  const decide = (provider: DecisionTarget, decision: Decision) =>
     single.mutate({ provider, decision });
 
-  return { decide, bulk };
+  return { decide, deciding: single.isPending, bulk };
 }
