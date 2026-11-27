@@ -1,32 +1,133 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "@radix-ui/react-icons";
 import { Button, Dialog, Flex, Grid, Text } from "@radix-ui/themes";
+import { useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import { AsyncContent } from "@/components/async-content";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { type Column, DataTable } from "@/components/data-table";
 import { ErrorCallout } from "@/components/error-callout";
-import { SelectFormField, TextAreaFormField } from "@/components/form-fields";
-import { type Patient, patientFullName } from "@/domain/entities";
+import { SelectInput, TextAreaInput } from "@/components/form";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  useAddPatientAllergy,
+  useAllergySeverities,
+  usePatientAllergyList,
+  usePatientAllergyOptions,
+  useRemovePatientAllergy,
+  useUpdatePatientAllergy,
+} from "../api";
+import {
+  type Patient,
+  type PatientAllergy,
+  type PatientAllergyForm,
+  patientAllergyForm,
+} from "../schemas";
+import { patientFullName } from "../utils";
 import { SeverityBadge, severityLabel } from "./severity-badge";
-import { usePatientAllergies } from "./use-patient-allergies";
 
-export function PatientAllergiesDialog({
-  open,
-  onOpenChange,
-  patient,
-  readOnly = false,
-}: {
+const EMPTY_FORM: PatientAllergyForm = {
+  allergyId: "",
+  severity: "",
+  notes: "",
+};
+
+type DialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient: Patient | null;
   readOnly?: boolean;
-}) {
-  const state = usePatientAllergies({ open, patient, readOnly });
-  const { form, editing, fieldErrors } = state;
+};
 
-  const columns: Column<(typeof state.allergies)[number]>[] = [
-    { header: "Allergy", cell: (pa) => state.typeName(pa.allergyId) },
+export function PatientAllergiesDialog(props: DialogProps) {
+  if (!props.open) return null;
+  return <AllergiesDialogContent key={props.patient?.id ?? ""} {...props} />;
+}
+
+function AllergiesDialogContent({
+  open,
+  onOpenChange,
+  patient,
+  readOnly = false,
+}: DialogProps) {
+  const patientId = patient?.id ?? "";
+  const active = open && patientId !== "";
+  const records = usePatientAllergyList(patientId, active);
+  const severities = useAllergySeverities();
+  const add = useAddPatientAllergy();
+  const update = useUpdatePatientAllergy();
+  const remove = useRemovePatientAllergy();
+
+  const [editing, setEditing] = useState<PatientAllergy | null>(null);
+  const [removing, setRemoving] = useState<PatientAllergy | null>(null);
+  const options = usePatientAllergyOptions(
+    patientId,
+    editing?.allergyId,
+    active && !readOnly,
+  );
+  const form = useForm<PatientAllergyForm>({
+    resolver: zodResolver(patientAllergyForm),
+    defaultValues: EMPTY_FORM,
+  });
+
+  const allergies = (records.data ?? []).map((allergy) => ({
+    ...allergy,
+    id: allergy.allergyId,
+  }));
+  const selectable = options.data?.items ?? [];
+  const typeName = (allergyId: string) =>
+    allergies.find((item) => item.allergyId === allergyId)?.name ??
+    selectable.find((item) => item.id === allergyId)?.name ??
+    allergyId;
+  const allAllergiesRecorded =
+    !editing && !records.isPending && options.data?.totalCount === 0;
+
+  const cancelEdit = () => {
+    setEditing(null);
+    form.reset(EMPTY_FORM);
+  };
+
+  const startEdit = (allergy: PatientAllergy) => {
+    if (readOnly) return;
+    setEditing(allergy);
+    form.reset({
+      allergyId: allergy.allergyId,
+      severity:
+        severities.data?.find(
+          (severity) =>
+            severity.toLowerCase() === allergy.severity.toLowerCase(),
+        ) ?? "",
+      notes: allergy.notes ?? "",
+    });
+  };
+
+  const submit = form.handleSubmit(async (values) => {
+    if (!patient || readOnly) return;
+    const write = editing ? update : add;
+    const saved = await write
+      .mutateAsync({
+        patientId: patient.id,
+        allergyId: values.allergyId,
+        severity: values.severity,
+        notes: values.notes.trim(),
+      })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (saved) cancelEdit();
+  });
+
+  const confirmRemove = () => {
+    if (!removing || !patient || readOnly) return;
+    if (editing?.allergyId === removing.allergyId) cancelEdit();
+    remove.mutate({ patientId: patient.id, allergyId: removing.allergyId });
+  };
+
+  const columns: Column<(typeof allergies)[number]>[] = [
+    { header: "Allergy", cell: (pa) => typeName(pa.allergyId) },
     {
       header: "Severity",
       cell: (pa) => <SeverityBadge severity={pa.severity} />,
@@ -49,101 +150,89 @@ export function PatientAllergiesDialog({
 
           <Flex direction="column" gap="4">
             <AsyncContent
-              loading={state.loading}
-              error={state.error}
-              isEmpty={state.allergies.length === 0}
+              loading={records.isPending}
+              error={records.error ? getErrorMessage(records.error) : null}
+              isEmpty={allergies.length === 0}
               emptyText="No allergies recorded."
-              onRetry={state.reload}
+              onRetry={() => void records.refetch()}
             >
               <DataTable
                 columns={columns}
-                rows={state.allergies}
-                rowLabel={(pa) => state.typeName(pa.allergyId)}
-                onEdit={readOnly ? undefined : state.startEdit}
-                onDelete={readOnly ? undefined : state.setRemoving}
+                rows={allergies}
+                rowLabel={(pa) => typeName(pa.allergyId)}
+                onEdit={readOnly ? undefined : startEdit}
+                onDelete={readOnly ? undefined : setRemoving}
               />
             </AsyncContent>
 
             {!readOnly && (
-              <form onSubmit={state.submit} noValidate>
-                <Flex direction="column" gap="3">
-                  <Text size="2" weight="bold">
-                    {editing ? "Edit allergy" : "Add allergy"}
-                  </Text>
-                  {state.formError && (
-                    <ErrorCallout message={state.formError} />
-                  )}
-                  {state.optionsError && (
-                    <ErrorCallout
-                      message={state.optionsError}
-                      onRetry={() => void state.reloadOptions()}
-                    />
-                  )}
-                  <Grid columns="2" gap="3">
-                    <SelectFormField
-                      label="Allergy"
-                      id="allergy-select"
-                      placeholder="Choose an allergy…"
-                      error={fieldErrors.allergyId}
-                      disabled={editing !== null}
-                      value={form.allergyId}
-                      onValueChange={(v) => state.setField("allergyId", v)}
-                      options={state.selectable.map((t) => ({
-                        value: t.id,
-                        label: t.name,
-                      }))}
-                    />
-                    <SelectFormField
-                      label="Severity"
-                      id="allergy-severity"
-                      error={fieldErrors.severity}
-                      value={form.severity}
-                      onValueChange={(v) => state.setField("severity", v)}
-                      options={state.severities.map((s) => ({
-                        value: s,
-                        label: severityLabel(s),
-                      }))}
-                    />
-                  </Grid>
-                  {state.allAllergiesRecorded && (
-                    <Text size="1" color="gray">
-                      Every allergy type is already recorded for this patient.
+              <FormProvider {...form}>
+                <form onSubmit={submit} noValidate>
+                  <Flex direction="column" gap="3">
+                    <Text size="2" weight="bold">
+                      {editing ? "Edit allergy" : "Add allergy"}
                     </Text>
-                  )}
-                  <TextAreaFormField
-                    label="Notes"
-                    id="allergy-notes"
-                    value={form.notes}
-                    onChange={(e) => state.setField("notes", e.target.value)}
-                  />
-                  <Flex gap="2" justify="end">
-                    {editing && (
-                      <Button
-                        type="button"
-                        variant="soft"
-                        color="gray"
-                        disabled={state.submitting}
-                        onClick={state.cancelEdit}
-                      >
-                        Cancel edit
-                      </Button>
+                    {options.error && (
+                      <ErrorCallout
+                        message={getErrorMessage(options.error)}
+                        onRetry={() => void options.refetch()}
+                      />
                     )}
-                    <Button
-                      type="submit"
-                      loading={state.submitting}
-                      disabled={!patient}
-                    >
-                      {editing ? (
-                        "Save changes"
-                      ) : (
-                        <>
-                          <PlusIcon /> Add allergy
-                        </>
+                    <Grid columns="2" gap="3">
+                      <SelectInput
+                        name="allergyId"
+                        label="Allergy"
+                        placeholder="Choose an allergy…"
+                        disabled={editing !== null}
+                        options={selectable.map((type) => ({
+                          value: type.id,
+                          label: type.name,
+                        }))}
+                      />
+                      <SelectInput
+                        name="severity"
+                        label="Severity"
+                        options={(severities.data ?? []).map((severity) => ({
+                          value: severity,
+                          label: severityLabel(severity),
+                        }))}
+                      />
+                    </Grid>
+                    {allAllergiesRecorded && (
+                      <Text size="1" color="gray">
+                        Every allergy type is already recorded for this patient.
+                      </Text>
+                    )}
+                    <TextAreaInput name="notes" label="Notes" />
+                    <Flex gap="2" justify="end">
+                      {editing && (
+                        <Button
+                          type="button"
+                          variant="soft"
+                          color="gray"
+                          disabled={form.formState.isSubmitting}
+                          onClick={cancelEdit}
+                        >
+                          Cancel edit
+                        </Button>
                       )}
-                    </Button>
+                      <Button
+                        type="submit"
+                        loading={form.formState.isSubmitting}
+                        disabled={!patient}
+                      >
+                        {editing ? (
+                          "Save changes"
+                        ) : (
+                          <>
+                            <PlusIcon /> Add allergy
+                          </>
+                        )}
+                      </Button>
+                    </Flex>
                   </Flex>
-                </Flex>
-              </form>
+                </form>
+              </FormProvider>
             )}
 
             <Flex justify="end">
@@ -158,9 +247,11 @@ export function PatientAllergiesDialog({
       </Dialog.Root>
 
       <ConfirmDeleteDialog
-        {...state.removeDialog}
+        open={removing !== null}
+        onOpenChange={(isOpen) => !isOpen && setRemoving(null)}
+        onConfirm={confirmRemove}
         title="Remove allergy?"
-        description={`"${state.removing ? state.typeName(state.removing.allergyId) : ""}" will be removed from this patient's record.`}
+        description={`"${removing ? typeName(removing.allergyId) : ""}" will be removed from this patient's record.`}
       />
     </>
   );

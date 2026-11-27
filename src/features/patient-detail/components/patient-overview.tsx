@@ -4,7 +4,10 @@ import { Flex, Text } from "@radix-ui/themes";
 import { AllergyChip, StatusChip } from "@/components/glance";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Surface } from "@/components/ui/surface";
-import type { PatientSummary, VisitFact } from "@/domain/repositories/glance";
+import type {
+  PatientRecentVisit,
+  PatientSummary,
+} from "@/features/patients/schemas";
 import { formatDateTime } from "@/lib/format";
 
 export function PatientOverview({ summary }: { summary: PatientSummary }) {
@@ -130,7 +133,7 @@ export function VisitRow({
   visit,
   showRelative = false,
 }: {
-  visit: VisitFact;
+  visit: PatientRecentVisit;
   showRelative?: boolean;
 }) {
   return (

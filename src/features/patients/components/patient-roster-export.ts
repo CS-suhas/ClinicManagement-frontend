@@ -1,11 +1,11 @@
-import { type Patient, patientFullName } from "@/domain/entities";
-import type { PatientVisitSummary } from "@/domain/repositories";
 import { formatDateTime } from "@/lib/format";
+import type { Patient, PatientVisit } from "../schemas";
+import { patientFullName } from "../utils";
 
 export type ExportableRoster = {
   patient: Patient;
-  lastVisit?: PatientVisitSummary | null;
-  nextVisit?: PatientVisitSummary | null;
+  lastVisit?: PatientVisit | null;
+  nextVisit?: PatientVisit | null;
 };
 
 const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;

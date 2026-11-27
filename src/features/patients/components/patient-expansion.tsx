@@ -10,13 +10,9 @@ import {
 import { StatusPill } from "@/components/glance/status-chip";
 import { Chip } from "@/components/ui/chip";
 import { SeverityDot } from "@/components/ui/severity";
-import { useService } from "@/di/container-provider";
-import type {
-  AllergyEntry,
-  PatientSummary,
-} from "@/domain/repositories/glance";
-import { useGlanceData } from "@/hooks/use-glance-data";
+import { getErrorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
+import { usePatientSummary } from "../api";
 import { ContactButton } from "./contact-button";
 
 export function PatientExpansion({
@@ -30,12 +26,9 @@ export function PatientExpansion({
   phone: string;
   email: string;
 }) {
-  const glance = useService("glanceService");
-  const summary = useGlanceData<PatientSummary>(`patient:${patientId}`, () =>
-    glance.getPatientSummary(patientId),
-  );
-  const allergies: AllergyEntry[] | null | undefined = summary.data?.allergies;
-  const list = allergies ?? null;
+  const summary = usePatientSummary(patientId);
+  const list = summary.data?.allergies ?? null;
+  const retry = () => void summary.refetch();
 
   return (
     <Flex direction="column" gap="4">
@@ -46,8 +39,8 @@ export function PatientExpansion({
             <GlanceSkeleton rows={1} />
           ) : !summary.data ? (
             <GlanceError
-              message={summary.error ?? ""}
-              onRetry={summary.retry}
+              message={summary.error ? getErrorMessage(summary.error) : ""}
+              onRetry={retry}
             />
           ) : list === null ? (
             <Text size="2" style={{ color: "var(--mp-muted)" }}>
@@ -75,11 +68,12 @@ export function PatientExpansion({
         <section>
           <Heading>Last visits</Heading>
           {summary.error && (
-            <GlanceError message={summary.error} onRetry={summary.retry} />
+            <GlanceError
+              message={getErrorMessage(summary.error)}
+              onRetry={retry}
+            />
           )}
-          {!summary.error && summary.loading && !summary.data && (
-            <GlanceSkeleton rows={3} />
-          )}
+          {!summary.error && !summary.data && <GlanceSkeleton rows={3} />}
           {summary.data?.recent && summary.data.recent.length === 0 && (
             <Text size="2" style={{ color: "var(--mp-muted)" }}>
               No visits yet.

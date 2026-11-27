@@ -3,17 +3,15 @@
 import { PlusIcon } from "@radix-ui/react-icons";
 import { Button } from "@radix-ui/themes";
 import { useState } from "react";
-import { toRosterRow } from "@/application/services/patient-service";
 import { AsyncContent } from "@/components/async-content";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { PaginationControls } from "@/components/pagination-controls";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
-import { useService } from "@/di/container-provider";
-import type { Patient } from "@/domain/entities";
-import { patientFullName } from "@/domain/entities";
-import { useAsyncData } from "@/hooks/use-async-data";
-import { PAGE_SIZE, useCrudPage } from "@/hooks/use-crud-page";
+import { PAGE_SIZE } from "@/hooks/use-paged-list";
+import { useDeletePatient, usePatientList, usePatientVisits } from "../api";
+import type { Patient, PatientListItem } from "../schemas";
+import { patientFullName, toPatientRow } from "../utils";
 import { PatientAllergiesDialog } from "./patient-allergies-dialog";
 import { PatientFormDialog } from "./patient-form-dialog";
 import { PatientRosterCard } from "./patient-roster-card";
@@ -21,28 +19,31 @@ import { PatientRosterTable } from "./patient-roster-table";
 import { PatientRowMenu } from "./patient-row-menu";
 
 export function AdminPatientsView() {
-  const patientService = useService("patientService");
-  const crud = useCrudPage(patientService, { entityName: "patient" });
+  const list = usePatientList();
+  const remove = useDeletePatient();
+  const visits = usePatientVisits(list.rows.map((patient) => patient.id));
 
-  const pageIds = crud.rows.map((patient) => patient.id);
-  const visits = useAsyncData(
-    () =>
-      patientService.visitsByPatient({
-        patientIds: crud.rows.map((patient) => patient.id),
-        now: Date.now(),
-      }),
-    pageIds.join(","),
-  );
-
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Patient | null>(null);
+  const [deleting, setDeleting] = useState<PatientListItem | null>(null);
   const [allergiesOpen, setAllergiesOpen] = useState(false);
   const [allergyPatient, setAllergyPatient] = useState<Patient | null>(null);
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+  const openEdit = (patient: Patient) => {
+    setEditing(patient);
+    setFormOpen(true);
+  };
   const openAllergies = (patient: Patient) => {
     setAllergyPatient(patient);
     setAllergiesOpen(true);
   };
 
-  const rows = crud.rows.map((patient) =>
-    toRosterRow(patient, visits.data?.get(patient.id)),
+  const rows = list.rows.map((patient) =>
+    toPatientRow(patient, visits.data?.get(patient.id)),
   );
 
   return (
@@ -50,24 +51,24 @@ export function AdminPatientsView() {
       <PatientRosterCard
         title="Patients"
         subtitle="People registered at the clinics."
-        query={crud.query}
-        onQueryChange={crud.setQuery}
+        query={list.query}
+        onQueryChange={list.setQuery}
         searchPlaceholder="Search patients…"
-        onAdd={crud.form.openCreate}
+        onAdd={openCreate}
         footer={
-          crud.data && (
+          list.data && (
             <PaginationControls
-              page={crud.page}
+              page={list.page}
               pageSize={PAGE_SIZE}
-              totalCount={crud.data.totalCount}
-              onPageChange={crud.setPage}
+              totalCount={list.data.totalCount}
+              onPageChange={list.setPage}
             />
           )
         }
       >
         <AsyncContent
-          loading={crud.loading}
-          error={crud.error}
+          loading={list.loading}
+          error={list.error}
           isEmpty={rows.length === 0}
           skeleton={
             <TableSkeleton
@@ -78,19 +79,19 @@ export function AdminPatientsView() {
           }
           empty={
             <div className="p-4">
-              {crud.query ? (
+              {list.query ? (
                 <EmptyState
                   variant="no-matches"
                   title="No patients match"
                   description="Try a different name, email or phone number."
-                  onClearFilters={() => crud.setQuery("")}
+                  onClearFilters={() => list.setQuery("")}
                 />
               ) : (
                 <EmptyState
                   title="No patients yet"
                   description="Add a patient, or patients appear here once they book."
                   action={
-                    <Button color="teal" onClick={crud.form.openCreate}>
+                    <Button color="teal" onClick={openCreate}>
                       <PlusIcon /> Add Patient
                     </Button>
                   }
@@ -98,7 +99,7 @@ export function AdminPatientsView() {
               )}
             </div>
           }
-          onRetry={crud.reload}
+          onRetry={list.reload}
         >
           <PatientRosterTable
             rows={rows}
@@ -106,9 +107,9 @@ export function AdminPatientsView() {
             rowMenu={(row) => (
               <PatientRowMenu
                 name={patientFullName(row.patient)}
-                onEdit={() => crud.form.openEdit(row.patient)}
+                onEdit={() => openEdit(row.patient)}
                 onAllergies={() => openAllergies(row.patient)}
-                onDelete={() => crud.setDeleting(row.patient)}
+                onDelete={() => setDeleting(row.patient)}
               />
             )}
           />
@@ -116,10 +117,9 @@ export function AdminPatientsView() {
       </PatientRosterCard>
 
       <PatientFormDialog
-        open={crud.form.open}
-        onOpenChange={crud.form.onOpenChange}
-        patient={crud.form.editing}
-        onSave={crud.save}
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        patient={editing}
       />
       <PatientAllergiesDialog
         open={allergiesOpen}
@@ -127,9 +127,11 @@ export function AdminPatientsView() {
         patient={allergyPatient}
       />
       <ConfirmDeleteDialog
-        {...crud.deleteDialog}
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        onConfirm={() => deleting && remove.mutate(deleting.id)}
         title="Delete patient?"
-        description={`"${crud.deleting ? patientFullName(crud.deleting) : ""}" and their allergy records will be permanently removed.`}
+        description={`"${deleting ? patientFullName(deleting) : ""}" and their allergy records will be permanently removed.`}
       />
     </>
   );

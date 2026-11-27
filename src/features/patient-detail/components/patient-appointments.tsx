@@ -6,12 +6,10 @@ import { type Column, DataTable } from "@/components/data-table";
 import { StatusChip } from "@/components/glance";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
-import { useService } from "@/di/container-provider";
-import type { AppointmentListItem } from "@/domain/repositories";
-import { useAsyncData } from "@/hooks/use-async-data";
+import type { AppointmentListItem } from "@/features/patients/schemas";
+import { getErrorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
-
-const APPOINTMENT_PAGE_SIZE = 50;
+import { usePatientAppointments } from "../api";
 
 export function PatientAppointments({
   patientId,
@@ -20,25 +18,7 @@ export function PatientAppointments({
   patientId: string;
   scopeProviderId: string | null;
 }) {
-  const appointmentService = useService("appointmentService");
-  const list = useAsyncData<AppointmentListItem[]>(
-    () =>
-      appointmentService
-        .search({
-          patientId,
-          providerId: scopeProviderId ?? undefined,
-          page: 1,
-          pageSize: APPOINTMENT_PAGE_SIZE,
-        })
-        .then((result) =>
-          [...result.items].sort(
-            (a, b) =>
-              Date.parse(b.appointmentDateTime) -
-              Date.parse(a.appointmentDateTime),
-          ),
-        ),
-    `${patientId}|${scopeProviderId ?? ""}`,
-  );
+  const list = usePatientAppointments(patientId, scopeProviderId);
 
   const columns: Column<AppointmentListItem>[] = [
     {
@@ -69,10 +49,10 @@ export function PatientAppointments({
 
   return (
     <AsyncContent
-      loading={list.loading}
-      error={list.error}
+      loading={list.isPending}
+      error={list.error ? getErrorMessage(list.error) : null}
       isEmpty={(list.data ?? []).length === 0}
-      onRetry={() => void list.reload()}
+      onRetry={() => void list.refetch()}
       skeleton={
         <TableSkeleton columns={["text", "chip", "text", "short"]} rows={4} />
       }

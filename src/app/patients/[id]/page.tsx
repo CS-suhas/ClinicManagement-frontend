@@ -1,19 +1,16 @@
-import {
-  PatientDetailView,
-  type PatientTab,
-} from "@/features/patient-detail/components/patient-detail-view";
+"use client";
 
-const TABS: PatientTab[] = ["overview", "appointments", "allergies"];
+import { use } from "react";
+import { PatientDetailPage } from "@/features/patient-detail/components/patient-detail-page";
 
-export default async function PatientPage({
+export default function Page({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
-  const { id } = await params;
-  const { tab } = await searchParams;
-  const initialTab = TABS.find((value) => value === tab) ?? "overview";
-  return <PatientDetailView patientId={id} initialTab={initialTab} />;
+  const { id } = use(params);
+  const { tab } = use(searchParams);
+  return <PatientDetailPage patientId={id} tab={tab} />;
 }

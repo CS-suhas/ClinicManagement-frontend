@@ -1,12 +1,11 @@
 import { Badge } from "@radix-ui/themes";
-import type { Severity } from "@/domain/entities";
 
-export function severityLabel(severity: Severity) {
+export function severityLabel(severity: string) {
   return severity
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export function SeverityBadge({ severity }: { severity: Severity }) {
+export function SeverityBadge({ severity }: { severity: string }) {
   return <Badge variant="soft">{severityLabel(severity)}</Badge>;
 }

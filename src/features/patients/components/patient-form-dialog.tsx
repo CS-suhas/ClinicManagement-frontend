@@ -1,57 +1,44 @@
 "use client";
 
 import { Grid } from "@radix-ui/themes";
-import { FormDialog } from "@/components/form-dialog";
-import { TextFormField } from "@/components/form-fields";
-import type { Patient, PatientInput } from "@/domain/entities";
-import { useEntityForm } from "@/hooks/use-entity-form";
-
-const EMPTY: PatientInput = {
-  firstName: "",
-  lastName: "",
-  dateOfBirth: "",
-  email: "",
-  phoneNumber: "",
-};
+import { FormDialog, TextInput } from "@/components/form";
+import { useSavePatient } from "../api";
+import { type Patient, patientForm } from "../schemas";
 
 export function PatientFormDialog({
   open,
   onOpenChange,
   patient,
-  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patient: Patient | null;
-  onSave: (input: PatientInput, editing: Patient | null) => void;
 }) {
-  const form = useEntityForm({
-    entityName: "patient",
-    idPrefix: "patient",
-    open,
-    onOpenChange,
-    onSave,
-    entity: patient,
-    empty: EMPTY,
-  });
+  const save = useSavePatient();
 
   return (
-    <FormDialog {...form.dialogProps}>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={patient ? "Edit patient" : "New patient"}
+      submitLabel={patient ? "Save changes" : "Create patient"}
+      schema={patientForm}
+      defaultValues={{
+        firstName: patient?.firstName ?? "",
+        lastName: patient?.lastName ?? "",
+        dateOfBirth: patient?.dateOfBirth ?? "",
+        email: patient?.email ?? "",
+        phoneNumber: patient?.phoneNumber ?? "",
+      }}
+      onSubmit={(values) => save.mutateAsync({ id: patient?.id, values })}
+    >
       <Grid columns="2" gap="3">
-        <TextFormField label="First name" {...form.field("firstName")} />
-        <TextFormField label="Last name" {...form.field("lastName")} />
+        <TextInput name="firstName" label="First name" />
+        <TextInput name="lastName" label="Last name" />
       </Grid>
-      <TextFormField
-        label="Date of birth"
-        type="date"
-        {...form.field("dateOfBirth")}
-      />
-      <TextFormField label="Email" type="email" {...form.field("email")} />
-      <TextFormField
-        label="Phone number"
-        type="tel"
-        {...form.field("phoneNumber")}
-      />
+      <TextInput name="dateOfBirth" label="Date of birth" type="date" />
+      <TextInput name="email" label="Email" type="email" />
+      <TextInput name="phoneNumber" label="Phone number" type="tel" />
     </FormDialog>
   );
 }

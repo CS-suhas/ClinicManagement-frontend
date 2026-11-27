@@ -7,19 +7,19 @@ import { ErrorCallout } from "@/components/error-callout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { Surface } from "@/components/ui/surface";
-import { useService } from "@/di/container-provider";
-import { type Patient, patientFullName } from "@/domain/entities";
-import type { PatientSummary } from "@/domain/repositories/glance";
 import { useAuth } from "@/features/auth/auth-provider";
 import { hasRole } from "@/features/auth/permissions";
+import { usePatientSummary } from "@/features/patients/api";
 import { PatientAllergiesDialog } from "@/features/patients/components/patient-allergies-dialog";
-import { useAsyncData } from "@/hooks/use-async-data";
+import type { Patient } from "@/features/patients/schemas";
+import { patientFullName } from "@/features/patients/utils";
 import { useNow } from "@/hooks/use-now";
 import { ageInYears } from "@/lib/age";
+import { getErrorMessage } from "@/lib/errors";
+import { usePatientAccess } from "../api";
 import { PatientAllergiesSection } from "./patient-allergies-section";
 import { PatientAppointments } from "./patient-appointments";
 import { PatientOverview } from "./patient-overview";
-import { usePatientAccess } from "./use-patient-access";
 
 export type PatientTab = "overview" | "appointments" | "allergies";
 
@@ -36,7 +36,6 @@ export function PatientDetailView({
   patientId: string;
   initialTab?: PatientTab;
 }) {
-  const glance = useService("glanceService");
   const { user } = useAuth();
   const now = useNow();
   const access = usePatientAccess(patientId);
@@ -44,12 +43,7 @@ export function PatientDetailView({
   const readOnly = access.state === "allowed" && access.readOnly;
   const [tab, setTab] = useState<PatientTab>(initialTab);
   const [allergiesOpen, setAllergiesOpen] = useState(false);
-
-  const summary = useAsyncData<PatientSummary | null>(
-    () =>
-      allowed ? glance.getPatientSummary(patientId) : Promise.resolve(null),
-    `${patientId}|${allowed}`,
-  );
+  const summary = usePatientSummary(patientId, allowed);
 
   if (access.state === "checking")
     return (
@@ -83,19 +77,20 @@ export function PatientDetailView({
   if (summary.error)
     return (
       <ErrorCallout
-        message={summary.error}
-        onRetry={() => void summary.reload()}
+        message={getErrorMessage(summary.error)}
+        onRetry={() => void summary.refetch()}
       />
     );
 
-  const patient: Patient | null = summary.data?.patient ?? null;
-  if (summary.loading && !patient)
+  const data = summary.data;
+  if (!data)
     return (
       <Flex justify="center" py="9">
         <Spinner size="3" />
       </Flex>
     );
 
+  const patient: Patient | null = data.patient;
   if (!patient)
     return (
       <EmptyState
@@ -112,7 +107,6 @@ export function PatientDetailView({
   const age = now !== null ? ageInYears(patient.dateOfBirth, now) : null;
   const canBook = hasRole(user, "admin");
   const fullName = patientFullName(patient);
-  const data = summary.data as PatientSummary;
 
   return (
     <div className="flex flex-col gap-5">

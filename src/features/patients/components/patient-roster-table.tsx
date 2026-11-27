@@ -3,7 +3,6 @@
 import { EnvelopeClosedIcon, MobileIcon } from "@radix-ui/react-icons";
 import { Button, Flex, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
-import type { RosterProvider } from "@/application/services/patient-service";
 import { type Column, DataTable } from "@/components/data-table";
 import {
   GlanceError,
@@ -17,14 +16,13 @@ import { Chip } from "@/components/ui/chip";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { SeverityDot, severityRank } from "@/components/ui/severity";
-import { useService } from "@/di/container-provider";
-import { type PatientListItem, patientFullName } from "@/domain/entities";
-import type { PatientVisitSummary } from "@/domain/repositories";
-import type { PatientSummary } from "@/domain/repositories/glance";
-import { useGlanceData } from "@/hooks/use-glance-data";
 import { useNow } from "@/hooks/use-now";
 import { ageInYears } from "@/lib/age";
+import { getErrorMessage } from "@/lib/errors";
 import { formatDayOnly } from "@/lib/relative-time";
+import { usePatientSummary } from "../api";
+import type { PatientListItem, PatientRow, PatientVisit } from "../schemas";
+import { patientFullName } from "../utils";
 import { ContactButton } from "./contact-button";
 import { PatientExpansion } from "./patient-expansion";
 import { downloadText, mailtoBcc, rosterToCsv } from "./patient-roster-export";
@@ -32,19 +30,8 @@ import { EMPTY_CELL, formatTime } from "./patient-roster-format";
 
 const muted = { color: "var(--mp-muted)" } as const;
 
-export type PatientTableRow = {
-  patient: PatientListItem;
-  lastVisit?: PatientVisitSummary | null;
-  nextVisit?: PatientVisitSummary | null;
-  latestVisit?: { reasonForVisit: string | null } | null;
-  provider?: RosterProvider;
-};
-
 function AllergyCard({ patientId, name }: { patientId: string; name: string }) {
-  const glance = useService("glanceService");
-  const summary = useGlanceData<PatientSummary>(`patient:${patientId}`, () =>
-    glance.getPatientSummary(patientId),
-  );
+  const summary = usePatientSummary(patientId);
   const allergies = summary.data?.allergies;
   return (
     <>
@@ -54,7 +41,10 @@ function AllergyCard({ patientId, name }: { patientId: string; name: string }) {
       />
       <GlanceSection>
         {summary.error && !summary.data ? (
-          <GlanceError message={summary.error} onRetry={summary.retry} />
+          <GlanceError
+            message={getErrorMessage(summary.error)}
+            onRetry={() => void summary.refetch()}
+          />
         ) : !summary.data ? (
           <GlanceSkeleton rows={2} />
         ) : allergies === null ? (
@@ -120,7 +110,7 @@ function VisitCell({
   visit,
   style,
 }: {
-  visit: PatientVisitSummary | null | undefined;
+  visit: PatientVisit | null | undefined;
   style: "next" | "last";
 }) {
   if (!visit)
@@ -160,14 +150,14 @@ export function PatientRosterTable({
   rowMenu,
   selectable = true,
 }: {
-  rows: PatientTableRow[];
+  rows: PatientRow[];
   showProvider?: boolean;
-  rowMenu?: (row: PatientTableRow) => ReactNode;
+  rowMenu?: (row: PatientRow) => ReactNode;
   selectable?: boolean;
 }) {
   const now = useNow();
 
-  const columns: Column<PatientTableRow>[] = [
+  const columns: Column<PatientRow>[] = [
     {
       id: "patient",
       header: "Patient",
@@ -212,7 +202,7 @@ export function PatientRosterTable({
             id: "provider",
             header: "Provider",
             hideBelow: "md" as const,
-            cell: (row: PatientTableRow) =>
+            cell: (row: PatientRow) =>
               row.provider ? (
                 <Flex direction="column">
                   <Text

@@ -3,14 +3,14 @@
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { AllergyChip } from "@/components/glance";
 import { Surface } from "@/components/ui/surface";
-import type { AllergyEntry } from "@/domain/repositories/glance";
+import type { PatientSummaryAllergy } from "@/features/patients/schemas";
 
 export function PatientAllergiesSection({
   allergies,
   readOnly,
   onOpen,
 }: {
-  allergies: AllergyEntry[] | null;
+  allergies: PatientSummaryAllergy[] | null;
   readOnly: boolean;
   onOpen: () => void;
 }) {
