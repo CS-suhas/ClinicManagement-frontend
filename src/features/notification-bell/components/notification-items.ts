@@ -2,15 +2,12 @@ import type { CurrentUser } from "@/domain/auth";
 import type { MeDashboard } from "@/domain/repositories";
 
 export type NotificationItem = {
-  /** Stable across polls; a count in the id makes a changed count unread again. */
   id: string;
   text: string;
   href: string;
-  /** ISO time for a RelativeTime line, when the API has one. */
   at?: string | null;
 };
 
-/** What the signed-in user should look at, one row per open item. Pure. */
 export function notificationItems(
   mine: MeDashboard | null,
   user: Pick<CurrentUser, "roles"> | null,
@@ -61,11 +58,9 @@ function plural(count: number, noun: string, tail: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"} ${count === 1 ? "is" : "are"} ${tail}`;
 }
 
-/** localStorage key for the ids the user has seen. */
 export const NOTIFICATION_SEEN_KEY = "medipulse:notifications-seen";
 const MAX_REMEMBERED = 200;
 
-/** Reads the seen ids. Storage can be blocked or hold junk, so any failure reads as none seen. */
 export function readSeenIds(): string[] {
   try {
     const raw = window.localStorage.getItem(NOTIFICATION_SEEN_KEY);
@@ -78,14 +73,11 @@ export function readSeenIds(): string[] {
   }
 }
 
-/** Saves the seen ids, keeping the newest ones. Failures are ignored: the bell just shows items as unread again. */
 export function writeSeenIds(ids: string[]): void {
   try {
     window.localStorage.setItem(
       NOTIFICATION_SEEN_KEY,
       JSON.stringify(ids.slice(-MAX_REMEMBERED)),
     );
-  } catch {
-    // Storage is unavailable (private window, blocked site data).
-  }
+  } catch {}
 }

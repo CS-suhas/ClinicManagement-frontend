@@ -6,7 +6,6 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import { Surface } from "@/components/ui/surface";
 import type { AppointmentListItem } from "@/domain/repositories";
 
-/** The patient's next visit: when, with whom and its status. Empty state links to search. */
 export function NextAppointmentGlance({
   appointment,
 }: {

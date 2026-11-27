@@ -4,11 +4,6 @@ import { useCallback, useState } from "react";
 import { type FieldErrors, ValidationError } from "@/domain/errors";
 import { getErrorMessage } from "@/lib/errors";
 
-/**
- * Runs a mutation and maps domain errors to UI state:
- * ValidationError -> fieldErrors, anything else -> formError.
- * `run` resolves to true on success so callers can close dialogs / reload.
- */
 export function useFormSubmit() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});

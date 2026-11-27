@@ -10,16 +10,13 @@ import { useAuth } from "@/features/auth/auth-provider";
 
 export type Crumb = {
   label: string;
-  /** Omit for the current page. */
   href?: string;
 };
 
-/** White top strip of the public pages: logo, breadcrumbs and login. */
 export function PublicNavbar({ crumbs }: { crumbs: Crumb[] }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const signedIn = !loading && user !== null;
-  // Anonymous visitors come back to the page they were on after signing in.
   const loginHref =
     pathname.startsWith("/login") || pathname === "/"
       ? "/login"

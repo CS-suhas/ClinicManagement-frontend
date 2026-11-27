@@ -7,7 +7,6 @@ export const formatTime = (iso: string) =>
     ? new Date(iso).toLocaleTimeString(undefined, { timeStyle: "short" })
     : "";
 
-/** Date part of a visit or birth date. */
 export const formatVisitDate = (iso: string) => formatDate(iso);
 
 export const EMPTY_CELL = "—";

@@ -4,12 +4,10 @@ import type { ReactNode } from "react";
 
 export type SegmentedOption<T extends string> = {
   value: T;
-  /** Visible text. With `icon`, it becomes the accessible name only. */
   label: string;
   icon?: ReactNode;
 };
 
-/** Pill of options where the selected one is filled teal. Text or icon options. */
 export function SegmentedToggle<T extends string>({
   value,
   onChange,
@@ -19,7 +17,6 @@ export function SegmentedToggle<T extends string>({
   value: T;
   onChange: (value: T) => void;
   options: SegmentedOption<T>[];
-  /** Accessible name of the group, e.g. "View mode". */
   ariaLabel: string;
 }) {
   return (

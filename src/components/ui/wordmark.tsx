@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-/** ECG-line logo and "medipulse life" wordmark used by every top bar. */
 export function Wordmark({ href = "/" }: { href?: string }) {
   return (
     <Link

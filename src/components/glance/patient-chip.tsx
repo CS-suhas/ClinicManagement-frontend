@@ -36,10 +36,6 @@ import {
 import { statusPresentation } from "./status-chip";
 
 export type PatientChipProps = {
-  /**
-   * Either the full record or just an id and display name. A list item's
-   * `highestSeverity` is used for the avatar flag unless `highestSeverity` is passed.
-   */
   patient:
     | {
         id: string;
@@ -48,17 +44,8 @@ export type PatientChipProps = {
         highestSeverity?: string | null;
       }
     | { id: string; name: string; highestSeverity?: string | null };
-  /**
-   * A roster row (or any object with the same patient and visit fields). Its
-   * visit facts and contact details paint the card before the summary loads.
-   */
   seed?: Pick<PatientRosterRow, "patient" | "lastVisit" | "nextVisit">;
-  /**
-   * Highest allergy severity to flag on the avatar. Pass it when a list already
-   * knows it; the card loads allergies itself either way.
-   */
   highestSeverity?: string | null;
-  /** Set false to hide the severity flag on the avatar. Defaults to true. */
   showAllergyFlag?: boolean;
   variant?: "chip" | "inline";
 };
@@ -69,11 +56,6 @@ function nameOf(patient: PatientChipProps["patient"]): string {
     : patientFullName(patient as Pick<Patient, "firstName" | "lastName">);
 }
 
-/**
- * A patient as an avatar and name. Click, tap or Enter opens a card with
- * allergies, last and next visits, visit counts, recent visits and contact
- * actions. Clicks never reach an enclosing row.
- */
 export function PatientChip({
   patient,
   seed,
@@ -114,7 +96,6 @@ export function PatientChip({
   );
 }
 
-/** Red warning triangle on the avatar corner for a SEVERE allergy. */
 export function SevereMark() {
   return (
     <span

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-/** The old patient-only form. Kept as a redirect so bookmarks and links keep working. */
 export default async function PatientOnboardingRedirect({
   searchParams,
 }: {

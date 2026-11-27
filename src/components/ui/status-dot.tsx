@@ -1,4 +1,3 @@
-/** Colour names used for statuses. Always pair with text, never colour alone. */
 export type StatusTone = "amber" | "teal" | "red" | "slate" | "blue";
 
 export const STATUS_TONE_COLOR: Record<StatusTone, string> = {
@@ -9,10 +8,6 @@ export const STATUS_TONE_COLOR: Record<StatusTone, string> = {
   blue: "#2b6cb0",
 };
 
-/**
- * 8 px status dot. The label is read by screen readers ("Pending"), so the
- * meaning survives without colour.
- */
 export function StatusDot({
   tone,
   label,
@@ -20,7 +15,6 @@ export function StatusDot({
 }: {
   tone: StatusTone;
   label: string;
-  /** Gentle pulse for "happening now" states; disabled under reduced motion. */
   pulse?: boolean;
 }) {
   return (

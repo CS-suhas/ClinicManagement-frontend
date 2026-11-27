@@ -19,10 +19,6 @@ import { useGlanceData } from "@/hooks/use-glance-data";
 import { formatDateTime } from "@/lib/format";
 import { ContactButton } from "./contact-button";
 
-/**
- * Expanded row of a patient: allergies, the last three visits, contact buttons
- * and a link to the full record. Loads its summary only while open.
- */
 export function PatientExpansion({
   patientId,
   name,

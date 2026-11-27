@@ -34,19 +34,15 @@ export type UseAppointmentFormOptions = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointment: AppointmentListItem | null;
-  /** Receives the input plus the joined names the list row needs. */
   onSave: (
     input: AppointmentInput,
     editing: AppointmentListItem | null,
     overrides: Partial<AppointmentListItem>,
   ) => void;
-  /** Pre-filled date-time (datetime-local value) when creating. */
   defaultDateTime?: string;
-  /** Pre-selected patient when creating, e.g. from a patient page. */
   defaultPatientId?: string;
 };
 
-/** State and rules of the appointment dialog; the component only renders. */
 export function useAppointmentForm({
   open,
   onOpenChange,
@@ -201,7 +197,6 @@ export function useAppointmentForm({
       field: K,
       value: AppointmentFormValues[K],
     ) => setValues((current) => ({ ...current, [field]: value })),
-    /** Changing the clinic invalidates the chosen provider. */
     selectClinic: (clinicId: string) => {
       setValues((current) => ({ ...current, clinicId, providerId: "" }));
       setProviderQuery("");
@@ -211,12 +206,10 @@ export function useAppointmentForm({
     providers,
     settings,
     fieldErrors,
-    /** Allowed range of the date-time input for the chosen day. */
     timeBounds: {
       min: date && opening ? `${date}T${opening}` : undefined,
       max: date && latestStart ? `${date}T${latestStart}` : undefined,
     },
-    /** Failed option/settings loads, each with a retry. */
     loadErrors: [
       { message: settingsError, retry: reloadSettings },
       { message: patients.error, retry: patients.reload },

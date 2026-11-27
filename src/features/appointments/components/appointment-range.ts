@@ -6,47 +6,37 @@ import {
 import type { AppointmentSearchOptions } from "@/domain/repositories";
 import { toDateKey } from "./schedule-time";
 
-/** Calendar granularity of the page. */
 export type RangeMode = "day" | "week" | "month";
 
 export type DateRange = {
-  /** Local midnight ISO, inclusive. */
   from: string;
-  /** Local midnight ISO of the day after the last day, exclusive. */
   to: string;
-  /** Every local day covered, "YYYY-MM-DD", in order. */
   days: string[];
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** "YYYY-MM" of a day key. */
 export const monthKeyOf = (dateKey: string) => dateKey.slice(0, 7);
 
-/** Day of week, Monday = 0 .. Sunday = 6. */
 export function mondayIndex(dateKey: string): number {
   const [y, m, d] = dateKey.split("-").map(Number);
   return (new Date(y, m - 1, d).getDay() + 6) % 7;
 }
 
-/** The Monday of the week containing the day. */
 export const weekStartOf = (dateKey: string) =>
   addDays(dateKey, -mondayIndex(dateKey));
 
-/** Seven day keys from Monday of the week containing `dateKey`. */
 export function weekDays(dateKey: string): string[] {
   const start = weekStartOf(dateKey);
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
-/** Six weeks of day keys (Monday-first) covering the month of `dateKey`. */
 export function monthGridDays(dateKey: string): string[] {
   const first = `${monthKeyOf(dateKey)}-01`;
   const start = addDays(first, -mondayIndex(first));
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
-/** Fetch range for a mode around `dateKey`. Month covers the full six-week grid. */
 export function rangeFor(mode: RangeMode, dateKey: string): DateRange {
   const days =
     mode === "day"
@@ -61,7 +51,6 @@ export function rangeFor(mode: RangeMode, dateKey: string): DateRange {
   };
 }
 
-/** Moves the selected date by one step of the mode: a day, a week or a month (to the 1st). */
 export function shiftDate(
   mode: RangeMode,
   dateKey: string,
@@ -75,7 +64,6 @@ export function shiftDate(
   return addDays(dateKey, steps * (mode === "week" ? 7 : 1));
 }
 
-/** "November 2026" for a month key's day. */
 export function monthLabel(dateKey: string): string {
   const [y, m] = dateKey.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString(undefined, {
@@ -84,7 +72,6 @@ export function monthLabel(dateKey: string): string {
   });
 }
 
-/** "Nov 23 – 29, 2026" for the week containing the day. */
 export function weekLabel(dateKey: string): string {
   const days = weekDays(dateKey);
   const first = new Date(...splitKey(days[0]));
@@ -100,13 +87,11 @@ export function weekLabel(dateKey: string): string {
   return `${left} – ${right}, ${last.getFullYear()}`;
 }
 
-/** Converts "YYYY-MM-DD" to the Date constructor's (y, monthIndex, day) arguments. */
 function splitKey(dateKey: string): [number, number, number] {
   const [y, m, d] = dateKey.split("-").map(Number);
   return [y, m - 1, d];
 }
 
-/** The day key shown on a month-grid cell or agenda day header, e.g. "Mon 23 Nov". */
 export function dayHeading(dateKey: string): string {
   const [y, m, d] = splitKey(dateKey);
   return new Date(y, m, d).toLocaleDateString(undefined, {
@@ -116,7 +101,6 @@ export function dayHeading(dateKey: string): string {
   });
 }
 
-/** The filter a scope applies to appointment searches. Null when the scope can see nothing. */
 export function scopeFilter(
   scope: AppointmentScope,
 ): Pick<
@@ -137,5 +121,4 @@ export function scopeFilter(
   }
 }
 
-/** Day key of "now" for the page's clock; callers pass the value read after mount. */
 export const todayKeyOf = (ms: number) => toDateKey(ms);

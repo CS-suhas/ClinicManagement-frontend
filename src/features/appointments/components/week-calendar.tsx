@@ -18,10 +18,6 @@ const GUTTER = 56;
 const DAY_MIN_WIDTH = 120;
 const ACCENT = "var(--mp-primary)";
 
-/**
- * Seven day columns (Monday to Sunday) of one doctor's own visits. Blocks sit at
- * their start time; today's column is tinted and carries the now-line.
- */
 export function WeekCalendar({
   days,
   todayKey,
@@ -31,13 +27,11 @@ export function WeekCalendar({
   onPickDay,
   ...common
 }: GridCommon & {
-  /** Seven "YYYY-MM-DD" keys, Monday first. */
   days: string[];
   todayKey: string | null;
   items: AppointmentListItem[];
   clinic: ClinicWindow;
   nowOffset: number | null;
-  /** Opens the day view for a column header. */
   onPickDay: (dateKey: string) => void;
 }) {
   const { opening, closing, duration } = clinic;

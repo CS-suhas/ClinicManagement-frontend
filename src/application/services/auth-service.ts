@@ -21,7 +21,6 @@ export class AuthService {
     return this.repo.signIn(personaId, options);
   }
 
-  /** Finishes a redirect sign-in on the callback page. */
   completeSignIn(): Promise<{ returnTo: string | null }> {
     return this.repo.completeSignIn();
   }
@@ -38,16 +37,11 @@ export class AuthService {
     return this.repo.onSessionExpired(listener);
   }
 
-  /** Validates the details, then creates the signed-in user's patient profile. */
   createPatientProfile(input: PatientInput): Promise<Patient> {
     assertValid(validatePatient(input));
     return this.repo.createPatientProfile(input);
   }
 
-  /**
-   * Validates the details, then registers the signed-in user as a doctor. The
-   * new provider is PENDING at the chosen clinic until an admin verifies it.
-   */
   registerAsProvider(input: ProviderRegistrationInput): Promise<Provider> {
     assertValid(validateProviderRegistration(input));
     return this.repo.registerAsProvider(input);

@@ -16,12 +16,9 @@ export class HttpError extends Error {
   }
 }
 
-/** A fixed base URL, or a function resolved on every request (see `resolveApiBaseUrl`). */
 export type BaseUrl = string | (() => string);
 
-/** Thin fetch wrapper that maps HTTP failures onto domain errors. */
 export class HttpClient {
-  /** `getToken` supplies the bearer token; requests omit the header when it is null. */
   constructor(
     private readonly baseUrl: BaseUrl,
     private readonly getToken?: () => Promise<string | null>,
@@ -30,7 +27,6 @@ export class HttpClient {
   get<T>(path: string) {
     return this.request<T>("GET", path);
   }
-  /** Like `get`, but resolves to null when the resource does not exist. */
   async getOrNull<T>(path: string): Promise<T | null> {
     try {
       return await this.get<T>(path);

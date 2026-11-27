@@ -9,14 +9,8 @@ import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 
 export type ApprovalTab = "PENDING" | "REJECTED" | "VERIFIED";
 
-/** The queue shows one page of applications; the admin list is small in practice. */
 const QUEUE_PAGE_SIZE = 100;
 
-/**
- * The doctor-approval queue for one status tab. Approve and reject update the
- * list at once and send the request in the background; a failure puts the row
- * back and shows a popup. Reject can be undone for a few seconds.
- */
 export function useDoctorApprovals(tab: ApprovalTab, search: string) {
   const providerService = useService("providerService");
   const { notifyError, notifySuccess } = useNotify();
@@ -77,7 +71,6 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
     });
   };
 
-  /** Verifies the rows one by one. Failures go back into the list and are named in a popup. */
   const verifyMany = async (rows: Provider[], clear: () => void) => {
     const ids = new Set(rows.map((r) => r.id));
     mutate((current) => current?.filter((p) => !ids.has(p.id)));

@@ -20,12 +20,10 @@ import { PatientRosterCard } from "./patient-roster-card";
 import { PatientRosterTable } from "./patient-roster-table";
 import { PatientRowMenu } from "./patient-row-menu";
 
-/** Admin's patients page: search, paging, add/edit/delete and allergies, with visit columns. */
 export function AdminPatientsView() {
   const patientService = useService("patientService");
   const crud = useCrudPage(patientService, { entityName: "patient" });
 
-  // Visit columns follow the rows on the current page; the key reloads them when that page changes.
   const pageIds = crud.rows.map((patient) => patient.id);
   const visits = useAsyncData(
     () =>

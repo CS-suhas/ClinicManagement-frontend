@@ -1,16 +1,11 @@
 import { PersonAvatar } from "./person-avatar";
 
-/**
- * Overlapping 24 px avatars with a "+N" overflow. Presentational: wrap it in a
- * GlancePopover trigger to list everyone as chips on hover, tap or Enter.
- */
 export function AvatarStack({
   people,
   max = 3,
   size = 24,
 }: {
   people: { name: string }[];
-  /** Avatars shown before the "+N" overflow. */
   max?: number;
   size?: number;
 }) {

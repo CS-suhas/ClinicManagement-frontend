@@ -23,10 +23,6 @@ const summary = (appointment: Appointment): PatientVisitSummary => ({
   reasonForVisit: appointment.reasonForVisit,
 });
 
-/**
- * Mock provider roster. Enforces the API's access rule: the doctor themself,
- * an admin, or a clinic admin of the doctor's clinic.
- */
 export function createMockProviderRosterRepository(
   repositories: {
     patients: Listable<PatientListItem>;
@@ -70,7 +66,6 @@ export function createMockProviderRosterRepository(
       for (const [patientId, list] of byPatient) {
         const patient = patientById.get(patientId);
         if (!patient) continue;
-        // Visit facts ignore DECLINED and CANCELLED; the count does not.
         const counted = list
           .filter((a) => a.status !== "DECLINED" && a.status !== "CANCELLED")
           .sort(

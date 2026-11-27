@@ -18,11 +18,9 @@ import type {
   ProviderInput,
 } from "../entities";
 
-/** Port: generic persistence contract for entities with a string id. */
 export type CrudRepository<T extends { id: string }, TInput> = {
   list(): Promise<T[]>;
   getById(id: string): Promise<T | null>;
-  /** `id` lets callers pick the id up front, e.g. for optimistic UI. */
   create(input: TInput, id?: string): Promise<T>;
   update(id: string, input: TInput): Promise<T>;
   delete(id: string): Promise<void>;
@@ -46,13 +44,10 @@ export type ProviderSearchOptions = SearchOptions & {
 };
 
 export type AppointmentSearchOptions = SearchOptions & {
-  /** Inclusive ISO date-time. Must be strictly before `to`. */
   from?: string;
-  /** Exclusive ISO date-time. */
   to?: string;
   clinicId?: string;
   providerId?: string;
-  /** Up to 100. An empty array matches nothing. */
   providerIds?: string[];
   patientId?: string;
   status?: AppointmentStatus;
@@ -65,7 +60,6 @@ export type SearchRepository<
   search(options: TOptions): Promise<PagedResult<T>>;
 };
 
-/** An appointment as the list endpoints return it, with names and clinic joined in. */
 export type AppointmentListItem = Omit<Appointment, "reasonForVisit"> & {
   patientName: string;
   providerName: string;
@@ -73,13 +67,10 @@ export type AppointmentListItem = Omit<Appointment, "reasonForVisit"> & {
   clinicId: string;
   clinicName: string;
   reasonForVisit: string | null;
-  /** Allergies recorded on the patient. Optional for older responses. */
   patientAllergyCount?: number;
-  /** Highest recorded severity of the patient, or null. Optional for older responses. */
   patientHighestAllergySeverity?: string | null;
 };
 
-/** Port: status transitions. Each one throws ConflictError on an invalid transition and ForbiddenError for the wrong caller. */
 export type AppointmentActionRepository = {
   confirm(id: string): Promise<void>;
   decline(id: string): Promise<void>;
@@ -111,11 +102,9 @@ export type DoctorDashboard = {
   weekAppointmentCount: number;
   distinctPatientCount: number;
   nextAppointment: AppointmentListItem | null;
-  /** REQUESTED appointments starting now or later. Optional for older responses. */
   pendingRequestCount?: number;
 };
 
-/** A recent decision on one of the patient's requests. Uses the CURRENT status, so a later change drops it. */
 export type RecentDecision = {
   appointmentId: string;
   status: "CONFIRMED" | "DECLINED";
@@ -126,11 +115,9 @@ export type RecentDecision = {
 export type PatientDashboard = {
   nextAppointment: AppointmentListItem | null;
   upcomingAppointmentCount: number;
-  /** Up to five, newest first. Optional for older responses. */
   recentDecisions?: RecentDecision[];
 };
 
-/** Response of GET /api/me/dashboard. A section is null unless the caller holds that role (and, for doctor and patient, the linked record). */
 export type MeDashboard = {
   admin: AdminDashboard | null;
   clinicAdmin: ClinicAdminDashboard | null;
@@ -140,29 +127,22 @@ export type MeDashboard = {
 
 export type DashboardRepository = {
   getDashboard(): Promise<DashboardData>;
-  /** The signed-in user's dashboard, one section per role. */
   getMine(): Promise<MeDashboard>;
 };
 
-/** The visit facts a provider's roster shows for one patient. */
 export type PatientVisitSummary = {
   id: string;
   appointmentDateTime: string;
   reasonForVisit: string | null;
 };
 
-/** One line of a provider's patient roster. Visit facts count only that provider's appointments. */
 export type PatientRosterRow = {
   patient: PatientListItem;
-  /** Latest past appointment, ignoring DECLINED and CANCELLED. */
   lastVisit: PatientVisitSummary | null;
-  /** Soonest upcoming appointment, ignoring DECLINED and CANCELLED. */
   nextVisit: PatientVisitSummary | null;
-  /** Every appointment with this provider, whatever its status. */
   appointmentCount: number;
 };
 
-/** Port: the patients a provider has appointments with, paged and ordered by last name, first name. */
 export type ProviderRosterRepository = {
   searchProviderRoster(
     providerId: string,
@@ -174,13 +154,8 @@ export type ProviderDirectoryOptions = SearchOptions & {
   clinicId?: string;
 };
 
-/** A directory row: the provider and the name of its clinic, null when unknown. */
 export type ProviderDirectoryEntry = Provider & { clinicName: string | null };
 
-/**
- * Port: the public list of bookable doctors, i.e. verified providers.
- * `search` matches first name, last name, specialty or clinic name.
- */
 export type ProviderDirectoryRepository = {
   list(
     options: ProviderDirectoryOptions,
@@ -188,30 +163,19 @@ export type ProviderDirectoryRepository = {
 };
 
 export type VerificationSearchOptions = SearchOptions & {
-  /** Non-admins are always limited to VERIFIED, whatever is passed. */
   verificationStatus?: VerificationStatus;
 };
 
-/**
- * Port: doctor verification. Admins act on any doctor, clinic admins on doctors
- * at a clinic they administer; each action throws ConflictError on an invalid
- * transition.
- */
 export type ProviderVerificationRepository = {
   searchByStatus(
     options: VerificationSearchOptions,
   ): Promise<PagedResult<Provider>>;
-  /** Every doctor at the clinic for admins and its clinic admins; verified ones only for anyone else. */
   listByClinic(clinicId: string): Promise<Provider[]>;
-  /** From PENDING or REJECTED. Throws ConflictError when already VERIFIED. */
   verify(id: string): Promise<void>;
-  /** From PENDING only. Throws ConflictError otherwise. */
   reject(id: string): Promise<void>;
 };
 
-/** Port: busy slots for one doctor on one local day. Public, and carries no patient data. */
 export type AppointmentAvailabilityRepository = {
-  /** `date` is "YYYY-MM-DD". Resolves to the ISO start times of REQUESTED and CONFIRMED appointments that day. */
   getBusyStarts(providerId: string, date: string): Promise<string[]>;
 };
 
@@ -243,10 +207,8 @@ export type PatientAllergyRepository = {
     patientId: string,
     options: SearchOptions & { selectedAllergyId?: string },
   ): Promise<PagedResult<AllergyType>>;
-  /** The patients who have this allergy recorded (GET /allergy-types/:id/patients). */
   listPatientsByAllergy(allergyId: string): Promise<Patient[]>;
   add(record: PatientAllergy): Promise<PatientAllergy>;
-  /** Creates or replaces the record identified by (patientId, allergyId). */
   save(record: PatientAllergy): Promise<PatientAllergy>;
   delete(patientId: string, allergyId: string): Promise<void>;
 };

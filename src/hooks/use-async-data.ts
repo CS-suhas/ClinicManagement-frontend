@@ -7,21 +7,11 @@ export type AsyncData<T> = {
   data: T | undefined;
   loading: boolean;
   error: string | null;
-  /** Reloads with the loading state shown (and any error cleared). */
   reload: () => Promise<void>;
-  /** Reloads quietly: no loading state, and a failure keeps the current data. */
   refresh: () => Promise<void>;
-  /**
-   * Edits the loaded data in place, e.g. for optimistic updates. Responses of
-   * requests already in flight are dropped so they cannot overwrite the edit.
-   */
   mutate: (update: (current: T | undefined) => T | undefined) => void;
 };
 
-/**
- * Loads data from a use-case on mount and exposes `reload()` for after mutations.
- * The loader may change identity between renders; the latest one is always used.
- */
 export function useAsyncData<T>(
   loader: () => Promise<T>,
   dependencyKey?: string,
@@ -32,7 +22,6 @@ export function useAsyncData<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Only the most recent request may update state (prevents stale overwrites).
   const requestId = useRef(0);
 
   const load = useCallback(async (silent: boolean) => {

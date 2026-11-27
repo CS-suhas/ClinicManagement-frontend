@@ -7,10 +7,6 @@ import { useAsyncData } from "@/hooks/use-async-data";
 
 const PAGE_SIZE = 50;
 
-/**
- * A doctor's REQUESTED appointments from today on, for the pending inbox.
- * Empty until `todayKey` is known (after mount).
- */
 export function usePendingRequests(
   providerId: string | null,
   todayKey: string | null,
@@ -38,7 +34,6 @@ export function usePendingRequests(
   const pending = items.filter((item) => item.status === "REQUESTED");
   return {
     items: pending,
-    /** Capped at the page size; "more" when the server has more. */
     more: (data?.totalCount ?? 0) > PAGE_SIZE,
     error,
     loading,

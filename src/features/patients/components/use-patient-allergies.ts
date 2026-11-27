@@ -27,11 +27,6 @@ type Loaded = {
 const EMPTY_FORM: AllergyForm = { allergyId: "", severity: "", notes: "" };
 const OPTIONS_PAGE = { page: 1, pageSize: 100 };
 
-/**
- * Loading, editing and removing of one patient's recorded allergies. Changes
- * show up at once and are sent in the background; failures roll back and
- * show a popup.
- */
 export function usePatientAllergies({
   open,
   patient,
@@ -39,7 +34,6 @@ export function usePatientAllergies({
 }: {
   open: boolean;
   patient: Patient | null;
-  /** Lists the allergies without offering any change. Doctors see the record this way. */
   readOnly?: boolean;
 }) {
   const patientAllergyService = useService("patientAllergyService");
@@ -106,7 +100,6 @@ export function usePatientAllergies({
         current && { ...current, allergies: change(current.allergies) },
     );
 
-  /** Keeps the "choose an allergy" list in step with what is recorded. */
   const editOptions = (
     change: (items: AllergyType[]) => AllergyType[],
     countChange: number,
@@ -227,14 +220,12 @@ export function usePatientAllergies({
 
   return {
     readOnly,
-    // recorded allergies (given an `id` so they fit DataTable)
     allergies: allergies.map((a) => ({ ...a, id: a.allergyId })),
     severities,
     loading,
     error,
     reload,
     typeName,
-    // add / edit form
     editing,
     form,
     setField: <K extends keyof AllergyForm>(field: K, value: AllergyForm[K]) =>
@@ -249,7 +240,6 @@ export function usePatientAllergies({
     submit,
     startEdit,
     cancelEdit,
-    // removal; spread `removeDialog` onto ConfirmDeleteDialog
     removing,
     setRemoving,
     removeDialog: {

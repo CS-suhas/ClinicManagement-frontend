@@ -1,21 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { hasRole } from "@/application/auth/permissions";
 import { useService } from "@/di/container-provider";
 import { useAuth } from "@/features/auth/auth-provider";
+import { hasRole } from "@/features/auth/permissions";
 
 export type PatientAccess =
   | { state: "checking" }
   | { state: "denied" }
-  /** `readOnly` is true for a doctor: they may read the record, not change it. */
   | { state: "allowed"; readOnly: boolean };
 
-/**
- * Who may open a patient's record. Admins may open any. A patient may open their
- * own. A doctor may open only patients they have an appointment with, which the
- * appointment list answers. Everyone else is denied.
- */
 export function usePatientAccess(patientId: string): PatientAccess {
   const appointmentService = useService("appointmentService");
   const { user } = useAuth();

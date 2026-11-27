@@ -3,11 +3,6 @@
 import { AlertDialog, Button, Flex } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 
-/**
- * Confirmation for an action that is not a plain delete, e.g. bulk verify.
- * Unlike ConfirmDeleteDialog, `onConfirm` may be async: the dialog stays open
- * while `busy` and closes when `onOpenChange(false)` is called after it finishes.
- */
 export function ConfirmActionDialog({
   open,
   onOpenChange,

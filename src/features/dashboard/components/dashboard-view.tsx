@@ -29,7 +29,6 @@ import { NextAppointmentGlance } from "@/features/landing/components/next-appoin
 import { QuickLinkCard } from "@/features/landing/components/quick-link-card";
 import { useAsyncData } from "@/hooks/use-async-data";
 
-/** The signed-in user's dashboard: one section per role they hold. */
 export function DashboardView() {
   const { user } = useAuth();
   const dashboardService = useService("dashboardService");
@@ -202,7 +201,6 @@ function Sections({ user, data }: { user: CurrentUser; data: MeDashboard }) {
       </Section>,
     );
 
-  // A doctor who is not verified yet holds no doctor section, so show where they stand.
   if (user.provider && user.provider.verificationStatus !== "VERIFIED")
     sections.push(
       <Section key="provider" title="Doctor application" icon={<PlusIcon />}>
@@ -271,7 +269,6 @@ function Section({
   );
 }
 
-/** A doctor's next visit, with the patient and status. */
 function NextVisit({
   appointment,
 }: {
@@ -313,7 +310,6 @@ function NextVisit({
   );
 }
 
-/** Up to five recent decisions on the patient's requests. */
 function RecentDecisions({ decisions }: { decisions: RecentDecision[] }) {
   if (decisions.length === 0) return null;
   return (

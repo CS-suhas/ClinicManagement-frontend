@@ -14,47 +14,26 @@ import {
 } from "react";
 import { CHIP_BUTTON_CLASS } from "@/components/ui/chip";
 
-/** Hover opens after this delay and closes after the pointer leaves for the grace period. */
 const OPEN_DELAY_MS = 250;
 const CLOSE_DELAY_MS = 150;
 const SHEET_QUERY = "(max-width: 639px)";
 
-/** Only one glance is open at a time; opening one closes the others. */
 let activeGlance: { id: string; close: () => void } | null = null;
 
 export type GlanceRenderState = {
-  /** True while the card is open. Children only mount while open, so they can fetch lazily. */
   open: boolean;
-  /** Closes the card and returns focus to the trigger. */
   close: () => void;
 };
 
 export type GlancePopoverProps = {
-  /** Shown inside the trigger button, normally a Chip, StatusDot or AvatarStack. */
   trigger: ReactNode;
-  /** Accessible name of the trigger, e.g. "Patient Asha Perera, show details". */
   label: string;
-  /** Card content. Receives the open state and a close function. */
   children: (state: GlanceRenderState) => ReactNode;
-  /** Side of the trigger on desktop. Defaults to "bottom". */
   side?: "bottom" | "top";
-  /** Desktop card width in px. Defaults to 320. */
   width?: number;
-  /** Runs each time the card opens, e.g. to start a fetch. */
   onOpen?: () => void;
 };
 
-/**
- * A button that shows a detail card. One component covers every input:
- * - Mouse: hovering opens after 250 ms and closes 150 ms after leaving the
- *   trigger and card. A click pins the card open; clicking a pinned card
- *   unpins it.
- * - Touch: a tap toggles and pins the card.
- * - Keyboard: Enter or Space opens and pins; focus moves into the card; Esc
- *   closes and returns focus to the trigger. Hover-opening never moves focus.
- * Below 640 px the card becomes a bottom sheet (a dialog), full width.
- * Clicks never reach an enclosing row.
- */
 export function GlancePopover({
   trigger,
   label,
@@ -121,7 +100,6 @@ export function GlancePopover({
     if (pin) pinned.current = true;
   };
 
-  /** Starts the grace period after a pointer leaves, unless the card is pinned. */
   const scheduleClose = () => {
     if (pinned.current || !isOpen.current) return;
     clearTimeout(closeTimer.current);
@@ -148,7 +126,6 @@ export function GlancePopover({
   };
 
   const onTriggerClick = (e: MouseEvent) => {
-    // This component owns the open state, so stop Radix's own toggle and the row click.
     e.preventDefault();
     e.stopPropagation();
     if (isOpen.current && pinned.current) {
@@ -254,7 +231,6 @@ export function GlancePopover({
           if (openedByHover.current) e.preventDefault();
         }}
         onCloseAutoFocus={(e) => {
-          // Focus goes back to the trigger only after Esc, never after a hover or outside click.
           if (!escaped.current) e.preventDefault();
           escaped.current = false;
         }}
@@ -274,12 +250,6 @@ export function GlancePopover({
   );
 }
 
-/* ----------------------------------------------------------------------
- * Card building blocks. Entity glances compose these so every card looks
- * the same: header, body sections, a footer of actions.
- * ---------------------------------------------------------------------- */
-
-/** Avatar, title and an optional subtitle at the top of a card. */
 export function GlanceHeader({
   avatar,
   title,
@@ -317,7 +287,6 @@ export function GlanceHeader({
   );
 }
 
-/** A labelled block inside the card body. */
 export function GlanceSection({
   title,
   children,
@@ -340,7 +309,6 @@ export function GlanceSection({
   );
 }
 
-/** Action row at the bottom of a card. */
 export function GlanceFooter({ children }: { children: ReactNode }) {
   return (
     <div
@@ -352,7 +320,6 @@ export function GlanceFooter({ children }: { children: ReactNode }) {
   );
 }
 
-/** Placeholder of the card's height while its data loads. */
 export function GlanceSkeleton({ rows = 3 }: { rows?: number }) {
   return (
     <div className="flex flex-col gap-2.5" aria-busy="true">
@@ -372,7 +339,6 @@ export function GlanceSkeleton({ rows = 3 }: { rows?: number }) {
   );
 }
 
-/** One line of explanation with a Retry button; the card keeps its seed details above it. */
 export function GlanceError({
   message,
   onRetry,
@@ -392,11 +358,6 @@ export function GlanceError({
   );
 }
 
-/**
- * An action in a card's footer. `href` is an internal path (client link), an
- * external URL, or a tel:/mailto: link. A null href renders a disabled button,
- * so the action is visible but cannot be used.
- */
 export function GlanceAction({
   href,
   children,
@@ -408,10 +369,8 @@ export function GlanceAction({
   href: string | null;
   children: ReactNode;
   icon?: ReactNode;
-  /** Filled teal instead of soft. */
   primary?: boolean;
   external?: boolean;
-  /** Shown as the button's title when `href` is null. */
   disabledReason?: string;
 }) {
   const variant = primary ? "solid" : "soft";

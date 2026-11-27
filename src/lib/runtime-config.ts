@@ -1,18 +1,14 @@
-import type { PublicAccess } from "@/domain/auth";
 import {
   type OidcRuntimeConfig,
   oidcRuntimeConfigFromEnv,
 } from "@/lib/auth/oidc-config";
 
-/**
- * Where the browser reads per-deployment settings. Served by this app (see
- * src/app/runtime-config/route.ts) from the environment at request time, so
- * nothing host-specific is baked into the build. Must not start with /auth/ or
- * /api/, which the reverse proxy sends to Keycloak and the API.
- */
 export const RUNTIME_CONFIG_PATH = "/runtime-config";
 
-/** What GET /runtime-config returns. */
+export type PublicAccess = {
+  doctors: boolean;
+};
+
 export type RuntimeConfig = {
   keycloak: OidcRuntimeConfig;
   publicAccess: PublicAccess;
@@ -20,7 +16,6 @@ export type RuntimeConfig = {
 
 type Env = Record<string, string | undefined>;
 
-/** "true"/"1"/"yes"/"on" and "false"/"0"/"no"/"off", case-insensitive; anything else is the fallback. */
 export function parseBooleanSetting(
   value: string | undefined,
   fallback: boolean,
@@ -33,7 +28,6 @@ export function parseBooleanSetting(
   return fallback;
 }
 
-/** Server side: the config from the process environment. */
 export function runtimeConfigFromEnv(env: Env): RuntimeConfig {
   return {
     keycloak: oidcRuntimeConfigFromEnv(env),
@@ -43,13 +37,8 @@ export function runtimeConfigFromEnv(env: Env): RuntimeConfig {
   };
 }
 
-/** Used when the config cannot be read: same-origin Keycloak defaults, doctors public. */
 const FALLBACK_PUBLIC_ACCESS: PublicAccess = { doctors: true };
 
-/**
- * Browser side: fetches GET /runtime-config once per page load. A failed fetch
- * is not cached, so the next call tries again.
- */
 export class RuntimeConfigClient {
   private pending: Promise<Partial<RuntimeConfig>> | null = null;
 
@@ -76,12 +65,10 @@ export class RuntimeConfigClient {
     return this.pending;
   }
 
-  /** The keycloak section, unvalidated (see resolveOidcClientSettings). */
   async keycloak(): Promise<unknown> {
     return (await this.load()).keycloak;
   }
 
-  /** What anonymous visitors may open. Falls back to the defaults when the config is unavailable. */
   async publicAccess(): Promise<PublicAccess> {
     if (typeof window === "undefined") return FALLBACK_PUBLIC_ACCESS;
     try {
@@ -97,3 +84,5 @@ export class RuntimeConfigClient {
     }
   }
 }
+
+export const runtimeConfig = new RuntimeConfigClient();

@@ -11,10 +11,6 @@ import { type Patient, patientFullName } from "@/domain/entities";
 import { SeverityBadge, severityLabel } from "./severity-badge";
 import { usePatientAllergies } from "./use-patient-allergies";
 
-/**
- * Lists and edits the allergies recorded for one patient. With `readOnly` the
- * list shows without edit, delete or add, for roles that may only read it.
- */
 export function PatientAllergiesDialog({
   open,
   onOpenChange,

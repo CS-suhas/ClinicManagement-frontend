@@ -3,18 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getErrorMessage } from "@/lib/errors";
 
-/** How long a loaded glance stays fresh before a reopen refetches it. */
 const TTL_MS = 60_000;
 
 type Entry = {
   value?: unknown;
   hasValue: boolean;
-  /** Epoch ms of the last successful load; 0 marks the entry stale. */
   loadedAt: number;
   inflight?: Promise<unknown>;
 };
 
-/** Module-level cache shared by every glance card, keyed like "patient:<id>". */
 const cache = new Map<string, Entry>();
 
 const entryFor = (key: string): Entry => {
@@ -26,11 +23,6 @@ const entryFor = (key: string): Entry => {
   return entry;
 };
 
-/**
- * Loads a glance through the cache: fresh values are reused, concurrent calls
- * share one request, and a failure is not cached. Exported for tests and for
- * code that needs a glance outside a component.
- */
 export function loadGlance<T>(
   key: string,
   fetcher: () => Promise<T>,
@@ -57,11 +49,6 @@ export function loadGlance<T>(
   return request;
 }
 
-/**
- * Marks every cached glance stale. Values stay for stale-while-revalidate, so
- * cards repaint instantly and refresh behind the scenes. Called after any
- * appointment or allergy change.
- */
 export function invalidateGlanceData(): void {
   for (const entry of cache.values()) entry.loadedAt = 0;
 }
@@ -70,15 +57,9 @@ export type GlanceState<T> = {
   data: T | undefined;
   error: string | null;
   loading: boolean;
-  /** Refetches even when the cached value is fresh. */
   retry: () => void;
 };
 
-/**
- * Data for one glance card. Fetches only while `enabled` (cards pass `open`),
- * so nothing loads until someone looks. `key` identifies the entity, e.g.
- * "patient:p1"; the fetcher should come from glanceService.
- */
 export function useGlanceData<T>(
   key: string,
   fetcher: () => Promise<T>,
@@ -125,7 +106,6 @@ export function useGlanceData<T>(
   }, [key, enabled, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
-  // A key change shows nothing from the previous entity while the new one loads.
   const current = state.key === key;
   return {
     data: current ? state.data : undefined,

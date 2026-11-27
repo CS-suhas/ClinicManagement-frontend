@@ -7,7 +7,6 @@ import { Surface } from "@/components/ui/surface";
 import type { PatientSummary, VisitFact } from "@/domain/repositories/glance";
 import { formatDateTime } from "@/lib/format";
 
-/** Overview tab: visit counts, the next visit, allergies at a glance and the latest visits. */
 export function PatientOverview({ summary }: { summary: PatientSummary }) {
   const counts = summary.counts;
   const tiles: { label: string; value: number | null }[] = [
@@ -127,7 +126,6 @@ export function PatientOverview({ summary }: { summary: PatientSummary }) {
   );
 }
 
-/** One visit: when, with whom, and its status. Chips inside stay inline, so no popovers nest. */
 export function VisitRow({
   visit,
   showRelative = false,

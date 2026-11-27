@@ -3,7 +3,6 @@ import type { ChangeEvent, ComponentProps } from "react";
 import { FormField } from "./form-field";
 import { SearchField } from "./search-field";
 
-/** Labelled text input with its validation message. */
 export function TextFormField({
   label,
   id,
@@ -37,7 +36,6 @@ export function TextFormField({
   );
 }
 
-/** Labelled multi-line input with its validation message. */
 export function TextAreaFormField({
   label,
   id,
@@ -102,7 +100,6 @@ function OptionSelect({
   );
 }
 
-/** Labelled select over `{ value, label }` options. */
 export function SelectFormField({
   label,
   id,
@@ -125,7 +122,6 @@ export function SelectFormField({
   );
 }
 
-/** A select preceded by a search box that narrows its options. */
 export function SearchSelectField({
   label,
   id,

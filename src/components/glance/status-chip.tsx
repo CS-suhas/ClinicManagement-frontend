@@ -54,7 +54,6 @@ const PRESENTATION: Record<StatusKind, Record<string, StatusPresentation>> = {
   },
 };
 
-/** UI label, colour tone and glyph for a raw API status. Unknown values read as-is. */
 export function statusPresentation(
   kind: StatusKind,
   status: string,
@@ -68,11 +67,9 @@ export function statusPresentation(
   );
 }
 
-/** UI label for an appointment status, e.g. "Accepted" for CONFIRMED. */
 export const appointmentLabel = (status: AppointmentStatus) =>
   statusPresentation("appointment", status).label;
 
-/** The terminal line shown under a rejected or cancelled status. Null for other states. */
 function defaultNote(kind: StatusKind, status: string): string | null {
   if (kind === "appointment" && status === "DECLINED")
     return "Rejected by the doctor. No reason is recorded.";
@@ -81,10 +78,6 @@ function defaultNote(kind: StatusKind, status: string): string | null {
   return null;
 }
 
-/**
- * A status as a coloured pill with a glyph and its label, never colour alone.
- * Non-interactive; use it inside cards or where no detail is needed.
- */
 export function StatusPill({
   kind,
   status,
@@ -114,7 +107,6 @@ const STEP_INDEX: Partial<Record<string, number>> = {
   COMPLETED: 2,
 };
 
-/** Requested > Accepted > Completed, with Rejected or Cancelled as a terminal branch. */
 function AppointmentStepper({ status }: { status: string }) {
   const current = STEP_INDEX[status];
   const branch =
@@ -175,11 +167,6 @@ function AppointmentStepper({ status }: { status: string }) {
   );
 }
 
-/**
- * A status pill that opens a card: the stepper (appointments), a relative
- * time line, the terminal note, any extra details and the card's actions.
- * Actions are passed in by the caller, who knows the user's permissions.
- */
 export function StatusChip({
   kind,
   status,
@@ -193,21 +180,13 @@ export function StatusChip({
   onOpen,
 }: {
   kind: StatusKind;
-  /** The raw API status, e.g. "REQUESTED". */
   status: string;
-  /** ISO time shown as a relative line, e.g. the appointment start. */
   at?: string | null;
-  /** Words before the relative time, e.g. "Starts", "Requested". */
   atLabel?: string;
-  /** Extra rows, e.g. timestamps the backend has. */
   details?: ReactNode;
-  /** Footer buttons. The caller filters them by role and status. */
   actions?: ReactNode;
-  /** Overrides the default terminal line. */
   note?: string;
-  /** False renders only the pill. Use it where a popover would be out of place. */
   interactive?: boolean;
-  /** Accessible name of the trigger. Defaults to the kind and status. */
   label?: string;
   onOpen?: () => void;
 }) {

@@ -13,10 +13,8 @@ import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 import { type DateRange, scopeFilter } from "./appointment-range";
 
 const PAGE_SIZE = 100;
-/** Caps paging so a runaway backend cannot stall the page. */
 const MAX_PAGES = 20;
 
-/** Every appointment in the range the scope may see, soonest first. Pages until all are loaded. */
 export async function fetchRange(
   appointments: AppointmentService,
   scope: AppointmentScope,
@@ -43,10 +41,6 @@ export async function fetchRange(
   );
 }
 
-/**
- * Data and mutations behind the appointments page for one date range. Edits
- * apply optimistically and reconcile with the server when the queue drains.
- */
 export function useAppointmentSchedule(
   range: DateRange | null,
   scope: AppointmentScope,
@@ -77,7 +71,6 @@ export function useAppointmentSchedule(
   const [form, setForm] = useState<{
     open: boolean;
     editing: AppointmentListItem | null;
-    /** Pre-filled patient id for admins booking from a patient page. */
     patientId?: string;
   }>({ open: false, editing: null });
   const [deleting, setDeleting] = useState<AppointmentListItem | null>(null);
@@ -90,7 +83,6 @@ export function useAppointmentSchedule(
     change: (items: AppointmentListItem[]) => AppointmentListItem[],
   ) => items.mutate((current) => current && change(current));
 
-  /** Creates (`editing` null) or updates; `overrides` carries the joined names. */
   const save = (
     input: AppointmentInput,
     editing: AppointmentListItem | null,
@@ -156,7 +148,6 @@ export function useAppointmentSchedule(
     error: settings.error ?? providers.error ?? items.error,
     retry,
     refresh: items.refresh,
-    /** Applies a local change to the loaded items (optimistic status edits). */
     mutateItems: editItems,
     save,
     remove,

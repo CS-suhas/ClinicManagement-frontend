@@ -2,7 +2,6 @@
 
 import { CheckIcon } from "@radix-ui/react-icons";
 
-/** Labelled steps with the current one marked for assistive technology. */
 export function OnboardingStepper({
   labels,
   current,

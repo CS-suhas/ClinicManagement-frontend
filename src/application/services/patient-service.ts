@@ -20,29 +20,22 @@ import { CrudService } from "./crud-service";
 
 export type { PatientRosterRow } from "@/domain/repositories";
 
-/** The provider behind a patient's latest appointment, as the appointment list reports it. */
 export type RosterProvider = {
   id: string;
   name: string;
   specialty: string;
 };
 
-/** Visit facts for one patient, relative to a point in time. */
 export type PatientVisits = {
-  /** Most recent appointment on the books, past or upcoming. */
   latestVisit?: AppointmentListItem;
-  /** Most recent appointment before `now`. */
   lastVisit?: AppointmentListItem;
-  /** Soonest appointment at or after `now`. */
   nextVisit?: AppointmentListItem;
 };
 
-/** One line of the admin patients page, with visits across every provider. */
 export type PatientVisitRow = {
   patient: PatientListItem;
   lastVisit?: AppointmentListItem;
   nextVisit?: AppointmentListItem;
-  /** Most recent appointment on the books; supplies the reason and provider. */
   latestVisit?: AppointmentListItem;
   provider?: RosterProvider;
 };
@@ -52,7 +45,6 @@ const APPOINTMENT_PAGE_SIZE = 200;
 const timeOf = (appointment: Pick<Appointment, "appointmentDateTime">) =>
   Date.parse(appointment.appointmentDateTime);
 
-/** Derives the latest, last and next visits from one patient's appointments. */
 export function summarizeVisits(
   appointments: AppointmentListItem[],
   now: number,
@@ -66,7 +58,6 @@ export function summarizeVisits(
   };
 }
 
-/** Joins a patient with their visit facts; the provider comes from the latest visit. */
 export function toRosterRow(
   patient: PatientListItem,
   visits?: PatientVisits,
@@ -113,7 +104,6 @@ export class PatientService extends CrudService<
       (n) => `Cannot delete: patient has ${n} appointment(s).`,
     );
   }
-  /** Cascades the patient's allergy records (owned data) before removing the patient. */
   async delete(id: string): Promise<void> {
     await this.ensureDeletable(id);
     const records = await this.patientAllergies.listByPatient(id);
@@ -125,7 +115,6 @@ export class PatientService extends CrudService<
     await this.repo.delete(id);
   }
 
-  /** Every appointment matching the filter, read page by page from the port. */
   private async listAppointments(
     providerId?: string,
   ): Promise<AppointmentListItem[]> {
@@ -142,10 +131,6 @@ export class PatientService extends CrudService<
     }
   }
 
-  /**
-   * Visit facts per patient for the admin page. `patientIds` limits the result to those patients;
-   * `providerId` counts only that provider's appointments.
-   */
   async visitsByPatient(options: {
     patientIds?: string[];
     providerId?: string;
@@ -167,10 +152,6 @@ export class PatientService extends CrudService<
     return visits;
   }
 
-  /**
-   * A provider's patients, paged and searched by the API. The provider is the
-   * caller for the doctor's own roster; the API checks access.
-   */
   listRoster({
     providerId,
     ...options

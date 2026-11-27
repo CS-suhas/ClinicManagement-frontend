@@ -16,15 +16,9 @@ import {
 export type ClinicDoctorsChipProps = {
   clinic: { id: string; name: string };
   preview: ClinicDoctorPreview;
-  /** Avatars in the trigger before the count. */
   max?: number;
 };
 
-/**
- * A clinic's doctors as overlapping avatars and a count. The card lists the
- * doctors (as many as the preview holds) with their specialties, each linking
- * to the doctor's page, plus a link to the full list.
- */
 export function ClinicDoctorsChip({
   clinic,
   preview,

@@ -54,7 +54,6 @@ export const seedProviders: Provider[] = [
     gender: null,
     verificationStatus: "PENDING",
   },
-  // Verified at Northside.
   {
     id: "pr4",
     clinicId: "c2",
@@ -143,7 +142,6 @@ const fixedAppointments: Appointment[] = [
   },
 ];
 
-/** "YYYY-MM-DD" of the local day `offset` days from today. */
 function dayKey(offset: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -151,11 +149,6 @@ function dayKey(offset: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/**
- * An appointment `offset` days from today. The date is a getter, so it is
- * read only when the mock store first clones the seed, never at import time
- * (a module-level Date would run during prerender).
- */
 function onDay(
   offset: number,
   time: string,
@@ -165,7 +158,6 @@ function onDay(
 ): Appointment {
   return {
     ...appointment,
-    // Most seeded appointments are confirmed; exceptions name their status.
     status: appointment.status ?? "CONFIRMED",
     get appointmentDateTime() {
       return `${dayKey(offset)}T${time}`;
@@ -174,7 +166,6 @@ function onDay(
 }
 
 const relativeAppointments: Appointment[] = [
-  // Today
   onDay(0, "08:00", {
     id: "ap4",
     patientId: "p1",
@@ -225,7 +216,6 @@ const relativeAppointments: Appointment[] = [
     providerId: "pr1",
     reasonForVisit: "Lab results",
   }),
-  // Tomorrow
   onDay(1, "09:00", {
     id: "ap12",
     status: "REQUESTED",
@@ -258,7 +248,6 @@ const relativeAppointments: Appointment[] = [
     providerId: "pr2",
     reasonForVisit: "Blood pressure monitoring",
   }),
-  // In two days
   onDay(2, "08:30", {
     id: "ap17",
     patientId: "p3",
@@ -277,7 +266,6 @@ const relativeAppointments: Appointment[] = [
     providerId: "pr1",
     reasonForVisit: "Lab results",
   }),
-  // In three days
   onDay(3, "09:15", {
     id: "ap20",
     patientId: "p1",
@@ -296,7 +284,6 @@ const relativeAppointments: Appointment[] = [
     providerId: "pr3",
     reasonForVisit: "Allergy review",
   }),
-  // Yesterday
   onDay(-1, "10:00", {
     id: "ap23",
     status: "COMPLETED",

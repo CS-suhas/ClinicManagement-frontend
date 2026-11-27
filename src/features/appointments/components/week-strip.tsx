@@ -2,7 +2,6 @@
 
 import { dayHeading } from "./appointment-range";
 
-/** Mobile week strip: seven day buttons, Monday first, 44px targets. */
 export function WeekStrip({
   days,
   todayKey,

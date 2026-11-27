@@ -8,10 +8,6 @@ import { type DoctorProfile, toDoctorProfile } from "./doctor-profile";
 const PAGE_SIZE = 100;
 const MAX_PAGES = 10;
 
-/**
- * Finds one bookable (verified) doctor through the public
- * directory, which has no by-id read. Resolves to null when not listed.
- */
 export async function findBookableDoctor(
   providers: ProviderService,
   providerId: string,
@@ -26,7 +22,6 @@ export async function findBookableDoctor(
   return null;
 }
 
-/** The bookable doctor with this id, or null when she is not in the directory. */
 export function useBookableDoctor(providerId: string) {
   const providerService = useService("providerService");
   return useAsyncData<DoctorProfile | null>(

@@ -2,19 +2,13 @@ import type { AppointmentScope } from "@/application/services/appointment-servic
 import { type Provider, providerFullName } from "@/domain/entities";
 import type { AppointmentListItem } from "@/domain/repositories";
 
-/** One provider column of the day calendar. */
 export type ScheduleColumn = {
   id: string;
   name: string;
   specialty: string;
-  /** The signed-in doctor's own column. */
   isYou: boolean;
 };
 
-/**
- * Columns for the calendar. Admins see every provider. A doctor sees only
- * their own column. A patient sees one column per provider they are booked with.
- */
 export function buildColumns(
   scope: AppointmentScope,
   providers: readonly Provider[],
@@ -45,7 +39,6 @@ export function buildColumns(
       isYou: false,
     });
   }
-  // Keep the doctor's own specialty when the day's rows carry it.
   if (scope.mode === "provider") {
     const own = items.find((item) => item.providerId === scope.providerId);
     if (own) {

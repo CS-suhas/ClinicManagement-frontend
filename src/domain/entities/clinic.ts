@@ -6,7 +6,6 @@ export type Clinic = {
   name: string;
   location: string | null;
   phoneNumber: string;
-  /** Verified doctors. Optional: only list and search responses carry it. */
   providerCount?: number;
 };
 

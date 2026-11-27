@@ -14,14 +14,9 @@ import { type DoctorProfile, toDoctorProfile } from "./doctor-profile";
 export type DoctorPickerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Called with the chosen doctor; the caller moves on to the slot picker. */
   onPick: (doctor: DoctorProfile) => void;
 };
 
-/**
- * Step 1 of patient booking: a searchable list of bookable doctors over the
- * public directory. Each row shows the doctor, specialty, clinic and LKR fee.
- */
 export function DoctorPickerDialog({
   open,
   onOpenChange,

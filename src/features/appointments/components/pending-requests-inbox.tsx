@@ -9,7 +9,6 @@ import type { AppointmentAction } from "@/domain/entities";
 import type { AppointmentListItem } from "@/domain/repositories";
 import { ActionButtons, Party, timeSpan } from "./appointment-parts";
 
-/** Doctor's inbox of visits waiting for accept or reject, at the top of the page. */
 export function PendingRequestsInbox({
   items,
   more,
@@ -22,7 +21,6 @@ export function PendingRequestsInbox({
   duration,
 }: {
   items: AppointmentListItem[];
-  /** The server has more than the inbox shows. */
   more: boolean;
   loading: boolean;
   error: string | null;

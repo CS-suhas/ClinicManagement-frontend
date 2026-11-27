@@ -4,9 +4,9 @@ import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { Dialog, Text } from "@radix-ui/themes";
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useState } from "react";
-import { canAccessRoute, NAV_ITEMS } from "@/application/auth/permissions";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import type { CurrentUser } from "@/domain/auth";
+import { canAccessRoute, NAV_ITEMS } from "@/features/auth/permissions";
 import {
   type PaletteRecent,
   readRecents,
@@ -37,12 +37,6 @@ const optionId = (index: number) => `command-palette-option-${index}`;
 const matches = (query: string, field: string) =>
   field.toLowerCase().includes(query.toLowerCase());
 
-/**
- * Ctrl+K (Cmd+K on Mac) opens a search over the pages the user may open, their
- * patients (where allowed), the doctor directory and clinics. Arrow keys move
- * through results, Enter opens one, Escape closes. Every result is a real
- * route, so the palette is only a faster way to reach a page.
- */
 export function CommandPalette({
   open,
   onOpenChange,
@@ -58,7 +52,6 @@ export function CommandPalette({
   const [recents, setRecents] = useState<PaletteRecent[]>([]);
   const { results, loading, searching } = usePaletteSearch(query, user, open);
 
-  // Toggle on Ctrl+K / Cmd+K from anywhere in the app.
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (
@@ -75,7 +68,6 @@ export function CommandPalette({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onOpenChange]);
 
-  // Each opening starts fresh, with the latest recents.
   useEffect(() => {
     if (!open) return;
     setQuery("");

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-/** True under 768px. False until mounted, so server and first client markup match. */
 export function useNarrowViewport(): boolean {
   const [narrow, setNarrow] = useState(false);
   useEffect(() => {

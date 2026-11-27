@@ -26,10 +26,6 @@ const OPTIONS: {
   },
 ];
 
-/**
- * Choose patient or doctor. The choice can be made once here; there is no
- * promise that it can be changed later.
- */
 export function RoleStep({
   onContinue,
 }: {
@@ -38,7 +34,6 @@ export function RoleStep({
   const [selected, setSelected] = useState<OnboardingChoice | null>(null);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Arrow keys move the selection through the radio group, as the pattern expects.
   const onKeyDown = (
     event: KeyboardEvent<HTMLButtonElement>,
     index: number,

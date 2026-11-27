@@ -13,12 +13,6 @@ export type ActiveFilter = {
   label: string;
 };
 
-/**
- * What a list shows when it has nothing to list.
- * - "empty": no data yet. Give `action` (e.g. "New clinic") and a sentence that says why.
- * - "no-matches": a search or filter removed everything. Shows the active filters
- *   as removable chips and a "Clear filters" button.
- */
 export function EmptyState({
   title,
   description,
@@ -33,9 +27,7 @@ export function EmptyState({
   description?: string;
   action?: ReactNode;
   variant?: "empty" | "no-matches";
-  /** Defaults to an archive icon (empty) or a magnifier (no matches). */
   icon?: ReactNode;
-  /** Only for "no-matches". */
   filters?: ActiveFilter[];
   onRemoveFilter?: (id: string) => void;
   onClearFilters?: () => void;

@@ -21,7 +21,6 @@ export default function Page() {
   const crud = useCrudPage(useService("clinicService"), {
     entityName: "clinic",
   });
-  // One directory read gives every clinic's doctor count and avatars.
   const preview = useAsyncData(() => glance.getClinicDoctorPreview());
   const previewFor = (id: string) => preview.data?.get(id);
 

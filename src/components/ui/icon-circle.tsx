@@ -1,12 +1,10 @@
 import type { ReactNode } from "react";
 
-/** Teal-tint circle holding an icon. */
 export function IconCircle({
   children,
   size = 32,
 }: {
   children: ReactNode;
-  /** Diameter in px. */
   size?: number;
 }) {
   return (

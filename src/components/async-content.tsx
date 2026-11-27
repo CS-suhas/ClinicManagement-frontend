@@ -3,12 +3,6 @@ import type { ReactNode } from "react";
 import { Surface } from "@/components/ui/surface";
 import { ErrorCallout } from "./error-callout";
 
-/**
- * Renders loading / error / empty states around a data view.
- * - First load (no rows yet): `skeleton` when given, otherwise a spinner.
- * - Reloading with rows on screen (e.g. a page change): the rows stay, dimmed.
- * - Empty: `empty` when given, otherwise a plain line of `emptyText`.
- */
 export function AsyncContent({
   loading,
   error,
@@ -23,9 +17,7 @@ export function AsyncContent({
   error: string | null;
   isEmpty: boolean;
   emptyText?: string;
-  /** Replaces the default empty line, e.g. an EmptyState. */
   empty?: ReactNode;
-  /** Shown instead of the spinner on first load, e.g. a TableSkeleton. */
   skeleton?: ReactNode;
   onRetry?: () => void;
   children: ReactNode;

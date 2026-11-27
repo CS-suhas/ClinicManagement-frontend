@@ -14,13 +14,10 @@ const DAYS_AHEAD = 14;
 export type BookingDialogProps = {
   doctor: DoctorProfile | null;
   settings: AppointmentSettings | undefined;
-  /** The viewed day, `YYYY-MM-DD`. Owned by the booking hook. */
   dateKey: string;
   onDateChange: (dateKey: string) => void;
-  /** The doctor's busy start times on the viewed day, to grey out taken slots. */
   bookedStarts: string[];
   onOpenChange: (open: boolean) => void;
-  /** Called with the chosen `YYYY-MM-DDTHH:mm` once the visitor continues. */
   onContinue: (doctor: DoctorProfile, dateTime: string) => void;
 };
 

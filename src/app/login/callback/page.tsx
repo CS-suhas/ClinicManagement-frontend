@@ -4,19 +4,14 @@ import { Button, Flex, Heading, Spinner, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { needsOnboarding } from "@/application/auth/permissions";
 import { ErrorCallout } from "@/components/error-callout";
 import { PublicNavbar } from "@/components/public-navbar";
 import { Surface } from "@/components/ui/surface";
 import { useAuth } from "@/features/auth/auth-provider";
+import { needsOnboarding } from "@/features/auth/permissions";
 import { getErrorMessage } from "@/lib/errors";
 import { safeNext } from "@/lib/safe-next";
 
-/**
- * Where Keycloak sends the browser after sign-in or registration. Swaps the
- * authorization code for tokens, loads the user from /api/me, then goes on to
- * where they were headed, through onboarding when the account is not set up.
- */
 export default function LoginCallbackPage() {
   const router = useRouter();
   const { completeSignIn } = useAuth();

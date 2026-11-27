@@ -22,12 +22,6 @@ export type PaletteRemoteResults = {
 
 const EMPTY: PaletteRemoteResults = { patients: [], doctors: [], clinics: [] };
 
-/**
- * Debounced people and place search for the palette, in one request. The
- * search endpoint applies role scoping itself (patients only for admins,
- * doctors and clinic admins; verified doctors only for non-admins). Stale
- * responses are dropped when the query changes.
- */
 export function usePaletteSearch(
   query: string,
   user: CurrentUser | null,

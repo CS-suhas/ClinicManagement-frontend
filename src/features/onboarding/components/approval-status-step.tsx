@@ -7,14 +7,8 @@ import { StatusPill } from "@/components/glance";
 import { Surface } from "@/components/ui/surface";
 import { useService } from "@/di/container-provider";
 
-/** How often a waiting doctor's status is checked in the background. */
 export const APPROVAL_POLL_MS = 30_000;
 
-/**
- * Where a doctor application stands. While it is PENDING the session is
- * checked every 30 s and the flow moves on as soon as an administrator decides.
- * A REJECTED application has no form to resubmit; the copy says whom to contact.
- */
 export function ApprovalStatusStep({
   status,
   onRefresh,
@@ -32,13 +26,10 @@ export function ApprovalStatusStep({
       authService
         .getCurrentUser()
         .then((current) => {
-          // Re-reading the session is quiet; the flow only refreshes when the status moved.
           if (current?.provider?.verificationStatus !== "PENDING")
             void onRefresh();
         })
-        .catch(() => {
-          // A failed background check is retried on the next tick.
-        });
+        .catch(() => {});
     }, APPROVAL_POLL_MS);
     return () => window.clearInterval(timer);
   }, [status, authService, onRefresh]);

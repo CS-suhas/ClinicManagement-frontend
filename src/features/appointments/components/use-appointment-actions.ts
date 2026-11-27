@@ -29,9 +29,7 @@ const FAILURE: Record<AppointmentAction, string> = {
   cancel: "Could not cancel appointment",
 };
 
-/** Reject and cancel can be undone for five seconds; accept and complete commit at once. */
 const UNDOABLE: ReadonlySet<AppointmentAction> = new Set(["decline", "cancel"]);
-/** Accept and complete ask first, because the allergy warning matters there. */
 const CONFIRMED_FIRST: ReadonlySet<AppointmentAction> = new Set([
   "confirm",
   "complete",
@@ -42,10 +40,6 @@ export type PendingAction = {
   action: AppointmentAction;
 };
 
-/**
- * Status changes from the appointments page. Each one shows at once in every
- * loaded list (`mutateLists`), then sends the request; failures roll back.
- */
 export function useAppointmentActions(
   mutateLists: (
     change: (items: AppointmentListItem[]) => AppointmentListItem[],
@@ -71,7 +65,6 @@ export function useAppointmentActions(
     });
   };
 
-  /** Starts an action: accept and complete return a pending confirmation instead of running. */
   const start = (
     item: AppointmentListItem,
     action: AppointmentAction,

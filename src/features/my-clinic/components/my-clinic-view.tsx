@@ -10,13 +10,11 @@ import { Surface } from "@/components/ui/surface";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useMyClinic } from "./use-my-clinic";
 
-/** A doctor's own clinic and its summary. */
 export function MyClinicView() {
   const { user, refresh } = useAuth();
   const providerId = user?.provider?.id ?? null;
   const state = useMyClinic(providerId);
 
-  // The session may be stale after an admin changes the clinic; re-read it once.
   useEffect(() => {
     void refresh();
   }, [refresh]);

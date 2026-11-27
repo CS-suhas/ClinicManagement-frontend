@@ -12,63 +12,37 @@ import { Surface } from "@/components/ui/surface";
 import { RowActions } from "./row-actions";
 
 export type Column<T> = {
-  /** Stable key. Defaults to the header text. */
   id?: string;
   header: string;
   cell: (row: T) => ReactNode;
-  /** Width hint: a CSS length such as "12rem", or px as a number. */
   width?: string | number;
-  /** Text alignment of the column. Defaults to "start". */
   align?: "start" | "center" | "end";
-  /** Hides the column below 640 px ("sm") or below 768 px ("md"). */
   hideBelow?: "sm" | "md";
-  /**
-   * Makes the column sortable. Sorts the rows on the current page only, so it
-   * suits short lists or the page's own data. Null values sort last.
-   */
   sortValue?: (row: T) => string | number | null;
 };
 
 export type ExpandableOptions<T> = {
-  /** Content of the expanded row. Only called while the row is open. */
   render: (row: T) => ReactNode;
-  /** False hides the chevron for rows with nothing to show. Defaults to true for every row. */
   isExpandable?: (row: T) => boolean;
 };
 
 export type SelectionOptions<T> = {
-  /** Actions for the selected rows, shown in the bar. `clear` empties the selection. */
   bulkActions: (selected: T[], clear: () => void) => ReactNode;
-  /** False disables the checkbox for a row. */
   isSelectable?: (row: T) => boolean;
-  /** Tooltip explaining why a row cannot be selected. */
   disabledReason?: (row: T) => string | undefined;
 };
 
 export type DataTableProps<T extends { id: string }> = {
   columns: Column<T>[];
   rows: T[];
-  /** Accessible name of a row, used by the default buttons, checkboxes and chevrons. */
   rowLabel: (row: T) => string;
-  /** Adds the default Edit button. Omit both onEdit and onDelete for no default buttons. */
   onEdit?: (row: T) => void;
-  /** Adds the default Delete button. */
   onDelete?: (row: T) => void;
-  /** Buttons shown before Edit and Delete. */
   extraActions?: (row: T) => ReactNode;
-  /** Replaces Edit and Delete with custom buttons. `extraActions` still comes first. */
   rowActions?: (row: T) => ReactNode;
-  /**
-   * Makes whole rows clickable. Clicks on buttons, links, inputs and chips
-   * inside the row do not trigger it. Keyboard users need a button in
-   * `rowActions` for the same action.
-   */
   onRowClick?: (row: T) => void;
-  /** Adds a chevron column that reveals extra content under the row. */
   expandable?: ExpandableOptions<T>;
-  /** Adds a checkbox column and a bar with bulk actions while rows are selected. */
   selection?: SelectionOptions<T>;
-  /** Accessible caption, read by screen readers. */
   caption?: string;
 };
 
@@ -94,7 +68,6 @@ const hideClass = (hideBelow: Column<unknown>["hideBelow"]) =>
       ? "max-md:hidden"
       : "";
 
-/** Clicks on interactive descendants belong to them, not to the row. */
 const INTERACTIVE_SELECTOR =
   "button, a, input, select, textarea, label, [role='button'], [role='menuitem'], [role='dialog']";
 
@@ -112,12 +85,6 @@ function compareValues(a: string | number | null, b: string | number | null) {
   return String(a).localeCompare(String(b), undefined, { numeric: true });
 }
 
-/**
- * Table driven by column definitions, with the platform features the admin
- * lists share: row actions, row click, expandable rows, checkbox selection with
- * a bulk bar, page-local sorting, responsive column hiding, and a header that
- * stays visible while the body scrolls. Rows keep their `id` as the key.
- */
 export function DataTable<T extends { id: string }>({
   columns,
   rows,
@@ -136,7 +103,6 @@ export function DataTable<T extends { id: string }>({
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [sort, setSort] = useState<SortState | null>(null);
 
-  // Forget selections for rows that are no longer on screen (a new page or search).
   useEffect(() => {
     const visible = new Set(rows.map((row) => row.id));
     setSelected((current) => {

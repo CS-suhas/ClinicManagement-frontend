@@ -43,7 +43,6 @@ const EMPTY_COPY: Record<
   },
 };
 
-/** A clinic admin's one job: the clinic's doctors and their join requests. */
 export function ClinicDoctorsView() {
   const { user } = useAuth();
   const clinicIds = user?.clinicAdminOf ?? [];

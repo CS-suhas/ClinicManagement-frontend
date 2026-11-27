@@ -7,7 +7,6 @@ export class DashboardService {
     return this.repo.getDashboard();
   }
 
-  /** The signed-in user's dashboard, one section per role they hold. */
   getMine() {
     return this.repo.getMine();
   }

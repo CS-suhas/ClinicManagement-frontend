@@ -82,18 +82,16 @@ import { createMockProviderRosterRepository } from "@/infrastructure/mock/mock-p
 import { MockPatientAllergyRepository } from "@/infrastructure/mock/mock-repositories";
 import { createMockSummaryRepository } from "@/infrastructure/mock/mock-summary-repository";
 import * as seed from "@/infrastructure/mock/seed";
-import { OidcSession } from "@/lib/auth/oidc-session";
-import { RuntimeConfigClient } from "@/lib/runtime-config";
+import { session } from "@/lib/auth/session";
+import { runtimeConfig } from "@/lib/runtime-config";
 
 export type DataSource = "mock" | "rest";
 
 export type ContainerConfig = {
   dataSource: DataSource;
-  /** Usually `resolveApiBaseUrl`, so the URL is picked per request (browser vs. server). */
   apiBaseUrl: BaseUrl;
 };
 
-/** Everything the presentation layer is allowed to depend on. */
 export type Container = {
   clinicService: ClinicService;
   providerService: ProviderService;
@@ -104,13 +102,9 @@ export type Container = {
   configurationService: ConfigurationService;
   dashboardService: DashboardService;
   authService: AuthService;
-  /** Read models for the glance cards, filled from the server summaries. */
   glanceService: GlanceService;
-  /** Global search for the command palette. */
   searchService: SearchService;
-  /** Demo identities for the sign-in picker. Empty when sign-in is Keycloak-backed. */
   authPersonas: AuthPersona[];
-  /** What anonymous visitors may open, from the runtime config (PUBLIC_DOCTORS). */
   getPublicAccess: () => Promise<PublicAccess>;
 };
 
@@ -135,9 +129,7 @@ const STORAGE_PREFIX = "clinic-admin:";
 function createMockRepositories(): Repositories {
   const col = <T>(key: string, data: T[]) =>
     new LocalStorageCollection<T>(STORAGE_PREFIX + key, data);
-  // Stores are shared by every adapter that reads them, so the summaries see the same data.
   const clinicsStore = col("clinics", seed.seedClinics);
-  // Versioned key: providers-v3 gives every seeded provider a clinic (pr4 had none).
   const providersStore = col("providers-v3", seed.seedProviders);
   const providers = new MockProviderRepository(providersStore);
   const clinics = new MockClinicRepository(clinicsStore, providers);
@@ -162,7 +154,6 @@ function createMockRepositories(): Repositories {
   );
   const auth = new MockAuthRepository(patients, providersStore, clinicsStore);
   const currentUser = (): Promise<CurrentUser | null> => auth.getCurrentUser();
-  // Versioned key: stored appointments from before statuses existed are not reused.
   const appointmentsStore = col("appointments-v2", seed.seedAppointments);
   const appointments = new MockAppointmentRepository(
     appointmentsStore,
@@ -232,16 +223,9 @@ function createMockRepositories(): Repositories {
   };
 }
 
-function createRestRepositories(
-  baseUrl: BaseUrl,
-  runtimeConfig: RuntimeConfigClient,
-): Repositories {
-  // The REST clients read their token from the auth repository on each request.
+function createRestRepositories(baseUrl: BaseUrl): Repositories {
   const http: HttpClient = new HttpClient(baseUrl, () => auth.getAccessToken());
-  const auth: RestAuthRepository = new RestAuthRepository(
-    http,
-    new OidcSession(() => runtimeConfig.keycloak()),
-  );
+  const auth: RestAuthRepository = new RestAuthRepository(http, session);
   const clinics = new RestClinicRepository(http);
   const providers = new RestProviderRepository(http);
   return {
@@ -269,13 +253,11 @@ function createRestRepositories(
   };
 }
 
-/** Composition root: the only place that knows concrete implementations. */
 export function createContainer(config: ContainerConfig): Container {
   const isRest = config.dataSource === "rest";
-  // Per-deployment settings, read by the browser at runtime from /runtime-config.
-  const runtimeConfig = new RuntimeConfigClient();
+
   const r = isRest
-    ? createRestRepositories(config.apiBaseUrl, runtimeConfig)
+    ? createRestRepositories(config.apiBaseUrl)
     : createMockRepositories();
   const getToken = (): Promise<string | null> => r.auth.getAccessToken();
 
@@ -337,9 +319,7 @@ export function createContainer(config: ContainerConfig): Container {
 
 export function configFromEnv(): ContainerConfig {
   return {
-    dataSource:
-      process.env.NEXT_PUBLIC_DATA_SOURCE === "rest" ? "rest" : "mock",
-    // Resolved at request time: "/api" in the browser, API_INTERNAL_URL on the server.
+    dataSource: "rest",
     apiBaseUrl: resolveApiBaseUrl,
   };
 }

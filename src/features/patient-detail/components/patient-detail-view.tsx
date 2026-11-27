@@ -3,7 +3,6 @@
 import { Button, Flex, Spinner, Tabs, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useState } from "react";
-import { hasRole } from "@/application/auth/permissions";
 import { ErrorCallout } from "@/components/error-callout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PersonAvatar } from "@/components/ui/person-avatar";
@@ -12,6 +11,7 @@ import { useService } from "@/di/container-provider";
 import { type Patient, patientFullName } from "@/domain/entities";
 import type { PatientSummary } from "@/domain/repositories/glance";
 import { useAuth } from "@/features/auth/auth-provider";
+import { hasRole } from "@/features/auth/permissions";
 import { PatientAllergiesDialog } from "@/features/patients/components/patient-allergies-dialog";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { useNow } from "@/hooks/use-now";
@@ -29,11 +29,6 @@ const TABS: { value: PatientTab; label: string }[] = [
   { value: "allergies", label: "Allergies" },
 ];
 
-/**
- * One patient's record: a header with contact details and tabs for the
- * overview, appointments and allergies. A doctor sees only patients they have
- * seen; anyone else gets a no-access message.
- */
 export function PatientDetailView({
   patientId,
   initialTab = "overview",

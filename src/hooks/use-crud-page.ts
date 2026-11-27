@@ -17,20 +17,11 @@ type CrudPageService<T, TOptions extends SearchOptions, TInput> = {
 };
 
 type UseCrudPageOptions<TOptions extends SearchOptions> = {
-  /** Singular noun used in failure popups, e.g. "clinic". */
   entityName: string;
-  /** Filter fields merged into every search request (evaluated at load time). */
   extraOptions?: () => Omit<TOptions, keyof SearchOptions>;
-  /** Changes whenever `extraOptions` would return something different. */
   extraKey?: string;
 };
 
-/**
- * State shared by the list pages: paged search, the create/edit dialog and
- * delete confirmation targets, and optimistic mutations. `save` and the
- * delete dialog update the list immediately and send the request in the
- * background; a failure rolls the list back and shows a popup.
- */
 export function useCrudPage<
   T extends { id: string },
   TOptions extends SearchOptions = SearchOptions,
@@ -58,7 +49,6 @@ export function useCrudPage<
   }>({ open: false, editing: null });
   const [deleting, setDeleting] = useState<T | null>(null);
 
-  // Deleting the last row of a later page leaves nothing to show: step back.
   useEffect(() => {
     if (data && data.items.length === 0 && data.totalCount > 0 && page > 1)
       setPage(page - 1);
@@ -76,17 +66,11 @@ export function useCrudPage<
 
   const noun = entityName.charAt(0).toUpperCase() + entityName.slice(1);
 
-  /** Changes fields of one loaded row in place, e.g. an inline status change. */
   const patch = (id: string, change: Partial<T>) =>
     editItems((items) =>
       items.map((item) => (item.id === id ? { ...item, ...change } : item)),
     );
 
-  /**
-   * Creates (`editing` null) or updates an item. Throws ValidationError
-   * synchronously so the form can show it; nothing else is awaited.
-   * `overrides` fills row fields the input lacks (e.g. joined names).
-   */
   const save = (input: TInput, editing: T | null, overrides?: Partial<T>) => {
     service.validateInput(input);
     if (editing) {
@@ -153,10 +137,8 @@ export function useCrudPage<
     error,
     reload,
     save,
-    /** Optimistic update of one row, with the same queueing, rollback and popups as save. */
     runOptimistic,
     patch,
-    /** Removes a row optimistically (with a success toast). Use for custom delete flows. */
     remove,
     form: {
       open: formState.open,
@@ -168,7 +150,6 @@ export function useCrudPage<
     },
     deleting,
     setDeleting,
-    /** Spread onto ConfirmDeleteDialog; supply `title` and `description`. */
     deleteDialog: {
       open: deleting !== null,
       onOpenChange: (open: boolean) => !open && setDeleting(null),

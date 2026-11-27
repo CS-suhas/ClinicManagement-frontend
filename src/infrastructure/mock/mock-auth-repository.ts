@@ -21,16 +21,10 @@ import { delay, type LocalStorageCollection } from "./local-storage-collection";
 import { newId } from "./mock-repositories";
 
 const STORAGE_KEY = "clinic-admin:auth-persona";
-/** Patient profiles created through onboarding, keyed by persona id. */
 const PATIENT_LINKS_KEY = "clinic-admin:auth-patient-links";
-/** Provider records created through self-registration, keyed by persona id. */
 const PROVIDER_LINKS_KEY = "clinic-admin:auth-provider-links";
 const DEFAULT_PERSONA_ID = "admin";
 
-/**
- * Demo identities for mock mode. Patient and provider IDs point at records in
- * seed.ts so the signed-in user's linked data shows up in the app.
- */
 export const MOCK_PERSONAS: AuthPersona[] = [
   {
     id: "admin",
@@ -139,16 +133,13 @@ function writePersonaId(id: string | null): void {
   try {
     if (id === null) window.localStorage.removeItem(STORAGE_KEY);
     else window.localStorage.setItem(STORAGE_KEY, id);
-  } catch {
-    // storage unavailable: the session lasts for this page load only
-  }
+  } catch {}
 }
 
 function findPersona(id: string | null): AuthPersona | undefined {
   return MOCK_PERSONAS.find((persona) => persona.id === id);
 }
 
-/** A persona-id -> record-id map, kept in localStorage under `key`. */
 function readLinks(key: string): Record<string, string> {
   try {
     const raw = window.localStorage.getItem(key);
@@ -161,12 +152,9 @@ function readLinks(key: string): Record<string, string> {
 function writeLinks(key: string, links: Record<string, string>): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(links));
-  } catch {
-    // storage unavailable: the link lasts for this page load only
-  }
+  } catch {}
 }
 
-/** Drops one persona's link, so its onboarding can run again. Seeded links are kept. */
 function unlink(key: string, personaId: string): void {
   writeLinks(
     key,
@@ -176,11 +164,6 @@ function unlink(key: string, personaId: string): void {
   );
 }
 
-/**
- * The persona's user as the API would report it right now: linked patient and
- * provider records applied, and the doctor role derived from the provider's
- * verification status. Called on every read, so verification takes effect at once.
- */
 function currentUserFor(
   persona: AuthPersona,
   providers: Provider[],
@@ -207,20 +190,13 @@ function currentUserFor(
       }
     : null;
 
-  // The doctor role exists only while the linked provider is verified.
   const roles: Role[] = user.roles.filter((role) => role !== "doctor");
   if (user.provider?.verificationStatus === "VERIFIED") roles.push("doctor");
   user.roles = roles;
   return user;
 }
 
-/** Mock session: the chosen persona id is kept in localStorage. */
 export class MockAuthRepository implements AuthRepository {
-  /**
-   * Patient profiles live in the patients store. Provider records live in the
-   * providers store, which the provider pages share. Clinics are read to check
-   * the clinic a doctor registers at.
-   */
   constructor(
     private readonly patients: PatientRepository,
     private readonly providers: LocalStorageCollection<Provider>,
@@ -237,15 +213,12 @@ export class MockAuthRepository implements AuthRepository {
     await delay();
     const persona = findPersona(personaId);
     if (!persona) throw new Error(`Unknown mock persona "${personaId}"`);
-    // Signing in again drops this persona's onboarding links, so its patient
-    // profile and provider registration can be made again. Seeded links are not affected.
     unlink(PATIENT_LINKS_KEY, persona.id);
     unlink(PROVIDER_LINKS_KEY, persona.id);
     writePersonaId(persona.id);
     return currentUserFor(persona, this.providers.read());
   }
 
-  /** Creates the patient in the patients store and links it to the current persona. */
   async createPatientProfile(input: PatientInput): Promise<Patient> {
     await delay();
     const persona = findPersona(readPersonaId());
@@ -260,11 +233,6 @@ export class MockAuthRepository implements AuthRepository {
     return patient;
   }
 
-  /**
-   * Creates a PENDING provider at the chosen clinic and links it to the current
-   * persona. A persona that already has a provider (including a rejected one)
-   * gets a 409; an unknown clinic gets a 404.
-   */
   async registerAsProvider(
     input: ProviderRegistrationInput,
   ): Promise<Provider> {
@@ -298,18 +266,15 @@ export class MockAuthRepository implements AuthRepository {
     writePersonaId(null);
   }
 
-  /** Not delayed: the HTTP client asks for a token on every request. */
   async getAccessToken(): Promise<string | null> {
     const persona = findPersona(readPersonaId());
     return persona ? `mock-token-${persona.id}` : null;
   }
 
-  /** Mock sign-in never leaves the page, so there is nothing to finish. */
   async completeSignIn(): Promise<{ returnTo: string | null }> {
     return { returnTo: null };
   }
 
-  /** Mock sessions do not expire. */
   onSessionExpired(): () => void {
     return () => {};
   }

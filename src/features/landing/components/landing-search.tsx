@@ -4,11 +4,6 @@ import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
-/**
- * The hero search. Submits to the doctor directory as `?q=`; an empty search
- * opens the full directory for visitors who don't know what to look for. The
- * form also works as a plain GET before the page hydrates.
- */
 export function LandingSearch() {
   const router = useRouter();
   const [query, setQuery] = useState("");

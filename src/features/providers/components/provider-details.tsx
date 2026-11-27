@@ -15,7 +15,6 @@ import { formatFee } from "@/lib/format";
 
 const heading = "mb-2 text-[12px] font-semibold uppercase tracking-wide";
 
-/** Expanded row of a provider: clinic contact, today's load and the next five appointments. Staff only. */
 export function ProviderDetails({ provider }: { provider: Provider }) {
   const glance = useService("glanceService");
   const summary = useGlanceData<ProviderSummary>(

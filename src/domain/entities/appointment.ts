@@ -20,18 +20,13 @@ export type Appointment = {
   id: string;
   patientId: string;
   providerId: string;
-  /** ISO date-time string */
   appointmentDateTime: string;
   reasonForVisit: string;
-  /** Set by the API. New appointments start as REQUESTED. */
   status: AppointmentStatus;
-  /** When the appointment was requested (UTC). Optional for older records. */
   createdAtUtc?: string | null;
-  /** When the status last changed (UTC); the API falls back to createdAtUtc. */
   statusChangedAtUtc?: string | null;
 };
 
-/** Status is changed through the confirm, decline, complete and cancel actions, never by a form. */
 export type AppointmentInput = Omit<Appointment, "id" | "status">;
 
 export const APPOINTMENT_ACTIONS = [
@@ -52,7 +47,6 @@ const ACTION_RULES: Record<
   cancel: { from: ["REQUESTED", "CONFIRMED"], to: "CANCELLED" },
 };
 
-/** The status an action leads to from `status`, or null when the action is invalid there. */
 export function nextAppointmentStatus(
   status: AppointmentStatus,
   action: AppointmentAction,
@@ -61,11 +55,6 @@ export function nextAppointmentStatus(
   return rule.from.includes(status) ? rule.to : null;
 }
 
-/**
- * Whether the user may take the action on this appointment, ignoring its status.
- * Confirm, decline and complete need the appointment's own verified doctor.
- * Cancel also allows the appointment's own patient.
- */
 export function canActOnAppointment(
   appointment: Pick<Appointment, "patientId" | "providerId">,
   action: AppointmentAction,
@@ -84,7 +73,6 @@ export function canActOnAppointment(
   );
 }
 
-/** The actions the user may take on the appointment right now: status and caller rules together. */
 export function appointmentActionsFor(
   appointment: Pick<Appointment, "patientId" | "providerId" | "status">,
   user: Pick<CurrentUser, "roles" | "patient" | "provider"> | null,
@@ -107,10 +95,6 @@ export function validateAppointment(input: AppointmentInput): FieldErrors {
   return errors;
 }
 
-/**
- * Whether a visit starting at `dateTime` clashes with any busy start. Two visits
- * clash when they start less than one duration apart; back-to-back is fine.
- */
 export function overlapsBusyStart(
   dateTime: string,
   durationMinutes: number,

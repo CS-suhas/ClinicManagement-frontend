@@ -13,7 +13,6 @@ import {
   useAppointmentForm,
 } from "./use-appointment-form";
 
-/** Create when `appointment` is null, edit otherwise. */
 export function AppointmentFormDialog({
   open,
   onOpenChange,
@@ -29,7 +28,6 @@ export function AppointmentFormDialog({
   onSave: UseAppointmentFormOptions["onSave"];
   defaultDateTime?: string;
   defaultPatientId?: string;
-  /** Adds a delete button when editing. The caller confirms the delete. */
   onDelete?: (appointment: AppointmentListItem) => void;
 }) {
   const form = useAppointmentForm({

@@ -4,7 +4,6 @@ import { Button, Dialog, Flex } from "@radix-ui/themes";
 import type { FormEvent, ReactNode } from "react";
 import { ErrorCallout } from "./error-callout";
 
-/** Modal shell for create/edit forms. Children are the FormFields. */
 export function FormDialog({
   open,
   onOpenChange,

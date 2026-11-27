@@ -2,7 +2,6 @@ import { type Patient, patientFullName } from "@/domain/entities";
 import type { PatientVisitSummary } from "@/domain/repositories";
 import { formatDateTime } from "@/lib/format";
 
-/** One roster line as the export needs it. */
 export type ExportableRoster = {
   patient: Patient;
   lastVisit?: PatientVisitSummary | null;
@@ -11,7 +10,6 @@ export type ExportableRoster = {
 
 const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
-/** CSV for the selected patients: name, date of birth, contact details and visit times. */
 export function rosterToCsv(rows: ExportableRoster[]): string {
   const header = [
     "Name",
@@ -36,7 +34,6 @@ export function rosterToCsv(rows: ExportableRoster[]): string {
   return [header.map(csvCell).join(","), ...lines].join("\r\n");
 }
 
-/** Saves text as a file through a temporary object URL. Browser-only. */
 export function downloadText(
   filename: string,
   text: string,
@@ -54,7 +51,6 @@ export function downloadText(
   URL.revokeObjectURL(url);
 }
 
-/** A mailto: link that puts the addresses in Bcc, so recipients do not see each other. */
 export function mailtoBcc(emails: string[]): string {
   return `mailto:?bcc=${encodeURIComponent(emails.join(","))}`;
 }

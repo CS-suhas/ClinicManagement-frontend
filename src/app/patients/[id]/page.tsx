@@ -5,7 +5,6 @@ import {
 
 const TABS: PatientTab[] = ["overview", "appointments", "allergies"];
 
-/** `?tab=allergies` opens the Allergies tab; anything else opens the overview. */
 export default async function PatientPage({
   params,
   searchParams,

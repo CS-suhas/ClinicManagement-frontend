@@ -1,7 +1,6 @@
 import { Badge } from "@radix-ui/themes";
 import type { Severity } from "@/domain/entities";
 
-/** Displays API-provided severity values consistently, e.g. "MILD" -> "Mild". */
 export function severityLabel(severity: Severity) {
   return severity
     .toLowerCase()

@@ -23,21 +23,13 @@ import {
 
 export type AllergyChipProps = {
   name: string;
-  /** Stored severity string; unknown values read as "Not recorded". */
   severity?: string | null;
-  /** Needed for the usage count, which loads when the card opens. */
   allergyId?: string;
-  /** With a patient, the card offers a link to that patient's allergy list. */
   patientId?: string;
   variant?: "chip" | "inline";
-  /** False drops the severity dot, e.g. in the allergy catalogue where no severity applies. */
   showDot?: boolean;
 };
 
-/**
- * An allergy as a severity dot and name. The card explains the severity in
- * plain words and, for staff, shows how many patients have it recorded.
- */
 export function AllergyChip({
   name,
   severity,

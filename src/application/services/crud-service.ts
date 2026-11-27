@@ -5,15 +5,10 @@ import type {
   SearchRepository,
 } from "@/domain/repositories";
 
-/**
- * Base use-case class: validates input via the domain, delegates persistence
- * to the injected repository port, and lets subclasses guard deletes.
- */
 export abstract class CrudService<
   T extends { id: string },
   TInput,
   TOptions extends SearchOptions = SearchOptions,
-  /** What `search` returns per row; richer than T for joined list views. */
   TListItem = T,
 > {
   protected constructor(
@@ -24,7 +19,6 @@ export abstract class CrudService<
 
   protected abstract validate(input: TInput): FieldErrors;
 
-  /** Override to throw ConflictError when the entity is still referenced. */
   protected async ensureDeletable(_id: string): Promise<void> {}
 
   search(options: TOptions) {
@@ -41,7 +35,6 @@ export abstract class CrudService<
     return item;
   }
 
-  /** Throws ValidationError when `input` is invalid; call before optimistic UI. */
   validateInput(input: TInput): void {
     assertValid(this.validate(input));
   }

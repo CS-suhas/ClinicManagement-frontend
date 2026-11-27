@@ -11,12 +11,10 @@ import type { ReactNode } from "react";
 import type { Clinic } from "@/domain/entities";
 import { formatFeeShort } from "@/lib/format";
 
-/** LKR consultation fees. */
 export const FEE_RANGE = { min: 0, max: 10000, step: 250 };
 
 export type DoctorFilterValues = {
   gender: "all" | "male" | "female" | "other";
-  /** "" means any specialty. */
   specialty: string;
   fee: [number, number];
 };
@@ -27,7 +25,6 @@ export const DEFAULT_FILTERS: DoctorFilterValues = {
   fee: [FEE_RANGE.min, FEE_RANGE.max],
 };
 
-/** Select value for "nothing chosen"; Radix Select items cannot be empty. */
 const ALL = "__all__";
 
 function Group({ label, children }: { label: string; children: ReactNode }) {
@@ -43,10 +40,6 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/**
- * The clinic is kept apart from the other values: it lives in the URL and is
- * applied by the directory request, not on the client.
- */
 export function DoctorFilters({
   values,
   onChange,
@@ -58,7 +51,6 @@ export function DoctorFilters({
   values: DoctorFilterValues;
   onChange: (values: DoctorFilterValues) => void;
   clinics: Clinic[];
-  /** The specialties to offer, e.g. those of the loaded doctors. */
   specialties: string[];
   clinicId: string;
   onClinicChange: (clinicId: string) => void;
@@ -68,8 +60,6 @@ export function DoctorFilters({
     value: DoctorFilterValues[K],
   ) => onChange({ ...values, [key]: value });
 
-  // Keep the chosen specialty listed even when the loaded doctors (e.g. after
-  // a clinic change) no longer include it, so the select never shows blank.
   const specialtyOptions =
     values.specialty && !specialties.includes(values.specialty)
       ? [...specialties, values.specialty].sort((a, b) => a.localeCompare(b))

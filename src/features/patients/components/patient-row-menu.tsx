@@ -3,7 +3,6 @@
 import { DotsVerticalIcon } from "@radix-ui/react-icons";
 import { DropdownMenu, IconButton } from "@radix-ui/themes";
 
-/** The ⋮ menu of admin actions on a patient row. */
 export function PatientRowMenu({
   name,
   onEdit,

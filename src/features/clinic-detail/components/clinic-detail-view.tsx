@@ -13,7 +13,6 @@ import { useService } from "@/di/container-provider";
 import type { ClinicSummary } from "@/domain/repositories/glance";
 import { useAsyncData } from "@/hooks/use-async-data";
 
-/** A clinic: its details and stats, specialties, and its doctors. */
 export function ClinicDetailView({ clinicId }: { clinicId: string }) {
   const glance = useService("glanceService");
   const summary = useAsyncData<ClinicSummary>(

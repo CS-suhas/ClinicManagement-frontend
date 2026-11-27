@@ -1,4 +1,3 @@
-/** Teal "now" marker with a dot on its left edge. `top` and `left` are in px. */
 export function NowLine({ top, left }: { top: number; left: number }) {
   return (
     <div

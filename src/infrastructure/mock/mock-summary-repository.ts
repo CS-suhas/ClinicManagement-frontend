@@ -40,7 +40,6 @@ type Listable<T> = {
   list(): Promise<T[]>;
 };
 
-/** The lists the summaries read. Each is a plain store read, so no extra latency per list. */
 export type MockSummarySources = {
   patients: Listable<Patient>;
   providers: Listable<Provider>;
@@ -64,13 +63,11 @@ const SEARCH_MAX_LIMIT = 20;
 const CLINIC_PROVIDER_PREVIEW = 5;
 const SLOT_SEARCH_DAYS = 14;
 
-/** Local "YYYY-MM-DD" for now. The provider rules use local time. */
 const localDay = (ms: number) => {
   const d = new Date(ms);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-/** The UTC day containing `ms`, as [start, end) epoch ms. The clinic count uses UTC, as the server does. */
 function utcDayRange(ms: number): [number, number] {
   const d = new Date(ms);
   const start = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
@@ -82,7 +79,6 @@ const localDayRange = (day: string): [number, number] => [
   Date.parse(localMidnightIso(addDays(day, 1))),
 ];
 
-/** Top three specialty names by count, most common first, then by name. */
 function topSpecialties(providers: Provider[]): string[] {
   const counts = new Map<string, number>();
   for (const { specialty } of providers) {
@@ -96,7 +92,6 @@ function topSpecialties(providers: Provider[]): string[] {
     .map((item) => item.specialty);
 }
 
-/** Creates the mock summary and search port, applying the server's access rules. */
 export function createMockSummaryRepository(
   sources: MockSummarySources,
   currentUser: () => Promise<CurrentUser | null>,
@@ -153,8 +148,6 @@ export function createMockSummaryRepository(
         throw new ForbiddenError();
       }
 
-      // Broadest role wins: admin, the patient, a clinic admin with a visit at their
-      // clinic, then a verified doctor with a visit with this patient.
       const forPatient = data.appointments.filter((a) => a.patientId === id);
       let visible: Appointment[] | null = null;
       if (isAdmin || user.patient?.id === id) visible = forPatient;
@@ -330,7 +323,6 @@ export function createMockSummaryRepository(
       const data = await readAll();
       const isAdmin = user.roles.includes("admin");
 
-      // Patients: admin all; doctor their own; clinic admin their clinics; both gives the union.
       let patientPool: Patient[] = [];
       if (isAdmin) patientPool = data.patients;
       else {

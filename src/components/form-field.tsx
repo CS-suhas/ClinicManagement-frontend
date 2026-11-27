@@ -1,7 +1,6 @@
 import { Flex, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 
-/** Label + control + inline validation message. */
 export function FormField({
   label,
   htmlFor,

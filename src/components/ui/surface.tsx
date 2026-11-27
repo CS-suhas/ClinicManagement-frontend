@@ -10,17 +10,13 @@ const PADDING: Record<SurfacePadding, string> = {
 };
 
 export type SurfaceProps = Omit<HTMLAttributes<HTMLElement>, "children"> & {
-  /** Element to render. Defaults to a div. */
   as?: "div" | "article" | "section" | "button";
-  /** Inner spacing. Defaults to "md". */
   padding?: SurfacePadding;
-  /** Only meaningful with `as="button"`. */
   disabled?: boolean;
   className?: string;
   children?: ReactNode;
 };
 
-/** White rounded card with the palette's hairline border. */
 export function Surface({
   as = "div",
   padding = "md",

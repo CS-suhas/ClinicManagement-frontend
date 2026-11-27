@@ -20,10 +20,6 @@ const toSummaryProvider = (response: ProviderResponse): SummaryProvider => ({
   clinicName: response.clinicName ?? null,
 });
 
-/**
- * Summary and search endpoints. Access failures arrive as ForbiddenError (403)
- * and NotFoundError (404) from HttpClient, and validation as ValidationError (400).
- */
 export class RestSummaryRepository implements SummaryRepository {
   constructor(private readonly http: HttpClient) {}
 

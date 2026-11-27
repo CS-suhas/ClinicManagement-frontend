@@ -10,11 +10,6 @@ import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 const statusOf = (p: Provider): VerificationStatus =>
   p.verificationStatus ?? "PENDING";
 
-/**
- * Every doctor at one clinic, for that clinic's admin. Approve and reject move
- * the doctor between tabs at once and send the request in the background; a
- * failure moves them back. Reject can be undone for a few seconds.
- */
 export function useClinicDoctors(clinicId: string | null) {
   const providerService = useService("providerService");
   const { data, loading, error, reload, refresh, mutate } = useAsyncData<

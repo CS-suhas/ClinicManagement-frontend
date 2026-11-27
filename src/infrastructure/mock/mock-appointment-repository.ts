@@ -29,10 +29,6 @@ import { MockCrudRepository, newId } from "./mock-repositories";
 
 const MAX_PROVIDER_IDS = 100;
 
-/**
- * Narrows a search to what the caller may see, mirroring the API. Checks run
- * in the API's order: admin, patient, clinic admin, doctor.
- */
 export function scopeAppointmentSearch(
   user: CurrentUser | null,
   options: AppointmentSearchOptions,
@@ -59,10 +55,6 @@ export function scopeAppointmentSearch(
   throw new ForbiddenError();
 }
 
-/**
- * Mock appointments. Enforces the API's search scoping, status transitions and
- * caller rules, reading the caller from `currentUser`.
- */
 export class MockAppointmentRepository implements AppointmentRepository {
   private readonly crud: MockCrudRepository<Appointment, AppointmentInput>;
 
@@ -70,7 +62,6 @@ export class MockAppointmentRepository implements AppointmentRepository {
     private readonly store: LocalStorageCollection<Appointment>,
     private readonly getLookups: () => Promise<AppointmentLookups>,
     private readonly currentUser: () => Promise<CurrentUser | null>,
-    /** The clinic's visit length, for the overlap rule. */
     private readonly appointmentDurationMinutes: number,
   ) {
     this.crud = new MockCrudRepository(store, "Appointment");
@@ -84,11 +75,6 @@ export class MockAppointmentRepository implements AppointmentRepository {
     return this.crud.getById(id);
   }
 
-  /**
-   * New appointments start as REQUESTED, as the API does. Throws NotFoundError
-   * for an unknown provider and ConflictError when the provider has a REQUESTED
-   * or CONFIRMED appointment less than one duration away.
-   */
   async create(input: AppointmentInput, id: string = newId()) {
     await delay();
     const lookups = await this.getLookups();
@@ -161,7 +147,6 @@ export class MockAppointmentRepository implements AppointmentRepository {
           return false;
         if (scoped.clinicId && item.clinicId !== scoped.clinicId) return false;
         if (scoped.status && item.status !== scoped.status) return false;
-        // Compare instants, not text: public bookings carry an offset, admin entries do not.
         const time = Date.parse(item.appointmentDateTime);
         if (scoped.from && time < Date.parse(scoped.from)) return false;
         if (scoped.to && time >= Date.parse(scoped.to)) return false;
@@ -205,7 +190,6 @@ export class MockAppointmentRepository implements AppointmentRepository {
     return this.transition(id, "cancel");
   }
 
-  /** Order of checks, as the API: not found (404), caller (403), then status (409). */
   private async transition(
     id: string,
     action: AppointmentAction,

@@ -13,31 +13,22 @@ import type { CurrentUser } from "@/domain/auth";
 import type { MeDashboard } from "@/domain/repositories";
 import type { LinkTone } from "./quick-link-card";
 
-/** One quick link on the landing page or the dashboard. */
 export type LinkCard = {
   href: string;
   title: string;
   hint: string;
   icon: ReactNode;
-  /** Null or undefined hides the count pill. */
   count?: number | null;
   tone: LinkTone;
-  /** Lower comes first: pending states, then doctor, clinic admin, admin, patient. */
   rank: number;
 };
 
 export const MAX_LANDING_CARDS = 6;
 
-/** Whether the account holds no usable role yet and must finish onboarding. */
 export function needsSetup(user: CurrentUser): boolean {
   return user.roles.length === 0 && !user.patient && !user.provider;
 }
 
-/**
- * The quick links for a signed-in user, from their roles and the counts in
- * `mine`. Several roles give several cards; duplicate hrefs collapse, and the
- * list is ordered by `rank`.
- */
 export function buildLandingCards(
   user: CurrentUser,
   mine: MeDashboard | null,

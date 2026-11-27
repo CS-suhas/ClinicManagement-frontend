@@ -9,6 +9,14 @@ import { Button, DropdownMenu, Spinner } from "@radix-ui/themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, Suspense, useEffect, useState } from "react";
+import { IconCircle } from "@/components/ui/icon-circle";
+import { PersonAvatar } from "@/components/ui/person-avatar";
+import { Surface } from "@/components/ui/surface";
+import { Wordmark } from "@/components/ui/wordmark";
+import { useService } from "@/di/container-provider";
+import type { PublicAccess } from "@/domain/auth";
+import { usePublicAccess } from "@/features/auth/api";
+import { useAuth } from "@/features/auth/auth-provider";
 import {
   canAccessRoute,
   hasRole,
@@ -16,16 +24,8 @@ import {
   NAV_ITEMS,
   type NavBadge,
   needsOnboarding,
-} from "@/application/auth/permissions";
-import { IconCircle } from "@/components/ui/icon-circle";
-import { PersonAvatar } from "@/components/ui/person-avatar";
-import { Surface } from "@/components/ui/surface";
-import { Wordmark } from "@/components/ui/wordmark";
-import { useService } from "@/di/container-provider";
-import type { PublicAccess } from "@/domain/auth";
-import { useAuth } from "@/features/auth/auth-provider";
+} from "@/features/auth/permissions";
 import { RoleBadges } from "@/features/auth/role-badges";
-import { usePublicAccess } from "@/features/auth/use-public-access";
 import { CommandPalette } from "@/features/command-palette/components/command-palette";
 import { NotificationBell } from "@/features/notification-bell/components/notification-bell";
 import { useMyDashboard } from "@/features/notification-bell/components/use-my-dashboard";
@@ -40,31 +40,23 @@ const isLoginPath = (pathname: string) =>
 const isDoctorsPath = (pathname: string) =>
   pathname === "/doctors" || pathname.startsWith("/doctors/");
 
-/** Pages that bring their own header and render without the admin navbar. */
 function hasOwnLayout(pathname: string): boolean {
   return pathname === "/" || isLoginPath(pathname) || isDoctorsPath(pathname);
 }
 
-/**
- * Whether anonymous visitors may open the page. The doctor directory is public
- * unless the deployment turns it off (PUBLIC_DOCTORS=false); null while that
- * runtime setting is still loading.
- */
 function allowsAnonymous(
   pathname: string,
-  publicAccess: PublicAccess | null,
+  publicAccess: PublicAccess | undefined,
 ): boolean | null {
   if (pathname === "/" || isLoginPath(pathname)) return true;
   if (isDoctorsPath(pathname)) return publicAccess?.doctors ?? null;
   return false;
 }
 
-/** Pathname plus query string, so a redirect can bring the user back exactly. */
 function currentTarget(pathname: string): string {
   return `${pathname}${window.location.search}`;
 }
 
-/** The count a nav badge shows, from the dashboard counts. */
 function badgeCount(
   badge: NavBadge,
   mine: ReturnType<typeof useMyDashboard>["data"],
@@ -78,11 +70,6 @@ function badgeCount(
   }
 }
 
-/**
- * The chrome around every page. The pathname hook sits inside Suspense so
- * dynamic routes (/patients/[id], /clinics/[id]) can prerender their shell
- * instead of blocking the build on a value only known at request time.
- */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <Suspense fallback={<LoadingScreen />}>
@@ -114,7 +101,6 @@ function ShellFrame({ children }: { children: ReactNode }) {
     );
   }, [anonymousAllowed, loading, signedIn, pathname, router]);
 
-  // A user who has not finished setting up goes to onboarding, keeping where they were headed.
   useEffect(() => {
     if (!gated) return;
     router.replace(
@@ -124,7 +110,6 @@ function ShellFrame({ children }: { children: ReactNode }) {
 
   if (ownLayout)
     return anonymousAllowed || signedIn ? children : <LoadingScreen />;
-  // Only a missing user shows the spinner: a session refresh keeps the page mounted.
   if (!user || gated) return <LoadingScreen />;
 
   const allowed = canAccessRoute(user, pathname);

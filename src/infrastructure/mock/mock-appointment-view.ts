@@ -19,17 +19,9 @@ export type AppointmentLookups = {
     "id" | "firstName" | "lastName" | "specialty" | "clinicId"
   >[];
   clinics: Pick<Clinic, "id" | "name">[];
-  /**
-   * Allergy records, for the patient's allergy count and highest severity on
-   * each item. Omit to leave both fields out.
-   */
   allergies?: Pick<PatientAllergy, "patientId" | "severity">[];
 };
 
-/**
- * Joins appointments with patient, provider and clinic names, as the list
- * endpoints do, plus the allergy warning fields and the status timestamps.
- */
 export function toAppointmentListItems(
   appointments: Appointment[],
   lookups: AppointmentLookups,

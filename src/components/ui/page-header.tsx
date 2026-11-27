@@ -1,7 +1,6 @@
 import { Heading, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 
-/** Page title in the public-page style, with optional subtitle and actions on the right. */
 export function PageHeader({
   title,
   subtitle,

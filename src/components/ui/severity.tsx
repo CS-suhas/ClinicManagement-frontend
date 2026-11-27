@@ -3,10 +3,6 @@ import { SEVERITY_LEVELS } from "@/domain/entities";
 
 export { highestSeverity, severityRank } from "@/domain/entities";
 
-/**
- * Allergy severity. The API sends a free string, so every value goes through
- * `severityLevel`; anything unrecognised reads as UNKNOWN.
- */
 export type SeverityLevel = (typeof SEVERITY_LEVELS)[number] | "UNKNOWN";
 
 export function severityLevel(
@@ -18,14 +14,12 @@ export function severityLevel(
     : "UNKNOWN";
 }
 
-/** Display word, e.g. "Severe". */
 export function severityWord(severity: string | null | undefined): string {
   const level = severityLevel(severity);
   if (level === "UNKNOWN") return (severity ?? "").trim() || "Not recorded";
   return level.charAt(0) + level.slice(1).toLowerCase();
 }
 
-/** Plain-language meaning for the allergy glance. */
 export const SEVERITY_MEANING: Record<SeverityLevel, string> = {
   MILD: "Mild reactions, such as itching or a rash.",
   MODERATE: "Noticeable reactions that need treatment.",
@@ -44,10 +38,6 @@ export function severityColors(severity: string | null | undefined) {
   return SEVERITY_COLOR[severityLevel(severity)];
 }
 
-/**
- * Coloured dot for a severity, with the word for screen readers. The top
- * severity also gets a warning triangle, so it never relies on colour alone.
- */
 export function SeverityDot({
   severity,
   size = 8,
@@ -55,7 +45,6 @@ export function SeverityDot({
 }: {
   severity: string | null | undefined;
   size?: number;
-  /** Shows the word next to the dot instead of only for screen readers. */
   showWord?: boolean;
 }) {
   const word = severityWord(severity);

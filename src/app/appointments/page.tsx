@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { AppointmentsView } from "@/features/appointments/components/appointments-view";
 
 export default function Page() {
-  // Search params need a Suspense boundary so the page can still prerender.
   return (
     <Suspense fallback={null}>
       <AppointmentsView />

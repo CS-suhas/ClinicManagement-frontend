@@ -5,10 +5,6 @@ import {
 } from "@/domain/entities";
 import type { ConfigurationRepository } from "@/domain/repositories";
 
-/**
- * Validated API configuration. These values rarely change, so each is fetched
- * once and reused; a failed fetch is not cached, so the next call retries.
- */
 export class ConfigurationService {
   private severities?: Promise<string[]>;
   private settings?: Promise<AppointmentSettings>;

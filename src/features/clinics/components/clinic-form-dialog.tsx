@@ -7,7 +7,6 @@ import { useEntityForm } from "@/hooks/use-entity-form";
 
 const EMPTY: ClinicInput = { name: "", location: null, phoneNumber: "" };
 
-/** Create when `clinic` is null, edit otherwise. */
 export function ClinicFormDialog({
   open,
   onOpenChange,

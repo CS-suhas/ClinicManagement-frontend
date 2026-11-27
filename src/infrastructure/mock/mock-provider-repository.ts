@@ -38,10 +38,6 @@ const matchesSearch = (search: string | undefined, values: string[]) => {
   return !query || values.some((value) => value.toLowerCase().includes(query));
 };
 
-/**
- * Provider CRUD for admins. A provider an admin creates is verified at once,
- * as the admin is the verifier; self-registered doctors start PENDING.
- */
 export class MockProviderRepository
   extends MockCrudRepository<Provider, ProviderInput>
   implements ProviderRepository
@@ -58,10 +54,6 @@ export class MockProviderRepository
   }
 }
 
-/**
- * Public directory: VERIFIED providers. Needs no sign-in,
- * and every mock read is a public one, as the API's directory is.
- */
 export function createMockProviderDirectoryRepository(repositories: {
   providers: Listable<Provider>;
   clinics: Listable<Clinic>;
@@ -100,10 +92,6 @@ export function createMockProviderDirectoryRepository(repositories: {
   };
 }
 
-/**
- * Doctor verification. Verify and reject are for admins and for admins of the
- * doctor's clinic, with the API's order: 401, 404, 403, then 409.
- */
 export class MockProviderVerificationRepository
   implements ProviderVerificationRepository
 {
@@ -117,7 +105,6 @@ export class MockProviderVerificationRepository
   ): Promise<PagedResult<Provider>> {
     await delay();
     const user = await this.currentUser();
-    // The API forces non-admins to VERIFIED, whatever filter they send.
     const status: VerificationStatus | undefined = user?.roles.includes("admin")
       ? options.verificationStatus
       : "VERIFIED";
@@ -139,7 +126,6 @@ export class MockProviderVerificationRepository
     await delay();
     const user = await this.currentUser();
     if (!user) throw new UnauthorizedError();
-    // Applicants are visible only to admins and to this clinic's admins.
     const seesApplicants =
       user.roles.includes("admin") || user.clinicAdminOf.includes(clinicId);
     return this.store

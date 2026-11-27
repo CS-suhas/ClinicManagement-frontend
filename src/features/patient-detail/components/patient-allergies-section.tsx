@@ -5,16 +5,11 @@ import { AllergyChip } from "@/components/glance";
 import { Surface } from "@/components/ui/surface";
 import type { AllergyEntry } from "@/domain/repositories/glance";
 
-/**
- * Allergies tab. Lists what is recorded and opens the allergy dialog: editable
- * for admins and the patient, read only for doctors.
- */
 export function PatientAllergiesSection({
   allergies,
   readOnly,
   onOpen,
 }: {
-  /** Null when the caller may not read allergies. */
   allergies: AllergyEntry[] | null;
   readOnly: boolean;
   onOpen: () => void;

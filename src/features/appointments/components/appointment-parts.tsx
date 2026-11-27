@@ -21,24 +21,20 @@ import { ACTION_LABEL } from "./use-appointment-actions";
 const AMBER = "var(--mp-warn)";
 const RED = "var(--mp-danger)";
 
-/** Cancelled and rejected visits stay visible but read as done. */
 export const isMuted = (status: AppointmentStatus) =>
   status === "DECLINED" || status === "CANCELLED";
 
-/** Requested or accepted, and starting within 15 minutes. */
 export function isSoon(item: AppointmentListItem, now: number | null) {
   if (now === null) return false;
   if (item.status !== "REQUESTED" && item.status !== "CONFIRMED") return false;
   return startsSoon(item.appointmentDateTime, now);
 }
 
-/** "10:20 am – 10:40 am" for a visit of `duration` minutes. */
 export function timeSpan(iso: string, duration: number) {
   const end = new Date(Date.parse(iso) + duration * 60_000).toISOString();
   return `${clockOf(iso)} – ${clockOf(end)}`;
 }
 
-/** Splits "Asha Fernando" into the first and last name the doctor chip needs. */
 export function splitName(full: string) {
   const at = full.indexOf(" ");
   return at < 0
@@ -46,7 +42,6 @@ export function splitName(full: string) {
     : { firstName: full.slice(0, at), lastName: full.slice(at + 1) };
 }
 
-/** Warning triangle when the patient has allergies: red when one is severe, nothing when none. */
 export function AllergyFlag({
   count,
   severity,
@@ -74,7 +69,6 @@ export function AllergyFlag({
   );
 }
 
-/** The other person on a visit: the patient for staff, the doctor for patients. */
 export function Party({
   item,
   scope,
@@ -110,7 +104,6 @@ export function Party({
   );
 }
 
-/** Facts from the appointment row, shown inside the status card. */
 export function StatusDetails({
   item,
   showAllergy,
@@ -151,7 +144,6 @@ export function StatusDetails({
   );
 }
 
-/** Buttons for the actions the viewer may take, plus Edit where the viewer may edit. */
 export function ActionButtons({
   item,
   actions,
@@ -197,21 +189,16 @@ export function ActionButtons({
   );
 }
 
-/** Props shared by the calendar block, the agenda card and the month pill. */
 export type AppointmentViewProps = {
   item: AppointmentListItem;
   scope: AppointmentScope;
-  /** Epoch ms after mount, else null. */
   now: number | null;
-  /** Actions the viewer may take on this item (allowedActions). */
   actions: AppointmentAction[];
   onAct: (item: AppointmentListItem, action: AppointmentAction) => void;
   onEdit?: (item: AppointmentListItem) => void;
-  /** Allergy flags are for staff; patients do not see them on their own visits. */
   showAllergy: boolean;
 };
 
-/** The status pill that opens the status card, with the card's details and actions. */
 export function AppointmentStatusChip(props: AppointmentViewProps) {
   const { item, actions, onAct, onEdit, showAllergy } = props;
   return (
@@ -234,7 +221,6 @@ export function AppointmentStatusChip(props: AppointmentViewProps) {
   );
 }
 
-/** A visit as a positioned block in a time grid (day or week). */
 export function AppointmentBlock({
   view,
   style,
@@ -244,10 +230,8 @@ export function AppointmentBlock({
 }: {
   view: AppointmentViewProps;
   style: CSSProperties;
-  /** Provider accent colour. */
   accent: string;
   duration: number;
-  /** Shows the reason line too; needs room. */
   tall: boolean;
 }) {
   const { item, now, scope, showAllergy } = view;
@@ -312,7 +296,6 @@ export function AppointmentBlock({
   );
 }
 
-/** A visit as a card in the list view. */
 export function AppointmentCard({
   view,
   duration,
@@ -321,7 +304,6 @@ export function AppointmentCard({
 }: {
   view: AppointmentViewProps;
   duration: number;
-  /** Adds the doctor's chip next to the patient (several doctors in view). */
   showProvider: boolean;
   accent: string;
 }) {
@@ -382,7 +364,6 @@ export function AppointmentCard({
   );
 }
 
-/** Pill colours by status tone, matching the status chips. */
 const PILL_COLORS: Record<string, { background: string; color: string }> = {
   amber: { background: "var(--mp-amber-bg)", color: "var(--mp-amber-ink)" },
   teal: { background: "var(--mp-teal-bg)", color: "var(--mp-teal-ink)" },
@@ -394,6 +375,5 @@ const PILL_COLORS: Record<string, { background: string; color: string }> = {
 export const pillColorsFor = (status: string) =>
   PILL_COLORS[statusPresentation("appointment", status).tone];
 
-/** Accent colour for a provider's column, block or card. */
 export const accentFor = (providerId: string, order: readonly string[]) =>
   toneOf(providerId, order);

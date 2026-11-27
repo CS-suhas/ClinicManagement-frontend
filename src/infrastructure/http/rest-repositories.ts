@@ -31,16 +31,11 @@ import type { Api, ApiGet, ApiPost, Endpoint } from "./api-types";
 import type { HttpClient } from "./http-client";
 import { queryString } from "./query-string";
 
-/** Translates between the API's JSON and the domain's shapes. */
 export type RestMapper<T, TInput, TResponse> = {
   fromResponse(response: TResponse): T;
   toRequest(input: TInput): object;
 };
 
-/**
- * For resources whose API response already has the domain shape. The
- * `TResponse extends T` constraint makes the type check prove that it does.
- */
 export const passThrough = <T, TInput, TResponse extends T>(): RestMapper<
   T,
   TInput,
@@ -50,7 +45,6 @@ export const passThrough = <T, TInput, TResponse extends T>(): RestMapper<
   toRequest: (input) => input as object,
 });
 
-/** A resource whose list, search, get, create, update and delete follow RestCrudRepository's shape. */
 type CrudResource = {
   [E in Endpoint]: `${E}/search` extends Endpoint
     ? `${E}/{id}` extends Endpoint
@@ -59,11 +53,6 @@ type CrudResource = {
     : never;
 }[Endpoint];
 
-/**
- * Resolves to the mapper type when every CRUD response of `R` is a
- * `TResponse` (and create returns an id); otherwise to an error message, so
- * constructing the repository fails the type check.
- */
 type CheckedMapper<R extends CrudResource, T, TInput, TResponse> = [
   ApiGet<R>,
 ] extends [TResponse[]]
@@ -76,17 +65,6 @@ type CheckedMapper<R extends CrudResource, T, TInput, TResponse> = [
     : `GET ${R}/search does not match the mapper's response type`
   : `GET ${R} does not match the mapper's response type`;
 
-/**
- * REST adapter. API shape (camelCase JSON):
- *   GET    {resource}        -> TResponse[]
- *   GET    {resource}/search -> PagedResult<TResponse>
- *   GET    {resource}/:id    -> TResponse
- *   POST   {resource}        -> 201 { id }   (the server generates the id)
- *   PUT    {resource}/:id    -> 204
- *   DELETE {resource}/:id    -> 204
- * The mapper turns the generated API type into the domain entity. Create and
- * update read the record back, so callers get what the server stored.
- */
 export class RestCrudRepository<
   R extends CrudResource,
   T extends { id: string },
@@ -108,7 +86,6 @@ export class RestCrudRepository<
     return `${this.resource}/${encodeURIComponent(id)}`;
   }
 
-  /** GET after a write. Everyone who may write these records may also read them. */
   private async reload(id: string): Promise<T> {
     const item = await this.getById(id);
     if (!item) throw new NotFoundError(this.resource, id);
@@ -141,7 +118,6 @@ export class RestCrudRepository<
     return item && this.mapper.fromResponse(item);
   }
 
-  /** `id` is sent for request validation; the server ignores it and returns its own. */
   async create(input: TInput, id: string = crypto.randomUUID()) {
     const created = await this.http.post<{ id: string }>(this.resource, {
       ...this.mapper.toRequest(input),
@@ -163,7 +139,6 @@ export class RestCrudRepository<
   }
 }
 
-/** A clinic; list and search responses also carry its verified doctor count. */
 export type ClinicResponse =
   | Api<"ClinicResponse">
   | Api<"ClinicListItemResponse">;
@@ -202,7 +177,6 @@ export const providerMapper: RestMapper<
     fee: provider.fee,
     gender: provider.gender,
   }),
-  // PUT replaces the whole record, so null is sent explicitly to clear a value.
   toRequest: (input) => ({
     clinicId: input.clinicId,
     firstName: input.firstName,
@@ -213,7 +187,6 @@ export const providerMapper: RestMapper<
   }),
 };
 
-/** Providers are created and updated with fee and gender, and never send verificationStatus. */
 export class RestProviderRepository extends RestCrudRepository<
   "/providers",
   Provider,
@@ -225,7 +198,6 @@ export class RestProviderRepository extends RestCrudRepository<
   }
 }
 
-/** Clinics are stored with `address`, which the domain calls `location`. */
 export class RestClinicRepository extends RestCrudRepository<
   "/clinics",
   Clinic,
@@ -263,15 +235,6 @@ export class RestDashboardRepository implements DashboardRepository {
   }
 }
 
-/**
- *   GET    /patients/:patientId/allergies
- *   GET    /patients/:patientId/allergies/search
- *   GET    /patients/:patientId/allergy-options
- *   GET    /allergy-types/:allergyId/patients
- *   POST   /patients/:patientId/allergies
- *   PUT    /patients/:patientId/allergies/:allergyId
- *   DELETE /patients/:patientId/allergies/:allergyId
- */
 export class RestPatientAllergyRepository implements PatientAllergyRepository {
   constructor(private readonly http: HttpClient) {}
 
@@ -373,7 +336,6 @@ export class RestAppointmentRepository implements AppointmentRepository {
   constructor(http: HttpClient) {
     this.http = http;
     this.crud = new RestCrudRepository(http, "/appointments", {
-      // The API sends null for "no reason"; the domain uses an empty string.
       fromResponse: (appointment) => ({
         ...appointment,
         reasonForVisit: appointment.reasonForVisit ?? "",
@@ -436,7 +398,6 @@ export class RestAppointmentRepository implements AppointmentRepository {
     return this.transition(id, "cancel");
   }
 
-  /** POST /appointments/:id/{action}, answered with 204. */
   private transition(id: string, action: AppointmentAction) {
     return this.http.post<void>(
       `/appointments/${encodeURIComponent(id)}/${action}`,
@@ -445,7 +406,6 @@ export class RestAppointmentRepository implements AppointmentRepository {
   }
 }
 
-/** GET /providers/:id/patients. The API limits access to the doctor, an admin, or a clinic admin of that doctor's clinic. */
 export class RestProviderRosterRepository implements ProviderRosterRepository {
   constructor(private readonly http: HttpClient) {}
 
@@ -461,10 +421,6 @@ export class RestProviderRosterRepository implements ProviderRosterRepository {
   }
 }
 
-/**
- * GET /providers/directory: the public, bookable doctors. Uses the API's
- * clinicName when present; otherwise looks names up in GET /clinics, once per call.
- */
 export class RestProviderDirectoryRepository
   implements ProviderDirectoryRepository
 {
@@ -503,7 +459,6 @@ export class RestProviderDirectoryRepository
     };
   }
 
-  /** Anonymous visitors cannot read /clinics, so their names stay null. */
   private async loadClinicNames(): Promise<Map<string, string>> {
     try {
       const clinics = await this.clinics.list();
@@ -515,10 +470,6 @@ export class RestProviderDirectoryRepository
   }
 }
 
-/**
- * Doctor verification. Search is forced to VERIFIED for non-admins by the API;
- * verify and reject are open to admins and to admins of the doctor's clinic.
- */
 export class RestProviderVerificationRepository
   implements ProviderVerificationRepository
 {
@@ -562,16 +513,12 @@ export class RestProviderVerificationRepository
   }
 }
 
-/** Busy slots for one doctor on one day. */
 export class RestAppointmentAvailabilityRepository
   implements AppointmentAvailabilityRepository
 {
   constructor(private readonly http: HttpClient) {}
 
   async getBusyStarts(providerId: string, date: string): Promise<string[]> {
-    // `date` is a UTC day on the API; a Sri Lanka clinic day (08:00-16:00
-    // +05:30) falls inside the same UTC date, so the local day is passed as is.
-    // Times come back in UTC; callers compare instants, so no conversion here.
     const raw = await this.http.get<ApiGet<"/providers/{id}/busy-slots">>(
       `/providers/${encodeURIComponent(providerId)}/busy-slots?${queryString({ date })}`,
     );

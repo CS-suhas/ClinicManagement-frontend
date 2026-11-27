@@ -24,7 +24,6 @@ import type { AppointmentView } from "./schedule-time";
 export const ALL_STATUSES = "all" as const;
 export type StatusFilter = typeof ALL_STATUSES | AppointmentStatus;
 
-/** Which views a role gets. Patients get the month grid, doctors the day and week grids, staff the day grid. */
 export function viewOptions(
   role: "patient" | "doctor" | "staff",
 ): { value: AppointmentView; label: string; icon: ReactNode }[] {
@@ -71,7 +70,6 @@ export function AppointmentToolbar({
   canBook,
   onBook,
 }: {
-  /** False until the current day is known (after mount). */
   ready: boolean;
   navLabel: string;
   onToday: () => void;
@@ -82,13 +80,11 @@ export function AppointmentToolbar({
   onViewChange: (view: AppointmentView) => void;
   status: StatusFilter;
   onStatusChange: (status: StatusFilter) => void;
-  /** Doctor filter for admins. */
   provider?: {
     value: string;
     options: { id: string; name: string }[];
     onChange: (id: string) => void;
   };
-  /** Clinic picker for clinic admins of several clinics. */
   clinic?: {
     value: string;
     options: { id: string; name: string }[];

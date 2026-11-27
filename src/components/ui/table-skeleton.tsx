@@ -1,10 +1,5 @@
 import { Surface } from "./surface";
 
-/**
- * Column shapes for the skeleton, matching the real cells: "chip" is a circle
- * and a bar (an entity reference), "text" a long bar, "short" a small bar,
- * "number" a right-aligned small bar, "actions" two small circles.
- */
 export type SkeletonCell = "chip" | "text" | "short" | "number" | "actions";
 
 const BAR = "h-3 rounded-full motion-safe:animate-pulse";
@@ -43,10 +38,6 @@ function SkeletonCellContent({ shape }: { shape: SkeletonCell }) {
   );
 }
 
-/**
- * Placeholder rows shaped like a DataTable while its first page loads. Use it
- * as AsyncContent's `skeleton` so the layout does not jump when data arrives.
- */
 export function TableSkeleton({
   columns,
   rows = 8,
@@ -55,9 +46,7 @@ export function TableSkeleton({
 }: {
   columns: SkeletonCell[];
   rows?: number;
-  /** Adds the checkbox column. */
   selectable?: boolean;
-  /** Adds the chevron column. */
   expandable?: boolean;
 }) {
   const cellClass = "px-4 py-3 align-middle";

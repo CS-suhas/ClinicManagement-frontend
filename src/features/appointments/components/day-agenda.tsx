@@ -9,7 +9,6 @@ import { type GridCommon, viewFor } from "./day-calendar";
 import { itemsOn } from "./month-calendar";
 import { toneOf } from "./schedule-time";
 
-/** Chronological cards, grouped under a heading per local day. */
 export function DayAgenda({
   items,
   days,
@@ -21,7 +20,6 @@ export function DayAgenda({
   ...common
 }: GridCommon & {
   items: AppointmentListItem[];
-  /** Days to show, in order. Days without visits are skipped. */
   days: string[];
   todayKey: string | null;
   duration: number;

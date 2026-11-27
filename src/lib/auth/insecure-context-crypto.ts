@@ -1,16 +1,5 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 
-/**
- * Browsers expose `crypto.subtle` and `crypto.randomUUID` only in secure
- * contexts (HTTPS, or http://localhost). The deployment is served over plain
- * HTTP on an IP address, where both are missing: PKCE cannot hash its code
- * verifier and new record ids cannot be generated.
- *
- * On such a page this fills in exactly those two: `subtle.digest("SHA-256")`
- * from @noble/hashes and a v4 UUID from `crypto.getRandomValues` (which is
- * available everywhere). It does nothing on a secure page or on the server.
- * Remove it once the app is served over HTTPS.
- */
 export function ensureCryptoInInsecureContext(): void {
   if (typeof window === "undefined" || window.isSecureContext) return;
   const target = window.crypto as Partial<Crypto> | undefined;

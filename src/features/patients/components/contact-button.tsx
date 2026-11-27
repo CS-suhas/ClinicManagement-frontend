@@ -3,7 +3,6 @@
 import { IconButton } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 
-/** Teal icon button that opens a `tel:` or `mailto:` link; disabled when there is no value. */
 export function ContactButton({
   href,
   label,
@@ -13,7 +12,6 @@ export function ContactButton({
   href: string | null;
   label: string;
   icon: ReactNode;
-  /** Filled teal, for the primary contact action. */
   solid?: boolean;
 }) {
   const variant = solid ? "solid" : "soft";

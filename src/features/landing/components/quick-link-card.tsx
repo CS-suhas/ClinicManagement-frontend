@@ -13,10 +13,6 @@ const TONE_PILL: Record<LinkTone, { background: string; color: string }> = {
   alert: { background: "var(--mp-red-bg)", color: "var(--mp-red-ink)" },
 };
 
-/**
- * A whole card that links somewhere: icon, title, one line of hint and an
- * optional count pill. The count only shows when the caller has one.
- */
 export function QuickLinkCard({
   href,
   icon,
@@ -29,7 +25,6 @@ export function QuickLinkCard({
   icon: ReactNode;
   title: string;
   hint?: string;
-  /** Null or undefined hides the pill. */
   count?: number | null;
   tone?: LinkTone;
 }) {

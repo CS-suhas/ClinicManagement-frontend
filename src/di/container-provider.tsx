@@ -10,7 +10,6 @@ export function ContainerProvider({
   container,
 }: {
   children: ReactNode;
-  /** Optional override, e.g. for tests or storybook. */
   container?: Container;
 }) {
   const [value] = useState(() => container ?? createContainer(configFromEnv()));
@@ -28,7 +27,6 @@ export function useContainer(): Container {
   return ctx;
 }
 
-/** Resolve a single service: `const clinics = useService("clinicService")`. */
 export function useService<K extends keyof Container>(key: K): Container[K] {
   return useContainer()[key];
 }

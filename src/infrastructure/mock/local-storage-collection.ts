@@ -1,7 +1,3 @@
-/**
- * A tiny persisted collection. Uses localStorage in the browser and falls
- * back to memory when storage is unavailable (SSR, private mode, blocked).
- */
 export class LocalStorageCollection<T> {
   private memory: T[] | null = null;
 
@@ -25,11 +21,8 @@ export class LocalStorageCollection<T> {
     this.memory = structuredClone(items);
     try {
       window.localStorage.setItem(this.key, JSON.stringify(items));
-    } catch {
-      // storage unavailable: keep in memory only
-    }
+    } catch {}
   }
 }
 
-/** Simulated network latency so loading states are visible in mock mode. */
 export const delay = (ms = 150) => new Promise((r) => setTimeout(r, ms));

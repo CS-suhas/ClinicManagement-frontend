@@ -14,7 +14,6 @@ const EMPTY: PatientInput = {
   phoneNumber: "",
 };
 
-/** Create when `patient` is null, edit otherwise. */
 export function PatientFormDialog({
   open,
   onOpenChange,

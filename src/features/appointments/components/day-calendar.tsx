@@ -21,7 +21,6 @@ import {
 const GUTTER = 64;
 const COLUMN_MIN_WIDTH = 200;
 
-/** Shared inputs for the block grids. */
 export type GridCommon = {
   scope: AppointmentScope;
   now: number | null;
@@ -31,7 +30,6 @@ export type GridCommon = {
   showAllergy: boolean;
 };
 
-/** One day as provider columns. Admins see every doctor; a doctor sees only their own column. */
 export function DayCalendar({
   columns,
   items,
@@ -43,9 +41,7 @@ export function DayCalendar({
   columns: ScheduleColumn[];
   items: AppointmentListItem[];
   clinic: ClinicWindow;
-  /** Minutes from clinic opening to now, or null when the line is hidden. */
   nowOffset: number | null;
-  /** Provider ids in display order, which set the accent colours. */
   toneOrder: string[];
 }) {
   const { opening, closing, duration } = clinic;
@@ -166,7 +162,6 @@ export function DayCalendar({
   );
 }
 
-/** Builds the per-item props a block or card needs from the shared inputs. */
 export function viewFor(
   item: AppointmentListItem,
   common: GridCommon,

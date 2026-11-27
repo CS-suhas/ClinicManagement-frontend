@@ -14,7 +14,6 @@ const display = Bricolage_Grotesque({
 });
 const body = Figtree({ subsets: ["latin"], variable: "--font-body" });
 
-// Baseline at y=100, one QRS complex centred at x=730 of 1000.
 const ECG_PATH =
   "M0,100 H240 C252,100 258,78 274,78 S296,100 308,100 H650 L670,108 L690,100 H710 L730,6 L752,196 L772,100 H830 C846,100 854,64 878,64 S906,100 922,100 H1000";
 

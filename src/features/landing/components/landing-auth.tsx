@@ -5,10 +5,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useAuth } from "@/features/auth/auth-provider";
 
-/** Header action: sign in when signed out, the dashboard when signed in. */
 export function LandingHeaderAuth() {
   const { user, loading } = useAuth();
-  // Hold the space while the session loads so the header doesn't jump.
   if (loading) return <span aria-hidden="true" className="lp-headerLink" />;
 
   return user ? (
@@ -24,7 +22,6 @@ export function LandingHeaderAuth() {
   );
 }
 
-/** Renders its children only once we know the visitor is signed out. */
 export function SignedOutOnly({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   return loading || user ? null : children;

@@ -4,10 +4,6 @@ import {
   minutesToClock,
 } from "@/domain/entities";
 
-/**
- * Earliest and latest start time (HH:mm) of an appointment on a day, so the
- * appointment ends before closing. Undefined until settings are loaded.
- */
 export function appointmentTimeBounds(
   settings: AppointmentSettings | undefined,
 ) {

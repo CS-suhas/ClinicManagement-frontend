@@ -38,7 +38,6 @@ const EMPTY_COPY: Record<ApprovalTab, { title: string; description: string }> =
     },
   };
 
-/** Admin queue for doctor applications: pending, rejected and verified, with approve and reject. */
 export function ApprovalsView() {
   const [tab, setTab] = useState<ApprovalTab>("PENDING");
   const [searchText, setSearchText] = useState("");

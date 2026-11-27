@@ -1,4 +1,3 @@
-/** Soft background/text pairs; a name always maps to the same pair. */
 const TONES = [
   { background: "var(--mp-primary-tint)", color: "var(--mp-primary-dark)" },
   { background: "var(--mp-blue-bg)", color: "var(--mp-blue-ink)" },
@@ -8,7 +7,6 @@ const TONES = [
   { background: "var(--mp-green-bg)", color: "var(--mp-green-ink)" },
 ] as const;
 
-/** Up to two initials; a leading "Dr." is ignored. */
 export function initialsOf(name: string): string {
   return name
     .replace(/^Dr\.?\s+/i, "")
@@ -25,7 +23,6 @@ function hashOf(text: string): number {
   return hash;
 }
 
-/** Initials in a soft circle. The API has no photos, so the colour is derived from the name. */
 export function PersonAvatar({
   name,
   size = 40,

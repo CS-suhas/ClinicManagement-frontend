@@ -13,11 +13,6 @@ import {
   writeSeenIds,
 } from "./notification-items";
 
-/**
- * Header bell. Lists what needs the user's attention, from the shared dashboard
- * counts. Unread state is the set of item ids the user has seen, kept in
- * localStorage; it is read after mount so server and client markup match.
- */
 export function NotificationBell({
   mine,
   user,

@@ -5,10 +5,6 @@ import type { DoctorProfile } from "./doctor-profile";
 const feeFilterActive = (fee: DoctorFilterValues["fee"]) =>
   fee[0] > FEE_RANGE.min || fee[1] < FEE_RANGE.max;
 
-/**
- * The distinct specialties among `doctors`, sorted. Specialty is free text, so
- * entries differing only in case or surrounding spaces count as one.
- */
 export function specialtyOptions(doctors: DoctorProfile[]): string[] {
   const byKey = new Map<string, string>();
   for (const s of doctors.flatMap((d) => d.specialties)) {
@@ -19,10 +15,6 @@ export function specialtyOptions(doctors: DoctorProfile[]): string[] {
   return [...byKey.values()].sort((a, b) => a.localeCompare(b));
 }
 
-/**
- * Applies the sidebar filters and the search box. A doctor without the data a
- * filter needs (for example no fee) is hidden while that filter is active.
- */
 export function filterDoctors(
   doctors: DoctorProfile[],
   filters: DoctorFilterValues,

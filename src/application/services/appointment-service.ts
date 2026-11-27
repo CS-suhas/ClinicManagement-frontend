@@ -1,4 +1,3 @@
-import { hasRole } from "@/application/auth/permissions";
 import type { CurrentUser } from "@/domain/auth";
 import {
   type Appointment,
@@ -23,39 +22,30 @@ import type {
   AppointmentRepository,
   AppointmentSearchOptions,
 } from "@/domain/repositories";
+import { hasRole } from "@/features/auth/permissions";
 import { CrudService } from "./crud-service";
 
 export { addDays, localMidnightIso };
 
 const PAGE_SIZE = 100;
-/** Caps the paging loop so a runaway backend cannot stall the page. */
 const MAX_PAGES = 20;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export type AppointmentDayQuery = {
-  /** Local calendar day, "YYYY-MM-DD". */
   date: string;
-  /** Only these providers. An empty array matches nothing. */
   providerIds?: string[];
   patientId?: string;
   clinicId?: string;
 };
 
-/** What a patient picks on the booking screens. */
 export type PatientBookingInput = {
   providerId: string;
-  /** Local `YYYY-MM-DDTHH:mm`. The service adds the offset. */
   appointmentDateTime: string;
   reasonForVisit: string;
 };
 
-/**
- * What the signed-in user may see on the appointments page. Mirrors the
- * backend's search scoping: admin, then patient, then clinic admin, then doctor.
- */
 export type AppointmentScope =
   | { mode: "all"; canWrite: boolean }
-  /** Read-only. `clinicId` is the default clinic; `clinicIds` lets the UI offer a picker. */
   | { mode: "clinic"; clinicId: string; clinicIds: string[] }
   | { mode: "provider"; providerId: string }
   | { mode: "patient"; patientId: string }
@@ -82,11 +72,9 @@ export function appointmentScopeFor(
   return { mode: "none" };
 }
 
-/** Only admins create, edit and delete appointments. */
 export const canManageAppointments = (scope: AppointmentScope) =>
   scope.mode === "all" && scope.canWrite;
 
-/** The day query that limits a day's appointments to what the scope allows. */
 export function appointmentDayQuery(
   scope: AppointmentScope,
   date: string,
@@ -105,7 +93,6 @@ export function appointmentDayQuery(
   }
 }
 
-/** The actions the user may take on an appointment, for showing only valid buttons. */
 export function allowedActions(
   item: Pick<AppointmentListItem, "patientId" | "providerId" | "status">,
   user: Pick<CurrentUser, "roles" | "patient" | "provider"> | null,
@@ -127,10 +114,6 @@ export class AppointmentService extends CrudService<
   }
   protected validate = validateAppointment;
 
-  /**
-   * Every appointment on a local day, soonest first. The provider filter runs
-   * on the server; the day runs from local midnight to the next local midnight.
-   */
   async listForDay({
     date,
     providerIds,
@@ -163,21 +146,12 @@ export class AppointmentService extends CrudService<
     );
   }
 
-  /**
-   * ISO start times of the doctor's REQUESTED and CONFIRMED appointments on a
-   * local day. Public: works for anyone, and carries no patient data. Use it to
-   * grey out taken slots; the appointment search is scoped and cannot do this.
-   */
   busyStarts(providerId: string, date: string): Promise<string[]> {
     if (!DATE_PATTERN.test(date))
       throw new ValidationError({ date: "Date must be YYYY-MM-DD" });
     return this.availability.getBusyStarts(providerId, date);
   }
 
-  /**
-   * Books a visit for the signed-in patient. The patient id comes from the
-   * user, never from the caller. Throws ForbiddenError when the user has no patient record.
-   */
   bookAsPatient(
     input: PatientBookingInput,
     user: Pick<CurrentUser, "roles" | "patient"> | null,

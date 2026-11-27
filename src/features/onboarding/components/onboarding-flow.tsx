@@ -49,7 +49,6 @@ const TITLES: Record<OnboardingStep, { title: string; subtitle: string }> = {
   },
 };
 
-/** The guided setup at /onboarding: role, details and approval, resumed from the user's state. */
 export function OnboardingFlow() {
   const { user, refresh } = useAuth();
   const router = useRouter();
@@ -59,7 +58,6 @@ export function OnboardingFlow() {
   const [choice, setChoice] = useState<OnboardingChoice | null>(
     as === "patient" || as === "doctor" ? as : null,
   );
-  // Form values live here, so Back keeps what was typed.
   const [patientDraft, setPatientDraft] = useState<PatientInput | null>(null);
   const [doctorDraft, setDoctorDraft] = useState<DoctorDetails | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -69,7 +67,6 @@ export function OnboardingFlow() {
   const path: OnboardingChoice | null =
     choice ?? (user?.provider ? "doctor" : user?.patient ? "patient" : null);
 
-  // Move focus to the new step's heading so screen reader users hear the change.
   useEffect(() => {
     if (step) headingRef.current?.focus();
   }, [step]);

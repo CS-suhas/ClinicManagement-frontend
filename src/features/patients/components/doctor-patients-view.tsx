@@ -13,10 +13,6 @@ import { PAGE_SIZE } from "@/hooks/use-crud-page";
 import { PatientRosterCard } from "./patient-roster-card";
 import { PatientRosterTable } from "./patient-roster-table";
 
-/**
- * A doctor's roster: the patients who have an appointment with them. Read-only;
- * search and paging run on the server.
- */
 export function DoctorPatientsView({
   providerId,
 }: {

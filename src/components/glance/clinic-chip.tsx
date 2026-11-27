@@ -23,7 +23,6 @@ export type ClinicChipProps = {
   variant?: "chip" | "inline";
 };
 
-/** A clinic as a house icon and name. The card shows its address, phone, doctors and today's load. */
 export function ClinicChip({ clinic, variant = "chip" }: ClinicChipProps) {
   return (
     <GlancePopover

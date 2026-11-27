@@ -7,10 +7,6 @@ import type {
 import type { LocalStorageCollection } from "./local-storage-collection";
 import { MockCrudRepository } from "./mock-repositories";
 
-/**
- * Mock clinics. List and search items carry `providerCount` (verified doctors),
- * computed on each read so it is never persisted.
- */
 export class MockClinicRepository
   extends MockCrudRepository<Clinic, ClinicInput>
   implements ClinicRepository

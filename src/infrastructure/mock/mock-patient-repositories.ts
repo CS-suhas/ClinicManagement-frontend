@@ -15,7 +15,6 @@ import type {
 import { delay, type LocalStorageCollection } from "./local-storage-collection";
 import { MockCrudRepository } from "./mock-repositories";
 
-/** Allergy totals per patient, derived from the allergy records as the list endpoints do. */
 function allergySummaries(records: PatientAllergy[]) {
   const severities = new Map<string, string[]>();
   for (const record of records) {
@@ -31,11 +30,6 @@ function allergySummaries(records: PatientAllergy[]) {
   );
 }
 
-/**
- * Mock patients with the list fields the API adds: allergy count and highest
- * severity, computed from the allergy store on every read. Writes go to the
- * plain store, so the computed fields are never persisted.
- */
 export class MockPatientRepository
   extends MockCrudRepository<Patient, PatientInput>
   implements PatientRepository
@@ -70,10 +64,6 @@ export class MockPatientRepository
     return patient ? this.withSummaries([patient])[0] : null;
   }
 
-  /**
-   * Matches the patient's own text fields only, so a severity name in the
-   * summary never makes a patient match a search.
-   */
   async search(options: SearchOptions): Promise<PagedResult<PatientListItem>> {
     await delay();
     const needle = options.search?.trim().toLowerCase();
@@ -97,7 +87,6 @@ export class MockPatientRepository
   }
 }
 
-/** Mock allergy types with `patientCount`, the number of patients who have the allergy recorded. */
 export class MockAllergyTypeRepository extends MockCrudRepository<
   AllergyType,
   AllergyTypeInput

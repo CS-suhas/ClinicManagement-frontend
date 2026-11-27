@@ -24,10 +24,8 @@ import { viewFor } from "./day-calendar";
 import { clockOf, dateKeyOf } from "./schedule-time";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-/** Pills shown per day on desktop before "+N more". */
 const PILLS_PER_DAY = 2;
 
-/** Items on one day, soonest first. */
 export function itemsOn(items: AppointmentListItem[], dateKey: string) {
   return items
     .filter((item) => dateKeyOf(item.appointmentDateTime) === dateKey)
@@ -37,10 +35,6 @@ export function itemsOn(items: AppointmentListItem[], dateKey: string) {
     );
 }
 
-/**
- * Six weeks of a month, Monday first. Days from the neighbouring months are
- * muted. Compact (mobile) shows a dot per visit instead of pills.
- */
 export function MonthCalendar({
   days,
   monthDate,
@@ -54,13 +48,11 @@ export function MonthCalendar({
   ...common
 }: GridCommon & {
   days: string[];
-  /** Any day key in the displayed month. */
   monthDate: string;
   todayKey: string | null;
   selectedKey: string;
   items: AppointmentListItem[];
   compact: boolean;
-  /** Patients may book empty future days. */
   canBook: boolean;
   onSelectDay: (dateKey: string) => void;
   onBookDay: (dateKey: string) => void;
@@ -181,7 +173,6 @@ function monthNameOf(dateKey: string) {
   });
 }
 
-/** A visit as a coloured pill in a month cell. Opens the same status card as elsewhere. */
 function MonthPill({
   item,
   ...common

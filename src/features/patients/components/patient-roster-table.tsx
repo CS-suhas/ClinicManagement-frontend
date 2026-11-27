@@ -32,10 +32,6 @@ import { EMPTY_CELL, formatTime } from "./patient-roster-format";
 
 const muted = { color: "var(--mp-muted)" } as const;
 
-/**
- * A roster line as the table reads it. The doctor's roster has the last and
- * next visits; the admin page also passes the latest visit and provider.
- */
 export type PatientTableRow = {
   patient: PatientListItem;
   lastVisit?: PatientVisitSummary | null;
@@ -44,7 +40,6 @@ export type PatientTableRow = {
   provider?: RosterProvider;
 };
 
-/** The allergy list for the card, loaded only when the card opens. */
 function AllergyCard({ patientId, name }: { patientId: string; name: string }) {
   const glance = useService("glanceService");
   const summary = useGlanceData<PatientSummary>(`patient:${patientId}`, () =>
@@ -88,10 +83,6 @@ function AllergyCard({ patientId, name }: { patientId: string; name: string }) {
   );
 }
 
-/**
- * Allergy count with the highest severity as a dot. The count comes from the
- * patient record; the full list loads when the card opens.
- */
 function AllergiesCell({ patient }: { patient: PatientListItem }) {
   const name = patientFullName(patient);
   const count = patient.allergyCount;
@@ -163,12 +154,6 @@ function VisitCell({
   );
 }
 
-/**
- * Patient roster on the shared DataTable: chips with glance cards, allergy
- * counts and severities (sortable), visit times, contact buttons, an optional
- * row menu (admin), an expansion with allergies and recent visits, and bulk
- * export and email for the selected rows.
- */
 export function PatientRosterTable({
   rows,
   showProvider = false,
@@ -176,11 +161,8 @@ export function PatientRosterTable({
   selectable = true,
 }: {
   rows: PatientTableRow[];
-  /** Adds the assigned-provider column (admin view). */
   showProvider?: boolean;
-  /** The ⋮ menu for a row. Omit for read-only views. */
   rowMenu?: (row: PatientTableRow) => ReactNode;
-  /** Adds checkboxes with Export CSV and Email actions for the selection. */
   selectable?: boolean;
 }) {
   const now = useNow();

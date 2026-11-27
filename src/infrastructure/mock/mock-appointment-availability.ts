@@ -8,10 +8,6 @@ const BLOCKING_STATUSES: ReadonlySet<Appointment["status"]> = new Set([
   "CONFIRMED",
 ]);
 
-/**
- * Busy starts computed from the appointments store. Public: returns start times
- * only, never patient data.
- */
 export class MockAppointmentAvailabilityRepository
   implements AppointmentAvailabilityRepository
 {
@@ -19,7 +15,6 @@ export class MockAppointmentAvailabilityRepository
 
   async getBusyStarts(providerId: string, date: string): Promise<string[]> {
     await delay();
-    // The local day, from local midnight to the next local midnight.
     const from = Date.parse(localMidnightIso(date));
     const to = Date.parse(localMidnightIso(addDays(date, 1)));
     return this.store

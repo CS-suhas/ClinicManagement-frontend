@@ -7,13 +7,10 @@ export type BookingAccessDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   displayName: string;
-  /** True when the account has no patient record, so it can create one. */
   canCreateProfile: boolean;
-  /** Where onboarding returns the visitor after the profile is created. */
   returnTo?: string;
 };
 
-/** Explains why a signed-in account cannot book online. */
 export function BookingAccessDialog({
   open,
   onOpenChange,

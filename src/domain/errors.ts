@@ -1,6 +1,5 @@
 export type FieldErrors = Record<string, string>;
 
-/** Raised when user input violates a domain rule. Carries per-field messages for forms. */
 export class ValidationError extends Error {
   constructor(public readonly fieldErrors: FieldErrors) {
     super("Validation failed");
@@ -8,7 +7,6 @@ export class ValidationError extends Error {
   }
 }
 
-/** Raised when an operation conflicts with existing data (e.g. deleting a referenced record). */
 export class ConflictError extends Error {
   constructor(message: string) {
     super(message);
@@ -23,7 +21,6 @@ export class NotFoundError extends Error {
   }
 }
 
-/** Raised when the request has no valid credentials (HTTP 401). */
 export class UnauthorizedError extends Error {
   constructor(message = "Your session has expired. Please sign in again.") {
     super(message);
@@ -31,7 +28,6 @@ export class UnauthorizedError extends Error {
   }
 }
 
-/** Raised when the signed-in user may not perform the action (HTTP 403). */
 export class ForbiddenError extends Error {
   constructor(message = "You do not have permission to do that.") {
     super(message);
@@ -43,7 +39,6 @@ export function assertValid(errors: FieldErrors): void {
   if (Object.keys(errors).length > 0) throw new ValidationError(errors);
 }
 
-/** Blocks a delete while other records still reference the entity. */
 export function assertNoDependents(
   count: number,
   message: (count: number) => string,

@@ -71,7 +71,6 @@ export default function Page() {
   const clinicById = new Map(clinics.map((c) => [c.id, c]));
   const hasFilters = crud.query !== "" || clinicFilter !== ALL_FILTER;
 
-  /** One doctor's verify or reject: the badge flips at once, rolled back on failure. */
   const decide = (provider: Provider, decision: Decision) => {
     const name = providerFullName(provider);
     const previous = provider.verificationStatus;
@@ -90,7 +89,6 @@ export default function Page() {
     });
   };
 
-  /** Sends the decisions one after another and reports how many worked. */
   const runBulk = async () => {
     if (!bulk) return;
     setBulkBusy(true);

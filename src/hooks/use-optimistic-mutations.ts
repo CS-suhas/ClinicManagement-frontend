@@ -1,43 +1,34 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useNotify } from "@/components/notifications";
 import { ConflictError, ValidationError } from "@/domain/errors";
+import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { invalidateGlanceData } from "./use-glance-data";
 
-/** Window in which a reversible action (reject, cancel) can be undone. */
 export const UNDO_WINDOW_MS = 5000;
 
 export type OptimisticMutation = {
-  /** Shows the expected result in the UI right away. */
   apply: () => void;
-  /** Puts the UI back as it was if the request fails or is undone. */
   rollback: () => void;
-  /** The real request; runs in the background after `apply`. */
   request: () => Promise<unknown>;
-  /** Start of the failure popup, e.g. "Could not delete clinic". */
   failureMessage: string;
-  /** Success toast text once the request is saved, e.g. "Clinic saved". */
   successMessage?: string;
-  /**
-   * Delay-commit, for actions whose inverse is not a simple status change
-   * (reject, cancel). The success toast appears at once with an Undo button and
-   * the request waits `delayMs` (default 5 s). Undo rolls back and never sends
-   * the request. Accept and complete should not set this: they commit at once.
-   */
   undo?: { delayMs?: number };
 };
 
-/** A failure already explains itself; other errors follow the headline. */
 function failureText(failureMessage: string, e: unknown) {
   if (e instanceof ConflictError) return e.message;
+  if (e instanceof ApiError && e.status === 409) return e.message;
+  if (e instanceof ApiError && e.fieldErrors)
+    return `${failureMessage}: ${Object.values(e.fieldErrors).join(" ")}`;
   if (e instanceof ValidationError)
     return `${failureMessage}: ${Object.values(e.fieldErrors).join(" ")}`;
   return `${failureMessage}: ${getErrorMessage(e)}`;
 }
 
-/** A timer that resolves true when it elapses, or false when cancelled first. */
 function createHold(ms: number) {
   let settle: (committed: boolean) => void = () => {};
   const promise = new Promise<boolean>((resolve) => {
@@ -53,16 +44,9 @@ function createHold(ms: number) {
   };
 }
 
-/**
- * Runs mutations in the background after updating the UI optimistically.
- * Requests run one at a time in the order issued (so an edit never overtakes
- * the create it depends on). A failure rolls back and shows a popup; success
- * can show a toast; undoable mutations hold their request (see `undo`). Every
- * settled mutation invalidates the glance cache. `onIdle` runs when no request
- * is left, to reconcile the UI with the server.
- */
-export function useOptimisticMutations(onIdle: () => void) {
+export function useOptimisticMutations(onIdle: () => void = () => {}) {
   const { notifyError, notifySuccess } = useNotify();
+  const queryClient = useQueryClient();
   const queue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
   const onIdleRef = useRef(onIdle);
@@ -102,10 +86,13 @@ export function useOptimisticMutations(onIdle: () => void) {
         } finally {
           pending.current--;
           invalidateGlanceData();
-          if (pending.current === 0) onIdleRef.current();
+          if (pending.current === 0) {
+            void queryClient.invalidateQueries();
+            onIdleRef.current();
+          }
         }
       });
     },
-    [notifyError, notifySuccess],
+    [notifyError, notifySuccess, queryClient],
   );
 }

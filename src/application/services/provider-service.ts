@@ -43,31 +43,26 @@ export class ProviderService extends CrudService<
     );
   }
 
-  /** The public, bookable doctors, i.e. verified ones. Needs no sign-in. */
   directory(
     options: ProviderDirectoryOptions,
   ): Promise<PagedResult<ProviderDirectoryEntry>> {
     return this.directoryRepo.list(options);
   }
 
-  /** Admins filter by any status; everyone else only ever sees VERIFIED. */
   searchByStatus(
     options: VerificationSearchOptions,
   ): Promise<PagedResult<Provider>> {
     return this.verificationRepo.searchByStatus(options);
   }
 
-  /** Every doctor at a clinic, including pending and rejected applications. */
   clinicRoster(clinicId: string): Promise<Provider[]> {
     return this.verificationRepo.listByClinic(clinicId);
   }
 
-  /** Admins, or admins of the doctor's clinic. From PENDING or REJECTED. */
   verify(id: string): Promise<void> {
     return this.verificationRepo.verify(id);
   }
 
-  /** Admins, or admins of the doctor's clinic. From PENDING. */
   reject(id: string): Promise<void> {
     return this.verificationRepo.reject(id);
   }

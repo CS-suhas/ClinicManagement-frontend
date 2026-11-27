@@ -9,10 +9,6 @@ import type { PatientInput } from "@/domain/entities";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useFormSubmit } from "@/hooks/use-form-submit";
 
-/**
- * The patient profile form. Values live in the flow, so going back and forth
- * keeps what was typed. On success the session is refreshed and `onDone` runs.
- */
 export function PatientStep({
   values,
   onChange,
@@ -46,7 +42,6 @@ export function PatientStep({
         phoneNumber: values.phoneNumber.trim(),
         email: values.email.trim(),
       });
-      // Re-read the session so the new patient link and role are in place.
       await refresh();
     });
     if (ok) {

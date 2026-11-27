@@ -11,28 +11,15 @@ type StringKey<T> = {
 type KeyOf<T> = Extract<keyof T, string>;
 
 type UseEntityFormOptions<TEntity extends TValues & { id: string }, TValues> = {
-  /** Singular noun used in titles and the submit label, e.g. "clinic". */
   entityName: string;
-  /** Prefix for generated element ids, e.g. "clinic" -> "clinic-name". */
   idPrefix: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /**
-   * Saves the values (create when `entity` is null). Should throw
-   * ValidationError for invalid input and otherwise return immediately: the
-   * dialog closes as soon as it returns.
-   */
   onSave: (values: TValues, entity: TEntity | null) => void;
-  /** Create when null, edit otherwise. */
   entity: TEntity | null;
-  /** Initial values for create; its keys decide which fields an edit copies. */
   empty: TValues;
 };
 
-/**
- * Form state for a create/edit dialog: resets when the dialog opens, tracks
- * values, hands them to `onSave`, and maps validation errors to fields.
- */
 export function useEntityForm<
   TEntity extends TValues & { id: string },
   TValues extends object,
@@ -69,7 +56,6 @@ export function useEntityForm<
 
   return {
     values,
-    /** Props for a text input; `emptyAsNull` stores "" as null. */
     field: (name: StringKey<TValues>, { emptyAsNull = false } = {}) => ({
       ...base(name),
       onChange: (e: ChangeEvent<HTMLInputElement>) =>
@@ -78,13 +64,11 @@ export function useEntityForm<
           [name]: emptyAsNull ? e.target.value || null : e.target.value,
         })),
     }),
-    /** Props for a select. */
     selectField: (name: StringKey<TValues>) => ({
       ...base(name),
       onValueChange: (value: string) =>
         setValues((v) => ({ ...v, [name]: value })),
     }),
-    /** Props for a select whose "not set" choice (`noneValue`) is stored as null. */
     nullableSelectField: (name: KeyOf<TValues>, noneValue: string) => ({
       id: `${idPrefix}-${name}`,
       value: values[name] == null ? noneValue : String(values[name]),
@@ -95,7 +79,6 @@ export function useEntityForm<
           [name]: value === noneValue ? null : value,
         })),
     }),
-    /** Props for a number input; an empty box stores null. */
     numberField: (name: KeyOf<TValues>) => ({
       id: `${idPrefix}-${name}`,
       value: values[name] == null ? "" : String(values[name]),
@@ -106,7 +89,6 @@ export function useEntityForm<
           [name]: e.target.value === "" ? null : Number(e.target.value),
         })),
     }),
-    /** Spread onto FormDialog. */
     dialogProps: {
       open,
       onOpenChange,

@@ -32,15 +32,12 @@ export type DoctorChipProps = {
     specialty?: string;
     clinicId?: string;
     clinicName?: string | null;
-    /** Consultation fee in LKR, when the list already has it. */
     fee?: number | null;
   };
-  /** Adds the specialty after the name in the chip. */
   showSpecialty?: boolean;
   variant?: "chip" | "inline";
 };
 
-/** "Dr. A. Fernando": initial and surname, the form used in chips. */
 export function doctorShortName(provider: {
   firstName: string;
   lastName: string;
@@ -51,12 +48,6 @@ export function doctorShortName(provider: {
     : `Dr. ${provider.lastName.trim()}`;
 }
 
-/**
- * A doctor as an avatar and "Dr. A. Fernando". The card shows specialty,
- * approval status (staff and the doctor only), clinic, fee, the next free slot,
- * today's load and the actions a visitor may take. Staff also get Verify and
- * Reject while the doctor is pending.
- */
 export function DoctorChip({
   provider,
   showSpecialty = false,

@@ -17,16 +17,12 @@ import {
   useState,
 } from "react";
 
-/** Failures stay longer so they can be read. */
 const ERROR_MS = 8000;
 const SUCCESS_MS = 4000;
-/** Toasts shown at once; the oldest makes way for a new one. */
 const MAX_VISIBLE = 3;
 
 export type NotifyOptions = {
-  /** Adds an Undo button. Clicking it dismisses the toast and calls `undo`. */
   undo?: () => void;
-  /** Overrides the default time on screen, e.g. to match an undo window. */
   durationMs?: number;
 };
 
@@ -40,11 +36,8 @@ type Notification = {
 };
 
 export type Notifier = {
-  /** Shows a failure. It stays for a while and uses role="alert". */
   notifyError: (message: string) => void;
-  /** Confirms a completed action, e.g. "Appointment accepted". Polite live region. */
   notifySuccess: (message: string, options?: NotifyOptions) => void;
-  /** Neutral news, e.g. "Changes saved on this device only". Polite live region. */
   notifyInfo: (message: string, options?: NotifyOptions) => void;
 };
 
@@ -56,11 +49,6 @@ const TONE_COLOR: Record<Tone, "red" | "teal" | "blue"> = {
   info: "blue",
 };
 
-/**
- * Renders toasts in the bottom-right corner and exposes `useNotify`. Errors use
- * role="alert"; success and info use role="status" so screen readers announce
- * them politely without interrupting.
- */
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Notification[]>([]);
   const nextId = useRef(0);

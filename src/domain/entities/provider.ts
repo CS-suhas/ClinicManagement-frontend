@@ -13,18 +13,15 @@ export const PROVIDER_GENDER_LABELS: Record<ProviderGender, string> = {
 
 export type Provider = {
   id: string;
-  /** Every provider belongs to a clinic, including a PENDING self-registered one. */
   clinicId: string;
   firstName: string;
   lastName: string;
   specialty: string;
-  /** Consultation fee; null when not set. */
   fee?: number | null;
   gender?: ProviderGender | null;
   verificationStatus?: VerificationStatus;
 };
 
-/** What the admin form sends. Verification is set by the backend, not here. */
 export type ProviderInput = Omit<Provider, "id" | "verificationStatus">;
 
 export const providerFullName = (
@@ -36,7 +33,6 @@ const FEE_LIMIT = 100_000_000;
 const isProviderGender = (value: string): value is ProviderGender =>
   (PROVIDER_GENDERS as readonly string[]).includes(value.toUpperCase());
 
-/** The fields every provider has, whether an admin creates it or the doctor registers. */
 export type ProviderDetails = {
   firstName: string;
   lastName: string;
@@ -45,7 +41,6 @@ export type ProviderDetails = {
   gender?: ProviderGender | null;
 };
 
-/** What a doctor sends to register themself, at the clinic they practise at. */
 export type ProviderRegistrationInput = ProviderDetails & {
   clinicId: string;
 };
@@ -57,7 +52,6 @@ function validateProviderDetails(input: ProviderDetails): FieldErrors {
   if (isBlank(input.specialty)) errors.specialty = "Specialty is required";
   if (input.fee != null) {
     const { fee } = input;
-    // Compare in hundredths with a tolerance so 19.99 is not rejected by float error.
     const hundredths = fee * 100;
     if (!Number.isFinite(fee) || fee < 0 || fee >= FEE_LIMIT)
       errors.fee = "Fee must be 0 or more and less than 100,000,000";
@@ -75,7 +69,6 @@ export function validateProvider(input: ProviderInput): FieldErrors {
   return errors;
 }
 
-/** Same rules as the admin form: the clinic is required here too. */
 export function validateProviderRegistration(
   input: ProviderRegistrationInput,
 ): FieldErrors {

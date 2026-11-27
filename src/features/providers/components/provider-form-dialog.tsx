@@ -20,7 +20,6 @@ const EMPTY: ProviderInput = {
   gender: null,
 };
 
-/** Radix selects cannot use "" as an item value, so "not set" gets a sentinel. */
 const NOT_SPECIFIED = "NOT_SPECIFIED";
 const GENDER_OPTIONS = [
   { value: NOT_SPECIFIED, label: "Not specified" },
@@ -30,7 +29,6 @@ const GENDER_OPTIONS = [
   })),
 ];
 
-/** Create when `provider` is null, edit otherwise. */
 export function ProviderFormDialog({
   open,
   onOpenChange,

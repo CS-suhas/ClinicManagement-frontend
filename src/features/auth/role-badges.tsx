@@ -8,7 +8,6 @@ const ROLE_LABELS: Record<Role, string> = {
   patient: "Patient",
 };
 
-/** Shows one badge per role, or a "No roles" badge when there are none. */
 export function RoleBadges({
   roles,
   size = "1",

@@ -13,14 +13,8 @@ import { QuickLinkCard } from "./quick-link-card";
 
 const PADDING = { paddingInline: "clamp(1.25rem, 5vw, 4rem)" } as const;
 
-/**
- * The role-aware section under the landing hero: greets a signed-in user and
- * lists quick links for each role. Renders nothing for signed-out visitors.
- * Counts come from one dashboard read and drop out silently if it fails.
- */
 export function LandingWelcome() {
   const { user, loading } = useAuth();
-  // Signed out, the hero's search and register link already cover everything.
   if (!loading && !user) return null;
 
   return (

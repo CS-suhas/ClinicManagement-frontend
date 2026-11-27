@@ -1,4 +1,3 @@
-import { hasRole } from "@/application/auth/permissions";
 import type { CurrentUser } from "@/domain/auth";
 import {
   type AppointmentSettings,
@@ -26,6 +25,7 @@ import type {
   ProviderSummary,
   VisitFact,
 } from "@/domain/repositories/glance";
+import { hasRole } from "@/features/auth/permissions";
 import type { AppointmentService } from "./appointment-service";
 import type { ConfigurationService } from "./configuration-service";
 import type { PatientAllergyService } from "./patient-allergy-service";
@@ -34,19 +34,16 @@ import type { ProviderService } from "./provider-service";
 
 const DIRECTORY_PAGE_SIZE = 100;
 const MAX_DIRECTORY_PAGES = 5;
-/** Doctors kept per clinic for the list preview and its glance. */
 const PREVIEW_DOCTORS = 8;
 const SLOT_SEARCH_DAYS = 7;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Local "YYYY-MM-DD" for an epoch ms. */
 export function localDayOf(ms: number): string {
   const d = new Date(ms);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** Number of bookable slot starts in a day: from opening, stepping by the duration, within hours. */
 export function slotCount(settings: AppointmentSettings): number {
   const opening = clockToMinutes(settings.clinicOpeningTime);
   if (opening === null) return 0;
@@ -60,10 +57,6 @@ export function slotCount(settings: AppointmentSettings): number {
   return count;
 }
 
-/**
- * ISO starts of the free slots on a local day that are after `nowMs`. Uses the
- * shared clinic-hours rule and the busy starts from the public availability read.
- */
 export function freeSlotStarts(
   settings: AppointmentSettings,
   day: string,
@@ -87,7 +80,6 @@ export function freeSlotStarts(
   return free;
 }
 
-/** Runs a read the caller may make. A 403 from the server omits the section; other errors propagate. */
 async function allowedRead<T>(
   allowed: boolean,
   read: () => Promise<T>,
@@ -101,10 +93,6 @@ async function allowedRead<T>(
   }
 }
 
-/**
- * A summary read that the server refuses or cannot find. Both hide the card's
- * facts, so both return null; other errors propagate.
- */
 async function unlessDenied<T>(read: () => Promise<T>): Promise<T | null> {
   try {
     return await read();
@@ -114,7 +102,6 @@ async function unlessDenied<T>(read: () => Promise<T>): Promise<T | null> {
   }
 }
 
-/** Visit facts from a summary visit. The summary omits the patient and provider ids. */
 function toVisitFact(
   visit: SummaryVisit,
   patient: { id: string; firstName: string; lastName: string },
@@ -125,14 +112,12 @@ function toVisitFact(
     reasonForVisit: visit.reasonForVisit,
     patientId: patient.id,
     patientName: patientFullName(patient),
-    // The summary does not send the provider id, so it is left empty.
     providerId: "",
     providerName: visit.providerName,
     status: visit.status,
   };
 }
 
-/** Application-layer read models for the glance cards. */
 export type GlanceDependencies = {
   summaries: SummaryRepository;
   patients: PatientService;
@@ -142,19 +127,12 @@ export type GlanceDependencies = {
   configuration: ConfigurationService;
 };
 
-/**
- * The one place the glance cards read from. Patient, clinic and provider facts
- * come from the server summaries. Sections the caller may not see are null.
- * Other facts (roster count, today's slots, allergy usage, the directory) still
- * come from existing endpoints.
- */
 export class GlanceService {
   constructor(
     private readonly deps: GlanceDependencies,
     private readonly currentUser: () => Promise<CurrentUser | null>,
   ) {}
 
-  /** Patient facts: record, allergies, visit counts and the nearest visits. */
   async getPatientSummary(patientId: string): Promise<PatientSummary> {
     const hidden: PatientSummary = {
       patient: null,
@@ -185,7 +163,6 @@ export class GlanceService {
     };
   }
 
-  /** Doctor facts: record, clinic, today's load, the next free slot and patient count. */
   async getProviderSummary(providerId: string): Promise<ProviderSummary> {
     const user = await this.currentUser();
     const data = await unlessDenied(() =>
@@ -227,7 +204,6 @@ export class GlanceService {
     };
   }
 
-  /** Busy and total slots for one day. Null when settings or busy slots are unavailable. */
   private async todaySlots(
     providerId: string,
     today: string,
@@ -241,11 +217,6 @@ export class GlanceService {
     }
   }
 
-  /**
-   * The server's nextAvailableStart when it has one. Otherwise a local walk over
-   * the next week, since the server uses UTC clinic hours and can miss slots
-   * that are free in Sri Lanka time. Any failure hides the value, not the card.
-   */
   private async nextFreeSlot(
     providerId: string,
     serverHint: string | null,
@@ -267,7 +238,6 @@ export class GlanceService {
     }
   }
 
-  /** The next free slot only, for cards that need no other facts. */
   async getNextFreeSlot(providerId: string): Promise<string | null> {
     const data = await unlessDenied(() =>
       this.deps.summaries.getProviderSummary(providerId),
@@ -276,7 +246,6 @@ export class GlanceService {
     return this.nextFreeSlot(providerId, data.nextAvailableStart, Date.now());
   }
 
-  /** The doctor's next upcoming appointments, for the provider table expansion. Staff only. */
   async getProviderUpcoming(
     providerId: string,
     limit = 5,
@@ -299,7 +268,6 @@ export class GlanceService {
     return (items ?? []).map(toListVisitFact);
   }
 
-  /** Clinic facts: record, verified doctors, specialties, and staff-only counts. */
   async getClinicSummary(clinicId: string): Promise<ClinicSummary> {
     const user = await this.currentUser();
     const empty: ClinicSummary = {
@@ -325,10 +293,6 @@ export class GlanceService {
     };
   }
 
-  /**
-   * Doctors per clinic for a list table, from the public directory read in
-   * full (up to MAX_DIRECTORY_PAGES pages of 100), in one pass.
-   */
   async getClinicDoctorPreview(): Promise<Map<string, ClinicDoctorPreview>> {
     const entries: ProviderDirectoryEntry[] = [];
     for (let page = 1; page <= MAX_DIRECTORY_PAGES; page++) {
@@ -351,7 +315,6 @@ export class GlanceService {
     return byClinic;
   }
 
-  /** One allergy's usage: patient count and up to ten patients. */
   async getAllergyUsage(allergyId: string): Promise<AllergyUsage | null> {
     const user = await this.currentUser();
     const allowed =
@@ -373,7 +336,6 @@ export class GlanceService {
   }
 }
 
-/** A provider-table visit from the appointment list. */
 function toListVisitFact(item: AppointmentListItem): VisitFact {
   return {
     id: item.id,

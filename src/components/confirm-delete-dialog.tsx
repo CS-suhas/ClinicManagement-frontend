@@ -2,11 +2,6 @@
 
 import { AlertDialog, Button, Flex } from "@radix-ui/themes";
 
-/**
- * Confirmation for destructive actions. Confirming closes the dialog at once;
- * `onConfirm` should start the delete without waiting for it, and report a
- * failure itself (see useOptimisticMutations).
- */
 export function ConfirmDeleteDialog({
   open,
   onOpenChange,

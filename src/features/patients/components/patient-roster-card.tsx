@@ -13,10 +13,6 @@ import type { ReactNode } from "react";
 import { SearchField } from "@/components/search-field";
 import { Surface } from "@/components/ui/surface";
 
-/**
- * White card holding a patients table: a header bar with the title and the
- * search, filter and add controls, then the body and an optional footer.
- */
 export function PatientRosterCard({
   title,
   subtitle,
@@ -32,7 +28,6 @@ export function PatientRosterCard({
   query: string;
   onQueryChange: (query: string) => void;
   searchPlaceholder: string;
-  /** Shows the "Add Patient" button when given. */
   onAdd?: () => void;
   children: ReactNode;
   footer?: ReactNode;

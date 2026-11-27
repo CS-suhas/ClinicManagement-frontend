@@ -26,10 +26,6 @@ import {
 import { useBookingGate } from "@/features/doctors/components/use-booking-gate";
 import { useAsyncData } from "@/hooks/use-async-data";
 
-/**
- * The directory URL for a clinic, search text and specialty, leaving out empty
- * values so `/doctors` stays clean. Shareable, and kept through sign-in.
- */
 function directoryHref(clinicId: string, query: string, specialty: string) {
   const params = new URLSearchParams();
   if (clinicId) params.set("clinicId", clinicId);
@@ -40,7 +36,6 @@ function directoryHref(clinicId: string, query: string, specialty: string) {
 }
 
 export default function DoctorsPage() {
-  // Search params need a Suspense boundary so the page can still prerender.
   return (
     <Suspense fallback={null}>
       <DoctorDirectory />
@@ -56,28 +51,22 @@ function DoctorDirectory() {
   const clinicId = searchParams.get("clinicId") ?? "";
   const gate = useBookingGate();
 
-  // Search text and specialty start from the URL (e.g. the landing search).
   const [filters, setFilters] = useState<DoctorFilterValues>(() => ({
     ...DEFAULT_FILTERS,
     specialty: searchParams.get("specialty") ?? "",
   }));
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
 
-  /** Where sign-in returns the visitor, keeping the search and filters. */
   const returnTo = directoryHref(clinicId, query, filters.specialty);
 
-  // Mirror the search and specialty into the URL without a navigation, so the
-  // page can be shared or reloaded. The clinic is already in it.
   useEffect(() => {
     const current = window.location.pathname + window.location.search;
     if (current !== returnTo) window.history.replaceState(null, "", returnTo);
   }, [returnTo]);
 
-  // Loaded once, so the clinic filter's options stay put while doctors reload.
   const clinics = useAsyncData(() => clinicService.list());
 
   const { data, loading, error, reload } = useAsyncData(async () => {
-    // The directory holds only bookable doctors, i.e. verified ones.
     const [directory, clinicList] = await Promise.all([
       providerService.directory({
         page: 1,

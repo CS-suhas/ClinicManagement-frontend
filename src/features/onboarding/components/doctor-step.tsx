@@ -27,17 +27,9 @@ const GENDER_OPTIONS: { value: DoctorDetails["gender"]; label: string }[] = [
 
 const CLINIC_OPTIONS_PAGE = { page: 1, pageSize: 100 };
 
-/** Shown when the picked clinic was removed before the form was sent (404). */
 export const CLINIC_GONE_MESSAGE =
   "This clinic no longer exists. Choose another one.";
 
-/**
- * The doctor registration form. It creates a PENDING doctor at the picked
- * clinic; an administrator verifies the details before the doctor can take
- * bookings. A 409 means the account is already linked to a doctor, so the flow
- * moves to the status step. A 404 means the clinic was removed meanwhile, so the
- * pick is cleared and the clinic list reloaded.
- */
 export function DoctorStep({
   values,
   onChange,
@@ -60,7 +52,6 @@ export function DoctorStep({
     value: c.id,
     label: c.name,
   }));
-  // Keep the picked clinic selectable when a new search leaves it out.
   if (
     values.clinicId &&
     !clinicOptions.some((option) => option.value === values.clinicId)

@@ -13,10 +13,6 @@ import { formatDateTime } from "@/lib/format";
 
 const APPOINTMENT_PAGE_SIZE = 50;
 
-/**
- * Appointments tab. Lists the patient's visits, newest first. A doctor sees only
- * their own visits with the patient (`scopeProviderId`).
- */
 export function PatientAppointments({
   patientId,
   scopeProviderId,

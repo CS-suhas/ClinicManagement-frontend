@@ -11,7 +11,6 @@ import type { Clinic } from "@/domain/entities";
 import type { ClinicSummary } from "@/domain/repositories/glance";
 import { useGlanceData } from "@/hooks/use-glance-data";
 
-/** Expanded row of a clinic: the doctors who practise there and the specialties. */
 export function ClinicDetails({ clinic }: { clinic: Clinic }) {
   const glance = useService("glanceService");
   const summary = useGlanceData<ClinicSummary>(`clinic:${clinic.id}`, () =>

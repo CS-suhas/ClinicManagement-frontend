@@ -18,10 +18,6 @@ import { DoctorBookingDialogs } from "./doctor-booking-dialogs";
 import { useBookableDoctor } from "./use-bookable-doctor";
 import { useBookingGate } from "./use-booking-gate";
 
-/**
- * Public doctor page: fee, clinic, the next free slot and a Book button. With
- * `?book=1` the booking flow opens straight away, after the usual sign-in rules.
- */
 export function DoctorDetailView({ providerId }: { providerId: string }) {
   return (
     <Suspense fallback={null}>
@@ -45,7 +41,6 @@ function DoctorDetail({ providerId }: { providerId: string }) {
   const returnTo = `/doctors/${providerId}`;
   const bookReturnTo = `/doctors/${providerId}?book=1`;
 
-  // ?book=1 opens the booking flow once the doctor and the session are known.
   const autoOpened = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: opens once per page load.
   useEffect(() => {

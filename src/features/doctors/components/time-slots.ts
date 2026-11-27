@@ -9,11 +9,9 @@ import {
 export type SlotPeriod = "Morning" | "Afternoon" | "Evening";
 
 export type TimeSlot = {
-  /** Local date-time, `YYYY-MM-DDTHH:mm`, as the appointment API expects. */
   value: string;
   label: string;
   period: SlotPeriod;
-  /** Already booked, or in the past. */
   unavailable: boolean;
 };
 
@@ -42,10 +40,6 @@ const labelOf = (minutes: number) =>
     minutes % 60,
   ).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
-/**
- * Every start time of a day that fits clinic hours. `bookedStarts` are the
- * doctor's busy start times; a slot is taken when it overlaps one of them.
- */
 export function buildSlots(
   dateKey: string,
   settings: AppointmentSettings,

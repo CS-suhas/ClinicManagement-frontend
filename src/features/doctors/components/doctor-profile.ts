@@ -11,10 +11,6 @@ const GENDER_KEYS: Record<ProviderGender, Lowercase<ProviderGender>> = {
   OTHER: "other",
 };
 
-/**
- * What the doctors page shows. Only the first block comes from the API today;
- * the optional fields are shown when a doctor has them and hidden otherwise.
- */
 export type DoctorProfile = {
   id: string;
   name: string;
@@ -30,7 +26,6 @@ export type DoctorProfile = {
   gender?: Lowercase<ProviderGender>;
 };
 
-/** `clinic` supplies the address and phone, which the directory does not carry. */
 export function toDoctorProfile(
   provider: ProviderDirectoryEntry,
   clinic: Clinic | undefined,

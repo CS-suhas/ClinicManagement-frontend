@@ -3,7 +3,6 @@
 import { Button, Flex, Spinner, Text } from "@radix-ui/themes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { canBookOnline } from "@/application/auth/permissions";
 import {
   type AppointmentScope,
   allowedActions,
@@ -25,6 +24,7 @@ import {
 } from "@/domain/entities";
 import type { AppointmentListItem } from "@/domain/repositories";
 import { useAuth } from "@/features/auth/auth-provider";
+import { canBookOnline } from "@/features/auth/permissions";
 import { DoctorBookingDialogs } from "@/features/doctors/components/doctor-booking-dialogs";
 import { DoctorPickerDialog } from "@/features/doctors/components/doctor-picker-dialog";
 import type { DoctorProfile } from "@/features/doctors/components/doctor-profile";
@@ -79,12 +79,6 @@ import { WeekStrip } from "./week-strip";
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BOOK_RETURN = "/appointments?book=1";
 
-/**
- * The appointments page. Patients see a month grid (default) or a list and can
- * book. Doctors see a day view (default), a week grid or a list, with the
- * pending-requests inbox on top. Admins and clinic admins see a day view with
- * provider columns, or a list. The view, date and status live in the URL.
- */
 export function AppointmentsView() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -93,7 +87,6 @@ export function AppointmentsView() {
   const clinicService = useService("clinicService");
   const gate = useBookingGate();
   const narrow = useNarrowViewport();
-  // The clock is read after mount only, so nothing date-dependent prerenders.
   const now = useNow();
   const todayKey = now === null ? null : toDateKey(now);
 
@@ -108,7 +101,6 @@ export function AppointmentsView() {
   const isDoctor = role === "doctor";
   const canBook = isPatient && canBookOnline(user);
 
-  // Clinic admins of several clinics pick one; the scope follows the pick.
   const [clinicChoice, setClinicChoice] = useState<string | null>(null);
   const manyClinics =
     baseScope.mode === "clinic" && baseScope.clinicIds.length > 1;
@@ -127,7 +119,6 @@ export function AppointmentsView() {
   );
   const canWrite = canManageAppointments(scope);
 
-  // URL state: view, date and status.
   const urlView = searchParams.get("view");
   const urlDate = searchParams.get("date");
   const urlStatus = searchParams.get("status");
@@ -154,7 +145,6 @@ export function AppointmentsView() {
   const requestedView = options.some((option) => option.value === urlView)
     ? (urlView as AppointmentView)
     : defaultView;
-  // Narrow screens force the agenda (patients keep the compact month grid).
   const view: AppointmentView = narrow
     ? isPatient
       ? "month"
@@ -214,10 +204,8 @@ export function AppointmentsView() {
     nowMinutes < clinic.closing
       ? nowMinutes - clinic.opening
       : null;
-  // The now-line belongs to the day view only when that day is today.
   const dayOffset = selectedDate === todayKey ? todayOffset : null;
 
-  // Status changes: optimistic, applied to every loaded list.
   const actions = useAppointmentActions(
     (change) => {
       schedule.mutateItems(change);
@@ -244,7 +232,6 @@ export function AppointmentsView() {
     showAllergy,
   };
 
-  // Patient booking: doctor picker, then slots and details.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [bookingDate, setBookingDate] = useState<string | null>(null);
   const openBooking = (dateKey: string | null) => {
@@ -257,8 +244,6 @@ export function AppointmentsView() {
     if (bookingDate) gate.booking.setDateKey(bookingDate);
   };
 
-  // ?book=1 opens booking for a patient (with ?providerId= to preselect the
-  // doctor); for admins ?book=1&patientId= opens the form with that patient.
   const bookParam = searchParams.get("book") === "1";
   const providerParam = searchParams.get("providerId");
   const patientParam = searchParams.get("patientId");

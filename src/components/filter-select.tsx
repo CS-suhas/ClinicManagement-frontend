@@ -1,9 +1,7 @@
 import { Select } from "@radix-ui/themes";
 
-/** Value meaning "no filter applied". */
 export const ALL_FILTER = "all";
 
-/** Toolbar dropdown that filters a list; the first item clears the filter. */
 export function FilterSelect({
   label,
   allLabel,
@@ -11,9 +9,7 @@ export function FilterSelect({
   options,
   onChange,
 }: {
-  /** Accessible name of the dropdown. */
   label: string;
-  /** Text of the item that clears the filter, e.g. "All clinics". */
   allLabel: string;
   value: string;
   options: { value: string; label: string }[];

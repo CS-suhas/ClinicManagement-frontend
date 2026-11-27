@@ -5,7 +5,6 @@ import type { Provider } from "@/domain/entities";
 import type { ClinicSummary } from "@/domain/repositories/glance";
 import { useAsyncData } from "@/hooks/use-async-data";
 
-/** A doctor's clinic: the one they belong to (every doctor has one) and its summary. */
 export function useMyClinic(providerId: string | null) {
   const providerService = useService("providerService");
   const glanceService = useService("glanceService");
@@ -15,7 +14,6 @@ export function useMyClinic(providerId: string | null) {
       providerId ? providerService.get(providerId) : Promise.resolve(null),
     providerId ?? "",
   );
-  // Null only until the provider has loaded.
   const clinicId = provider.data?.clinicId ?? null;
 
   const summary = useAsyncData<ClinicSummary | null>(

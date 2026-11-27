@@ -3,10 +3,8 @@ import { isBlank } from "../validation";
 
 export type Severity = string;
 
-/** Known severities, lowest first. The API sends them uppercase. */
 export const SEVERITY_LEVELS = ["MILD", "MODERATE", "SEVERE"] as const;
 
-/** 0 for unknown or missing, then 1 mild, 2 moderate, 3 severe. */
 export function severityRank(severity: string | null | undefined): number {
   const index = SEVERITY_LEVELS.indexOf(
     (severity ?? "").trim().toUpperCase() as (typeof SEVERITY_LEVELS)[number],
@@ -14,7 +12,6 @@ export function severityRank(severity: string | null | undefined): number {
   return index + 1;
 }
 
-/** The highest-ranked severity of a list (as stored), or null when the list is empty. */
 export function highestSeverity(
   severities: readonly (string | null | undefined)[],
 ): string | null {
@@ -26,7 +23,6 @@ export function highestSeverity(
   return best;
 }
 
-/** Join entity between Patient and AllergyType. Composite key: (patientId, allergyId). */
 export type PatientAllergy = {
   patientId: string;
   allergyId: string;

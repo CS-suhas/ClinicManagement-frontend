@@ -21,7 +21,6 @@ import type { BookingChoice, BookingDetails } from "./use-doctor-booking";
 
 export type BookingDetailsDialogProps = {
   choice: BookingChoice | null;
-  /** The signed-in patient the booking is made under. */
   patient: Patient | undefined;
   patientError: string | null;
   confirmed: boolean;

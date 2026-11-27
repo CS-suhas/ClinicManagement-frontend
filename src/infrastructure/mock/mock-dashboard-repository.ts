@@ -27,7 +27,6 @@ type Listable<T> = {
 const DAY_MS = 86_400_000;
 const CANCELLED_OR_DECLINED = new Set(["DECLINED", "CANCELLED"]);
 
-/** Derives dashboard totals and the next appointments from the mock stores. */
 export function createMockDashboardRepository(
   repositories: {
     clinics: Listable<Clinic>;
@@ -108,7 +107,6 @@ export function createMockDashboardRepository(
         allergies,
       });
 
-      // "Today" is the UTC calendar day; "week" is seven days from its midnight.
       const now = Date.now();
       const todayStart = (() => {
         const d = new Date(now);
@@ -135,7 +133,6 @@ export function createMockDashboardRepository(
       const isDoctor = user.roles.includes("doctor") && !!user.provider;
       const isPatient = user.roles.includes("patient") && !!user.patient;
 
-      // Admin: the whole system.
       let admin: AdminDashboard | null = null;
       if (isAdmin)
         admin = {
@@ -150,7 +147,6 @@ export function createMockDashboardRepository(
           ).length,
         };
 
-      // Clinic admin: scoped to the caller's clinics. Patients are those with an appointment there.
       let clinicAdmin: ClinicAdminDashboard | null = null;
       if (isClinicAdmin) {
         const mine = new Set(user.clinicAdminOf);
@@ -172,7 +168,6 @@ export function createMockDashboardRepository(
         };
       }
 
-      // Doctor: the caller's own appointments.
       let doctor: DoctorDashboard | null = null;
       if (isDoctor && user.provider) {
         const providerId = user.provider.id;
@@ -194,14 +189,12 @@ export function createMockDashboardRepository(
         };
       }
 
-      // Patient: the caller's own appointments.
       let patient: PatientDashboard | null = null;
       if (isPatient && user.patient) {
         const patientId = user.patient.id;
         const mine = items.filter(
           (item) => item.patientId === patientId && upcoming(item),
         );
-        // Recent decisions use the current status, so a later completion or cancellation drops out.
         const recentDecisions = items
           .filter(
             (item) =>

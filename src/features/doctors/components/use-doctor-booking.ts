@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { canBookOnline } from "@/application/auth/permissions";
 import { useNotify } from "@/components/notifications";
 import { useService } from "@/di/container-provider";
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/domain/entities";
 import { ConflictError } from "@/domain/errors";
 import { useAuth } from "@/features/auth/auth-provider";
+import { canBookOnline } from "@/features/auth/permissions";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { useFormSubmit } from "@/hooks/use-form-submit";
 import type { DoctorProfile } from "./doctor-profile";
@@ -24,14 +24,9 @@ export type BookingDetails = {
 
 export type BookingChoice = {
   doctor: DoctorProfile;
-  /** `YYYY-MM-DDTHH:mm` */
   dateTime: string;
 };
 
-/**
- * The patient's booking journey: pick a doctor, pick a slot, confirm. Every
- * booking uses the signed-in patient's own record; the caller must be a patient.
- */
 export function useDoctorBooking() {
   const appointmentService = useService("appointmentService");
   const configurationService = useService("configurationService");
@@ -43,13 +38,11 @@ export function useDoctorBooking() {
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [choice, setChoice] = useState<BookingChoice | null>(null);
   const [confirmed, setConfirmed] = useState(false);
-  /** The local day being viewed, `YYYY-MM-DD`. Busy starts are fetched for this day only. */
   const [dateKey, setDateKey] = useState("");
   const providerId = (choice?.doctor ?? doctor)?.id;
   const ownPatientId =
     user && canBookOnline(user) ? user.patient?.id : undefined;
 
-  // The patient record is only needed for the details step.
   const detailsPatientId = choice ? ownPatientId : undefined;
   const ownPatient = useAsyncData(
     () =>
@@ -62,8 +55,6 @@ export function useDoctorBooking() {
   const settings = useAsyncData(() =>
     configurationService.getAppointmentSettings(),
   );
-  // Busy starts are public, so this works for visitors too. The appointment
-  // search is scoped to the caller and cannot show another patient's bookings.
   const busy = useAsyncData(
     () =>
       providerId && dateKey
@@ -122,7 +113,6 @@ export function useDoctorBooking() {
           user,
         );
       } catch (e) {
-        // The API answers 409 when another booking landed first.
         if (e instanceof ConflictError) throw new Error(SLOT_TAKEN_MESSAGE);
         throw e;
       }
@@ -140,21 +130,16 @@ export function useDoctorBooking() {
   };
 
   return {
-    /** Step 1: the doctor whose slots are being picked. */
     slotDoctor: doctor,
-    /** Opens slot picking on today. */
     startBooking: (chosen: DoctorProfile) => {
       setDateKey(toDateKey(new Date()));
       setDoctor(chosen);
     },
     cancelSlotPicking: () => setDoctor(null),
     settings: settings.data,
-    /** The day being viewed, `YYYY-MM-DD`. */
     dateKey,
     setDateKey,
-    /** Busy start times (ISO) of the doctor on the viewed day. */
     bookedStarts: busyStarts,
-    /** Step 2: the chosen slot, awaiting the patient's confirmation. */
     choice,
     chooseSlot: (chosen: DoctorProfile, dateTime: string) => {
       reset();
@@ -166,10 +151,8 @@ export function useDoctorBooking() {
       setChoice(null);
       reset();
     },
-    /** The signed-in patient whose record the booking is made under. */
     patient: ownPatient.data,
     patientError: ownPatient.error,
-    /** Step 3: the booking went through. */
     confirmed,
     confirm,
     finish,
