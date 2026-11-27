@@ -12,18 +12,13 @@ import {
   severityWord,
 } from "@/components/ui/severity";
 import { StatusDot } from "@/components/ui/status-dot";
-import { useService } from "@/di/container-provider";
-import { type Patient, patientFullName } from "@/domain/entities";
-import type { PatientRosterRow } from "@/domain/repositories";
-import type {
-  AllergyEntry,
-  PatientSummary,
-} from "@/domain/repositories/glance";
 import { useAuth } from "@/features/auth/auth-provider";
-import { useGlanceData } from "@/hooks/use-glance-data";
 import { useNow } from "@/hooks/use-now";
 import { ageInYears } from "@/lib/age";
+import type { Schemas } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { formatDayOnly } from "@/lib/relative-time";
+import { usePatientGlance } from "./api";
 import {
   GlanceAction,
   GlanceError,
@@ -34,6 +29,7 @@ import {
   GlanceSkeleton,
 } from "./glance-popover";
 import { statusPresentation } from "./status-chip";
+import { fullName } from "./utils";
 
 export type PatientChipProps = {
   patient:
@@ -44,16 +40,25 @@ export type PatientChipProps = {
         highestSeverity?: string | null;
       }
     | { id: string; name: string; highestSeverity?: string | null };
-  seed?: Pick<PatientRosterRow, "patient" | "lastVisit" | "nextVisit">;
+  seed?: {
+    patient: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      dateOfBirth: string;
+      email: string;
+      phoneNumber: string;
+    };
+    lastVisit: { appointmentDateTime: string } | null;
+    nextVisit: { appointmentDateTime: string } | null;
+  };
   highestSeverity?: string | null;
   showAllergyFlag?: boolean;
   variant?: "chip" | "inline";
 };
 
 function nameOf(patient: PatientChipProps["patient"]): string {
-  return "name" in patient
-    ? patient.name
-    : patientFullName(patient as Pick<Patient, "firstName" | "lastName">);
+  return "name" in patient ? patient.name : fullName(patient);
 }
 
 export function PatientChip({
@@ -145,22 +150,16 @@ function PatientCard({
   seed?: PatientChipProps["seed"];
   open: boolean;
 }) {
-  const glance = useService("glanceService");
   const { user } = useAuth();
   const now = useNow();
-  const summaryState = useGlanceData<PatientSummary>(
-    `patient:${patientId}`,
-    () => glance.getPatientSummary(patientId),
-    open,
-  );
+  const summaryState = usePatientGlance(patientId, open);
   const summary = summaryState.data;
   const record = summary?.patient ?? seed?.patient ?? null;
-  const displayName = record ? patientFullName(record) : name;
+  const displayName = record ? fullName(record) : name;
   const age =
     now !== null && record ? ageInYears(record.dateOfBirth, now) : null;
-  const allergies: AllergyEntry[] | null | undefined = summary
-    ? summary.allergies
-    : undefined;
+  const allergies: Schemas["PatientSummaryAllergy"][] | null | undefined =
+    summary ? summary.allergies : undefined;
   const lastVisit = summary ? summary.lastVisit : (seed?.lastVisit ?? null);
   const nextVisit = summary ? summary.nextVisit : (seed?.nextVisit ?? null);
   const counts = summary?.counts ?? null;
@@ -185,7 +184,7 @@ function PatientCard({
 
       {allergies !== null && (
         <GlanceSection title="Allergies">
-          {summaryState.loading && !summary ? (
+          {summaryState.isLoading && !summary ? (
             <GlanceSkeleton rows={1} />
           ) : topAllergies.length === 0 ? (
             <Text size="2" style={{ color: "var(--mp-muted)" }}>
@@ -246,11 +245,11 @@ function PatientCard({
         </GlanceSection>
       )}
 
-      {summaryState.error && !summary && (
+      {summaryState.isError && !summary && (
         <GlanceSection>
           <GlanceError
-            message={summaryState.error}
-            onRetry={summaryState.retry}
+            message={getErrorMessage(summaryState.error)}
+            onRetry={() => void summaryState.refetch()}
           />
         </GlanceSection>
       )}

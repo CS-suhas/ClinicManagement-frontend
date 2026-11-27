@@ -5,14 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Surface } from "@/components/ui/surface";
-import type { PatientInput } from "@/domain/entities";
 import { useAuth } from "@/features/auth/auth-provider";
 import { safeNext } from "@/lib/safe-next";
+import type { DoctorForm, PatientForm } from "../schemas";
 import { ApprovalStatusStep } from "./approval-status-step";
 import { DoctorStep } from "./doctor-step";
 import { OnboardingStepper } from "./onboarding-stepper";
 import {
-  type DoctorDetails,
   destinationAfter,
   doctorDefaults,
   type OnboardingChoice,
@@ -58,8 +57,8 @@ export function OnboardingFlow() {
   const [choice, setChoice] = useState<OnboardingChoice | null>(
     as === "patient" || as === "doctor" ? as : null,
   );
-  const [patientDraft, setPatientDraft] = useState<PatientInput | null>(null);
-  const [doctorDraft, setDoctorDraft] = useState<DoctorDetails | null>(null);
+  const [patientDraft, setPatientDraft] = useState<PatientForm | null>(null);
+  const [doctorDraft, setDoctorDraft] = useState<DoctorForm | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const onRefresh = useCallback(() => refresh(), [refresh]);
 
@@ -110,7 +109,7 @@ export function OnboardingFlow() {
         {step === "patient" && (
           <PatientStep
             values={patientDraft ?? patientDefaults(user)}
-            onChange={setPatientDraft}
+            onDraftChange={setPatientDraft}
             onBack={() => setChoice(null)}
             onDone={() => router.replace(destination)}
           />
@@ -118,7 +117,7 @@ export function OnboardingFlow() {
         {step === "doctor" && (
           <DoctorStep
             values={doctorDraft ?? doctorDefaults(user)}
-            onChange={setDoctorDraft}
+            onDraftChange={setDoctorDraft}
             onBack={() => setChoice(null)}
           />
         )}

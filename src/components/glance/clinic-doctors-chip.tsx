@@ -4,7 +4,6 @@ import { Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { PersonAvatar } from "@/components/ui/person-avatar";
-import type { ClinicDoctorPreview } from "@/domain/repositories/glance";
 import {
   GlanceAction,
   GlanceFooter,
@@ -12,6 +11,16 @@ import {
   GlancePopover,
   GlanceSection,
 } from "./glance-popover";
+
+type ClinicDoctorPreview = {
+  count: number;
+  doctors: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    specialty: string;
+  }[];
+};
 
 export type ClinicDoctorsChipProps = {
   clinic: { id: string; name: string };

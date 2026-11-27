@@ -1,6 +1,6 @@
-import type { CurrentUser } from "@/domain/auth";
-import type { PatientInput, ProviderGender } from "@/domain/entities";
 import { needsOnboarding } from "@/features/auth/permissions";
+import type { CurrentUser } from "@/features/auth/schemas";
+import type { DoctorForm, PatientForm } from "../schemas";
 
 export type OnboardingChoice = "patient" | "doctor";
 
@@ -45,7 +45,7 @@ export function splitDisplayName(displayName: string): {
   return { firstName, lastName: rest.join(" ") };
 }
 
-export const EMPTY_PATIENT_DETAILS: PatientInput = {
+export const EMPTY_PATIENT_DETAILS: PatientForm = {
   firstName: "",
   lastName: "",
   dateOfBirth: "",
@@ -53,24 +53,14 @@ export const EMPTY_PATIENT_DETAILS: PatientInput = {
   email: "",
 };
 
-export function patientDefaults(user: CurrentUser | null): PatientInput {
+export function patientDefaults(user: CurrentUser | null): PatientForm {
   return {
     ...EMPTY_PATIENT_DETAILS,
     ...splitDisplayName(user?.displayName ?? ""),
   };
 }
 
-export type DoctorDetails = {
-  clinicId: string;
-  clinicName: string;
-  firstName: string;
-  lastName: string;
-  specialty: string;
-  fee: string;
-  gender: ProviderGender | "NONE";
-};
-
-export function doctorDefaults(user: CurrentUser | null): DoctorDetails {
+export function doctorDefaults(user: CurrentUser | null): DoctorForm {
   return {
     clinicId: "",
     clinicName: "",

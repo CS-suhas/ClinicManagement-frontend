@@ -1,227 +1,212 @@
 "use client";
 
-import { Button, Callout, Flex, Grid, Text, TextField } from "@radix-ui/themes";
-import { type FormEvent, useId } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, Callout, Flex, Grid, Text } from "@radix-ui/themes";
+import { useEffect, useId } from "react";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { ErrorCallout } from "@/components/error-callout";
+import { SearchSelectInput } from "@/components/form";
 import { FormField } from "@/components/form-field";
-import { SearchSelectField } from "@/components/form-fields";
 import { useNotify } from "@/components/notifications";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
-import { useService } from "@/di/container-provider";
-import type {
-  ProviderGender,
-  ProviderRegistrationInput,
-} from "@/domain/entities";
-import { ConflictError, NotFoundError, ValidationError } from "@/domain/errors";
 import { useAuth } from "@/features/auth/auth-provider";
-import { useFormSubmit } from "@/hooks/use-form-submit";
-import { useSearchOptions } from "@/hooks/use-search-options";
-import { COMMON_SPECIALTIES, type DoctorDetails } from "./onboarding-steps";
+import { usePagedSearch } from "@/hooks/use-paged-search";
+import { ApiError } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
+import { useClinicOptions, useRegisterProvider } from "../api";
+import { type DoctorForm, doctorForm } from "../schemas";
+import { OnboardingInput, setSubmitError } from "./onboarding-form";
+import { COMMON_SPECIALTIES } from "./onboarding-steps";
 
-const GENDER_OPTIONS: { value: DoctorDetails["gender"]; label: string }[] = [
+const GENDER_OPTIONS: { value: DoctorForm["gender"]; label: string }[] = [
   { value: "MALE", label: "Male" },
   { value: "FEMALE", label: "Female" },
   { value: "OTHER", label: "Other" },
   { value: "NONE", label: "Prefer not to say" },
 ];
 
-const CLINIC_OPTIONS_PAGE = { page: 1, pageSize: 100 };
-
 export const CLINIC_GONE_MESSAGE =
   "This clinic no longer exists. Choose another one.";
 
 export function DoctorStep({
   values,
-  onChange,
+  onDraftChange,
   onBack,
 }: {
-  values: DoctorDetails;
-  onChange: (values: DoctorDetails) => void;
+  values: DoctorForm;
+  onDraftChange: (values: DoctorForm) => void;
   onBack: () => void;
 }) {
-  const authService = useService("authService");
-  const clinicService = useService("clinicService");
   const { refresh } = useAuth();
   const { notifySuccess, notifyInfo } = useNotify();
-  const { submitting, fieldErrors, formError, run } = useFormSubmit();
+  const registerProvider = useRegisterProvider();
   const specialtyListId = useId();
-  const clinics = useSearchOptions(true, (search) =>
-    clinicService.search({ search, ...CLINIC_OPTIONS_PAGE }),
-  );
-  const clinicOptions = clinics.items.map((c) => ({
-    value: c.id,
-    label: c.name,
+  const { query, search, setQueryNow } = usePagedSearch();
+  const clinics = useClinicOptions(search);
+  const form = useForm<DoctorForm>({
+    resolver: zodResolver(doctorForm),
+    defaultValues: values,
+  });
+  const { isSubmitting, errors } = form.formState;
+  const selectedClinicId = form.watch("clinicId");
+  const selectedClinicName = form.watch("clinicName");
+
+  const fetchedOptions = (clinics.data?.items ?? []).map((clinic) => ({
+    value: clinic.id,
+    label: clinic.name,
   }));
-  if (
-    values.clinicId &&
-    !clinicOptions.some((option) => option.value === values.clinicId)
-  )
-    clinicOptions.unshift({ value: values.clinicId, label: values.clinicName });
+  const clinicOptions =
+    selectedClinicId &&
+    !fetchedOptions.some((option) => option.value === selectedClinicId)
+      ? [
+          { value: selectedClinicId, label: selectedClinicName },
+          ...fetchedOptions,
+        ]
+      : fetchedOptions;
 
-  const set = <K extends keyof DoctorDetails>(
-    field: K,
-    value: DoctorDetails[K],
-  ) => onChange({ ...values, [field]: value });
+  useEffect(() => {
+    const label = clinicOptions.find(
+      (option) => option.value === selectedClinicId,
+    )?.label;
+    if (label !== undefined && label !== selectedClinicName)
+      form.setValue("clinicName", label);
+  }, [clinicOptions, selectedClinicId, selectedClinicName, form]);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const input: ProviderRegistrationInput = {
-      clinicId: values.clinicId,
-      firstName: values.firstName.trim(),
-      lastName: values.lastName.trim(),
-      specialty: values.specialty.trim(),
-      fee: values.fee.trim() === "" ? null : Number(values.fee),
-      gender:
-        values.gender === "NONE" ? null : (values.gender as ProviderGender),
-    };
+  const submit = form.handleSubmit(async (input) => {
+    form.clearErrors("root");
     let registered = false;
-    const ok = await run(async () => {
-      try {
-        await authService.registerAsProvider(input);
-        registered = true;
-      } catch (error) {
-        if (error instanceof NotFoundError) {
-          onChange({ ...values, clinicId: "", clinicName: "" });
-          void clinics.reload();
-          throw new ValidationError({ clinicId: CLINIC_GONE_MESSAGE });
-        }
-        if (!(error instanceof ConflictError)) throw error;
-        notifyInfo("You already have a doctor profile.");
+    try {
+      await registerProvider.mutateAsync({
+        clinicId: input.clinicId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        specialty: input.specialty,
+        fee: input.fee === "" ? null : Number(input.fee),
+        gender: input.gender === "NONE" ? null : input.gender,
+      });
+      registered = true;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) {
+        form.setValue("clinicId", "");
+        form.setValue("clinicName", "");
+        void clinics.refetch();
+        form.setError("clinicId", { message: CLINIC_GONE_MESSAGE });
+        return;
       }
-      await refresh();
-    });
-    if (ok && registered)
+      if (!(e instanceof ApiError && e.status === 409)) {
+        setSubmitError(form, e);
+        return;
+      }
+      notifyInfo("You already have a doctor profile.");
+    }
+    await refresh();
+    if (registered)
       notifySuccess("Application submitted. An administrator will review it.");
-  };
+  });
 
   return (
-    <form onSubmit={submit} noValidate>
-      <Flex direction="column" gap="3">
-        {clinics.error && (
-          <ErrorCallout
-            message={clinics.error}
-            onRetry={() => void clinics.reload()}
+    <FormProvider {...form}>
+      <form onSubmit={submit} noValidate>
+        <Flex direction="column" gap="3">
+          {clinics.isError && (
+            <ErrorCallout
+              message={getErrorMessage(clinics.error)}
+              onRetry={() => void clinics.refetch()}
+            />
+          )}
+          <SearchSelectInput
+            name="clinicId"
+            label="Clinic"
+            options={clinicOptions}
+            query={query}
+            onQueryChange={setQueryNow}
+            searchPlaceholder="Search clinics…"
+            placeholder="Select the clinic you work at…"
+            disabled={clinics.isLoading && clinicOptions.length === 0}
           />
-        )}
-        <SearchSelectField
-          label="Clinic"
-          id="doctor-clinic"
-          error={fieldErrors.clinicId}
-          query={clinics.query}
-          onQueryChange={clinics.setQuery}
-          searchPlaceholder="Search clinics…"
-          placeholder="Select the clinic you work at…"
-          disabled={clinics.loading && clinicOptions.length === 0}
-          value={values.clinicId}
-          onValueChange={(id) =>
-            onChange({
-              ...values,
-              clinicId: id,
-              clinicName:
-                clinicOptions.find((option) => option.value === id)?.label ??
-                "",
-            })
-          }
-          options={clinicOptions}
-        />
-        <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-          <FormField
-            label="First name"
-            htmlFor="doctor-firstName"
-            error={fieldErrors.firstName}
-          >
-            <TextField.Root
+          <Grid columns={{ initial: "1", sm: "2" }} gap="3">
+            <OnboardingInput
+              name="firstName"
+              label="First name"
               id="doctor-firstName"
-              value={values.firstName}
               autoComplete="given-name"
-              onChange={(e) => set("firstName", e.target.value)}
             />
-          </FormField>
-          <FormField
-            label="Last name"
-            htmlFor="doctor-lastName"
-            error={fieldErrors.lastName}
-          >
-            <TextField.Root
+            <OnboardingInput
+              name="lastName"
+              label="Last name"
               id="doctor-lastName"
-              value={values.lastName}
               autoComplete="family-name"
-              onChange={(e) => set("lastName", e.target.value)}
             />
-          </FormField>
-        </Grid>
+          </Grid>
 
-        <FormField
-          label="Specialty"
-          htmlFor="doctor-specialty"
-          error={fieldErrors.specialty}
-        >
-          <TextField.Root
+          <OnboardingInput
+            name="specialty"
+            label="Specialty"
             id="doctor-specialty"
-            value={values.specialty}
             list={specialtyListId}
             placeholder="Choose or type a specialty"
-            onChange={(e) => set("specialty", e.target.value)}
           />
           <datalist id={specialtyListId}>
             {COMMON_SPECIALTIES.map((specialty) => (
               <option key={specialty} value={specialty} />
             ))}
           </datalist>
-        </FormField>
 
-        <Grid columns={{ initial: "1", sm: "2" }} gap="3" align="start">
-          <FormField
-            label="Consultation fee (optional)"
-            htmlFor="doctor-fee"
-            error={fieldErrors.fee}
-          >
-            <TextField.Root
+          <Grid columns={{ initial: "1", sm: "2" }} gap="3" align="start">
+            <OnboardingInput
+              name="fee"
+              label="Consultation fee (optional)"
               id="doctor-fee"
               type="number"
               min={0}
               step="0.01"
               inputMode="decimal"
-              value={values.fee}
-              onChange={(e) => set("fee", e.target.value)}
-            >
-              <TextField.Slot>LKR</TextField.Slot>
-            </TextField.Root>
-          </FormField>
-          <FormField label="Gender (optional)" error={fieldErrors.gender}>
-            <SegmentedToggle
-              ariaLabel="Gender"
-              value={values.gender}
-              onChange={(gender) => set("gender", gender)}
-              options={GENDER_OPTIONS}
+              slot="LKR"
             />
-          </FormField>
-        </Grid>
-        <Text size="1" style={{ color: "var(--mp-muted)" }}>
-          Your details are reviewed before you can take bookings at this clinic.
-        </Text>
-      </Flex>
+            <FormField label="Gender (optional)" error={errors.gender?.message}>
+              <Controller
+                name="gender"
+                render={({ field }) => (
+                  <SegmentedToggle
+                    ariaLabel="Gender"
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={GENDER_OPTIONS}
+                  />
+                )}
+              />
+            </FormField>
+          </Grid>
+          <Text size="1" style={{ color: "var(--mp-muted)" }}>
+            Your details are reviewed before you can take bookings at this
+            clinic.
+          </Text>
+        </Flex>
 
-      {formError && (
-        <Callout.Root color="red" role="alert" size="1" mt="4">
-          <Callout.Text>{formError}</Callout.Text>
-        </Callout.Root>
-      )}
+        {errors.root?.message && (
+          <Callout.Root color="red" role="alert" size="1" mt="4">
+            <Callout.Text>{errors.root.message}</Callout.Text>
+          </Callout.Root>
+        )}
 
-      <Flex justify="between" gap="3" mt="5">
-        <Button
-          type="button"
-          variant="soft"
-          color="gray"
-          disabled={submitting}
-          onClick={onBack}
-        >
-          Back
-        </Button>
-        <Button type="submit" color="teal" loading={submitting}>
-          Submit for review
-        </Button>
-      </Flex>
-    </form>
+        <Flex justify="between" gap="3" mt="5">
+          <Button
+            type="button"
+            variant="soft"
+            color="gray"
+            disabled={isSubmitting}
+            onClick={() => {
+              onDraftChange(form.getValues());
+              onBack();
+            }}
+          >
+            Back
+          </Button>
+          <Button type="submit" color="teal" loading={isSubmitting}>
+            Submit for review
+          </Button>
+        </Flex>
+      </form>
+    </FormProvider>
   );
 }

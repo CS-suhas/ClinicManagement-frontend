@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { StatusPill } from "@/components/glance";
 import { Surface } from "@/components/ui/surface";
-import { useService } from "@/di/container-provider";
+import { getCurrentUser } from "@/features/auth/api";
 
 export const APPROVAL_POLL_MS = 30_000;
 
@@ -16,15 +16,13 @@ export function ApprovalStatusStep({
   status: "PENDING" | "REJECTED";
   onRefresh: () => Promise<void>;
 }) {
-  const authService = useService("authService");
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     if (status !== "PENDING") return;
     const timer = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
-      authService
-        .getCurrentUser()
+      getCurrentUser()
         .then((current) => {
           if (current?.provider?.verificationStatus !== "PENDING")
             void onRefresh();
@@ -32,7 +30,7 @@ export function ApprovalStatusStep({
         .catch(() => {});
     }, APPROVAL_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [status, authService, onRefresh]);
+  }, [status, onRefresh]);
 
   const check = async () => {
     setChecking(true);

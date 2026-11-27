@@ -8,9 +8,8 @@ import {
   severityLevel,
   severityWord,
 } from "@/components/ui/severity";
-import { useService } from "@/di/container-provider";
-import type { AllergyUsage } from "@/domain/repositories/glance";
-import { useGlanceData } from "@/hooks/use-glance-data";
+import { getErrorMessage } from "@/lib/errors";
+import { useAllergyGlance } from "./api";
 import {
   GlanceAction,
   GlanceError,
@@ -77,12 +76,7 @@ function AllergyCard({
   patientId?: string;
   open: boolean;
 }) {
-  const glance = useService("glanceService");
-  const usage = useGlanceData<AllergyUsage | null>(
-    `allergy:${allergyId ?? ""}`,
-    () => glance.getAllergyUsage(allergyId ?? ""),
-    open && !!allergyId,
-  );
+  const usage = useAllergyGlance(allergyId ?? "", open && !!allergyId);
   const level = severityLevel(severity);
   return (
     <>
@@ -97,9 +91,12 @@ function AllergyCard({
         </Text>
         {allergyId && (
           <div className="mt-2">
-            {usage.error ? (
-              <GlanceError message={usage.error} onRetry={usage.retry} />
-            ) : usage.loading && !usage.data ? (
+            {usage.isError ? (
+              <GlanceError
+                message={getErrorMessage(usage.error)}
+                onRetry={() => void usage.refetch()}
+              />
+            ) : usage.isLoading ? (
               <GlanceSkeleton rows={1} />
             ) : usage.data ? (
               <Text size="2" style={{ color: "var(--mp-muted)" }}>

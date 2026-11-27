@@ -1,18 +1,14 @@
 "use client";
 
 import { Button, Flex, Text } from "@radix-ui/themes";
-import { useState } from "react";
 import { useNotify } from "@/components/notifications";
 import { Chip } from "@/components/ui/chip";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { useService } from "@/di/container-provider";
-import { providerFullName } from "@/domain/entities";
-import type { ProviderSummary } from "@/domain/repositories/glance";
 import { useAuth } from "@/features/auth/auth-provider";
-import { invalidateGlanceData, useGlanceData } from "@/hooks/use-glance-data";
 import { getErrorMessage } from "@/lib/errors";
 import { formatFee } from "@/lib/format";
+import { useDoctorGlance, useProviderDecision } from "./api";
 import {
   GlanceAction,
   GlanceError,
@@ -23,6 +19,7 @@ import {
   GlanceSkeleton,
 } from "./glance-popover";
 import { StatusPill } from "./status-chip";
+import { fullName } from "./utils";
 
 export type DoctorChipProps = {
   provider: {
@@ -54,7 +51,7 @@ export function DoctorChip({
   variant = "chip",
 }: DoctorChipProps) {
   const short = doctorShortName(provider);
-  const full = providerFullName(provider);
+  const full = fullName(provider);
   const specialtySuffix =
     showSpecialty && provider.specialty ? ` · ${provider.specialty}` : "";
   return (
@@ -83,19 +80,13 @@ function DoctorCard({
   provider: DoctorChipProps["provider"];
   open: boolean;
 }) {
-  const glance = useService("glanceService");
-  const providerService = useService("providerService");
   const { user } = useAuth();
   const { notifySuccess, notifyError } = useNotify();
-  const [busy, setBusy] = useState(false);
-  const summaryState = useGlanceData<ProviderSummary>(
-    `provider:${provider.id}`,
-    () => glance.getProviderSummary(provider.id),
-    open,
-  );
+  const decision = useProviderDecision();
+  const summaryState = useDoctorGlance(provider.id, open);
   const summary = summaryState.data;
   const details = summary?.provider ?? null;
-  const full = providerFullName(provider);
+  const full = fullName(provider);
   const status = details?.verificationStatus;
   const fee = details?.fee ?? provider.fee;
   const clinicName = summary?.clinic?.name ?? provider.clinicName ?? null;
@@ -107,21 +98,13 @@ function DoctorCard({
       : 0;
 
   const decide = async (action: "verify" | "reject") => {
-    setBusy(true);
     try {
-      if (action === "verify") {
-        await providerService.verify(provider.id);
-        notifySuccess(`${full} verified`);
-      } else {
-        await providerService.reject(provider.id);
-        notifySuccess(`${full} rejected`);
-      }
-      invalidateGlanceData();
-      summaryState.retry();
+      await decision.mutateAsync({ id: provider.id, action });
+      notifySuccess(
+        action === "verify" ? `${full} verified` : `${full} rejected`,
+      );
     } catch (e) {
       notifyError(`Could not ${action} ${full}: ${getErrorMessage(e)}`);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -149,15 +132,15 @@ function DoctorCard({
         </Flex>
       </GlanceSection>
 
-      {summaryState.error && !summary && (
+      {summaryState.isError && !summary && (
         <GlanceSection>
           <GlanceError
-            message={summaryState.error}
-            onRetry={summaryState.retry}
+            message={getErrorMessage(summaryState.error)}
+            onRetry={() => void summaryState.refetch()}
           />
         </GlanceSection>
       )}
-      {summaryState.loading && !summary && (
+      {summaryState.isLoading && !summary && (
         <GlanceSection>
           <GlanceSkeleton rows={2} />
         </GlanceSection>
@@ -229,7 +212,7 @@ function DoctorCard({
             <Button
               size="2"
               color="teal"
-              loading={busy}
+              loading={decision.isPending}
               onClick={() => void decide("verify")}
             >
               Verify
@@ -238,7 +221,7 @@ function DoctorCard({
               size="2"
               color="red"
               variant="soft"
-              disabled={busy}
+              disabled={decision.isPending}
               onClick={() => void decide("reject")}
             >
               Reject

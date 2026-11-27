@@ -1,131 +1,114 @@
 "use client";
 
-import { Button, Callout, Flex, Grid, TextField } from "@radix-ui/themes";
-import type { ChangeEvent, FormEvent } from "react";
-import { FormField } from "@/components/form-field";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, Callout, Flex, Grid } from "@radix-ui/themes";
+import { FormProvider, useForm } from "react-hook-form";
 import { useNotify } from "@/components/notifications";
-import { useService } from "@/di/container-provider";
-import type { PatientInput } from "@/domain/entities";
 import { useAuth } from "@/features/auth/auth-provider";
-import { useFormSubmit } from "@/hooks/use-form-submit";
+import { useCreatePatientProfile } from "../api";
+import { type PatientForm, patientForm } from "../schemas";
+import { OnboardingInput, setSubmitError } from "./onboarding-form";
 
 export function PatientStep({
   values,
-  onChange,
+  onDraftChange,
   onBack,
   onDone,
 }: {
-  values: PatientInput;
-  onChange: (values: PatientInput) => void;
+  values: PatientForm;
+  onDraftChange: (values: PatientForm) => void;
   onBack: () => void;
   onDone: () => void;
 }) {
-  const authService = useService("authService");
   const { refresh } = useAuth();
   const { notifySuccess } = useNotify();
-  const { submitting, fieldErrors, formError, run } = useFormSubmit();
+  const createProfile = useCreatePatientProfile();
+  const form = useForm<PatientForm>({
+    resolver: zodResolver(patientForm),
+    defaultValues: values,
+  });
+  const { isSubmitting, errors } = form.formState;
 
-  const bind = (field: keyof PatientInput) => ({
-    id: `onboarding-${field}`,
-    value: values[field],
-    onChange: (e: ChangeEvent<HTMLInputElement>) =>
-      onChange({ ...values, [field]: e.target.value }),
+  const submit = form.handleSubmit(async (input) => {
+    form.clearErrors("root");
+    try {
+      await createProfile.mutateAsync(input);
+      await refresh();
+    } catch (e) {
+      setSubmitError(form, e);
+      return;
+    }
+    notifySuccess("Profile created");
+    onDone();
   });
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const ok = await run(async () => {
-      await authService.createPatientProfile({
-        firstName: values.firstName.trim(),
-        lastName: values.lastName.trim(),
-        dateOfBirth: values.dateOfBirth,
-        phoneNumber: values.phoneNumber.trim(),
-        email: values.email.trim(),
-      });
-      await refresh();
-    });
-    if (ok) {
-      notifySuccess("Profile created");
-      onDone();
-    }
-  };
-
   return (
-    <form onSubmit={submit} noValidate>
-      <Flex direction="column" gap="3">
-        <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-          <FormField
-            label="First name"
-            htmlFor="onboarding-firstName"
-            error={fieldErrors.firstName}
-          >
-            <TextField.Root {...bind("firstName")} autoComplete="given-name" />
-          </FormField>
-          <FormField
-            label="Last name"
-            htmlFor="onboarding-lastName"
-            error={fieldErrors.lastName}
-          >
-            <TextField.Root {...bind("lastName")} autoComplete="family-name" />
-          </FormField>
-        </Grid>
-        <FormField
-          label="Date of birth"
-          htmlFor="onboarding-dateOfBirth"
-          error={fieldErrors.dateOfBirth}
-        >
-          <TextField.Root
-            {...bind("dateOfBirth")}
+    <FormProvider {...form}>
+      <form onSubmit={submit} noValidate>
+        <Flex direction="column" gap="3">
+          <Grid columns={{ initial: "1", sm: "2" }} gap="3">
+            <OnboardingInput
+              name="firstName"
+              label="First name"
+              id="onboarding-firstName"
+              autoComplete="given-name"
+            />
+            <OnboardingInput
+              name="lastName"
+              label="Last name"
+              id="onboarding-lastName"
+              autoComplete="family-name"
+            />
+          </Grid>
+          <OnboardingInput
+            name="dateOfBirth"
+            label="Date of birth"
+            id="onboarding-dateOfBirth"
             type="date"
             autoComplete="bday"
           />
-        </FormField>
-        <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-          <FormField
-            label="Phone number"
-            htmlFor="onboarding-phoneNumber"
-            error={fieldErrors.phoneNumber}
-          >
-            <TextField.Root
-              {...bind("phoneNumber")}
+          <Grid columns={{ initial: "1", sm: "2" }} gap="3">
+            <OnboardingInput
+              name="phoneNumber"
+              label="Phone number"
+              id="onboarding-phoneNumber"
               type="tel"
               autoComplete="tel"
             />
-          </FormField>
-          <FormField
-            label="Email"
-            htmlFor="onboarding-email"
-            error={fieldErrors.email}
-          >
-            <TextField.Root
-              {...bind("email")}
+            <OnboardingInput
+              name="email"
+              label="Email"
+              id="onboarding-email"
               type="email"
               autoComplete="email"
             />
-          </FormField>
-        </Grid>
-      </Flex>
+          </Grid>
+        </Flex>
 
-      {formError && (
-        <Callout.Root color="red" role="alert" size="1" mt="4">
-          <Callout.Text>{formError}</Callout.Text>
-        </Callout.Root>
-      )}
+        {errors.root?.message && (
+          <Callout.Root color="red" role="alert" size="1" mt="4">
+            <Callout.Text>{errors.root.message}</Callout.Text>
+          </Callout.Root>
+        )}
 
-      <Flex justify="between" gap="3" mt="5">
-        <Button
-          type="button"
-          variant="soft"
-          color="gray"
-          disabled={submitting}
-          onClick={onBack}
-        >
-          Back
-        </Button>
-        <Button type="submit" color="teal" loading={submitting}>
-          Create my profile
-        </Button>
-      </Flex>
-    </form>
+        <Flex justify="between" gap="3" mt="5">
+          <Button
+            type="button"
+            variant="soft"
+            color="gray"
+            disabled={isSubmitting}
+            onClick={() => {
+              onDraftChange(form.getValues());
+              onBack();
+            }}
+          >
+            Back
+          </Button>
+          <Button type="submit" color="teal" loading={isSubmitting}>
+            Create my profile
+          </Button>
+        </Flex>
+      </form>
+    </FormProvider>
   );
 }

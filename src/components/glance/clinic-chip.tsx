@@ -5,9 +5,8 @@ import { Flex, Text } from "@radix-ui/themes";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { Chip } from "@/components/ui/chip";
 import { IconCircle } from "@/components/ui/icon-circle";
-import { useService } from "@/di/container-provider";
-import type { ClinicSummary } from "@/domain/repositories/glance";
-import { useGlanceData } from "@/hooks/use-glance-data";
+import { getErrorMessage } from "@/lib/errors";
+import { useClinicGlance } from "./api";
 import {
   GlanceAction,
   GlanceError,
@@ -53,14 +52,9 @@ function ClinicCard({
   clinic: { id: string; name: string };
   open: boolean;
 }) {
-  const glance = useService("glanceService");
-  const summaryState = useGlanceData<ClinicSummary>(
-    `clinic:${clinic.id}`,
-    () => glance.getClinicSummary(clinic.id),
-    open,
-  );
+  const summaryState = useClinicGlance(clinic.id, open);
   const summary = summaryState.data;
-  const address = summary?.clinic?.location ?? null;
+  const address = summary?.clinic?.address ?? null;
   const phone = summary?.clinic?.phoneNumber ?? "";
 
   return (
@@ -75,15 +69,15 @@ function ClinicCard({
         subtitle={address ?? undefined}
       />
 
-      {summaryState.error && !summary && (
+      {summaryState.isError && !summary && (
         <GlanceSection>
           <GlanceError
-            message={summaryState.error}
-            onRetry={summaryState.retry}
+            message={getErrorMessage(summaryState.error)}
+            onRetry={() => void summaryState.refetch()}
           />
         </GlanceSection>
       )}
-      {summaryState.loading && !summary && (
+      {summaryState.isLoading && !summary && (
         <GlanceSection>
           <GlanceSkeleton rows={3} />
         </GlanceSection>

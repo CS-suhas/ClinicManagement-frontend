@@ -3,7 +3,7 @@
 import { Flex, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { RelativeTime } from "@/components/ui/relative-time";
-import type { AppointmentStatus } from "@/domain/entities";
+import type { Schemas } from "@/lib/api";
 import {
   GlanceFooter,
   GlanceHeader,
@@ -12,6 +12,8 @@ import {
 } from "./glance-popover";
 
 export type StatusKind = "appointment" | "verification";
+
+type AppointmentStatus = Schemas["PatientVisitResponse"]["status"];
 
 type Palette = {
   background: string;
