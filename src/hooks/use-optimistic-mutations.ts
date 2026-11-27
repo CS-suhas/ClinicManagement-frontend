@@ -3,10 +3,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useNotify } from "@/components/notifications";
-import { ConflictError, ValidationError } from "@/domain/errors";
 import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { invalidateGlanceData } from "./use-glance-data";
 
 export const UNDO_WINDOW_MS = 5000;
 
@@ -20,11 +18,8 @@ export type OptimisticMutation = {
 };
 
 function failureText(failureMessage: string, e: unknown) {
-  if (e instanceof ConflictError) return e.message;
   if (e instanceof ApiError && e.status === 409) return e.message;
   if (e instanceof ApiError && e.fieldErrors)
-    return `${failureMessage}: ${Object.values(e.fieldErrors).join(" ")}`;
-  if (e instanceof ValidationError)
     return `${failureMessage}: ${Object.values(e.fieldErrors).join(" ")}`;
   return `${failureMessage}: ${getErrorMessage(e)}`;
 }
@@ -85,7 +80,6 @@ export function useOptimisticMutations(onIdle: () => void = () => {}) {
           notifyError(failureText(failureMessage, e));
         } finally {
           pending.current--;
-          invalidateGlanceData();
           if (pending.current === 0) {
             void queryClient.invalidateQueries();
             onIdleRef.current();

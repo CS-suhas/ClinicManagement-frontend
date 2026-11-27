@@ -13,8 +13,6 @@ import { IconCircle } from "@/components/ui/icon-circle";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { Surface } from "@/components/ui/surface";
 import { Wordmark } from "@/components/ui/wordmark";
-import { useService } from "@/di/container-provider";
-import type { PublicAccess } from "@/domain/auth";
 import { usePublicAccess } from "@/features/auth/api";
 import { useAuth } from "@/features/auth/auth-provider";
 import {
@@ -30,6 +28,7 @@ import { CommandPalette } from "@/features/command-palette/components/command-pa
 import { NotificationBell } from "@/features/notification-bell/components/notification-bell";
 import { useMyDashboard } from "@/features/notification-bell/components/use-my-dashboard";
 import { getErrorMessage } from "@/lib/errors";
+import type { PublicAccess } from "@/lib/runtime-config";
 import { useNotify } from "./notifications";
 
 const PAGE_BACKGROUND = "var(--mp-bg)";
@@ -82,7 +81,6 @@ function ShellFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
-  const personas = useService("authPersonas");
   const notify = useNotify();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { data: mine } = useMyDashboard(user?.subject ?? null);
@@ -228,11 +226,6 @@ function ShellFrame({ children }: { children: ReactNode }) {
                 </div>
               </div>
               <DropdownMenu.Separator />
-              {personas.length > 0 && (
-                <DropdownMenu.Item asChild>
-                  <Link href="/login">Switch user</Link>
-                </DropdownMenu.Item>
-              )}
               <DropdownMenu.Item onSelect={() => void handleSignOut()}>
                 <ExitIcon />
                 Sign out

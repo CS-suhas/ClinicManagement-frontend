@@ -5,12 +5,9 @@ RUN npm ci
 
 FROM node:22.23.5-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS build
 WORKDIR /app
-# NEXT_PUBLIC_* values are inlined at build time. The API URL is deliberately
-# not one of them: browsers call /api on the same origin and the server reads
-# API_INTERNAL_URL at runtime, so one image runs on any host.
-ARG NEXT_PUBLIC_DATA_SOURCE=rest
-ENV NEXT_PUBLIC_DATA_SOURCE=$NEXT_PUBLIC_DATA_SOURCE \
-    NEXT_TELEMETRY_DISABLED=1
+# Nothing host-specific is inlined at build time: browsers call /api on the same
+# origin and the server reads API_INTERNAL_URL at runtime, so one image runs on any host.
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

@@ -1,4 +1,4 @@
-import type { CurrentUser, Role } from "@/domain/auth";
+import type { CurrentUser, Role } from "./schemas";
 
 export const ROUTE_ROLES = {
   "/dashboard": null,

@@ -1,5 +1,5 @@
 import { Badge, Flex } from "@radix-ui/themes";
-import type { Role } from "@/domain/auth";
+import type { Role } from "./schemas";
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: "Admin",

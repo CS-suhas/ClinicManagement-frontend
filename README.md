@@ -23,7 +23,6 @@ Other scripts:
 | Variable                  | Read at           | Purpose                                                                              |
 | ------------------------- | ----------------- | ------------------------------------------------------------------------------------ |
 | `API_INTERNAL_URL`        | Runtime (server)  | API base URL for server-side code. Default `http://localhost:8080/api`.              |
-| `NEXT_PUBLIC_DATA_SOURCE` | Build time        | `rest` to use the API, `mock` (default) for in-browser sample data.                  |
 | `KEYCLOAK_URL`            | Runtime (browser) | Keycloak base URL, e.g. `http://localhost:8081/auth`. Default: `<page origin>/auth`. |
 | `KEYCLOAK_REALM`          | Runtime (browser) | Keycloak realm. Default `clinic`.                                                    |
 | `KEYCLOAK_CLIENT_ID`      | Runtime (browser) | Public OIDC client. Default `clinic-spa`.                                            |
@@ -46,6 +45,22 @@ location /     { proxy_pass http://frontend:3000; }
 
 ## Sign-in
 
-In `rest` mode, sign-in uses Keycloak (Authorization Code + PKCE) via `oidc-client-ts`. Tokens are kept in `localStorage` and shared across tabs. The `clinic-spa` client must allow `/login/callback` as a redirect URI and `/` as a post-logout redirect.
+Sign-in uses Keycloak (Authorization Code + PKCE) via `oidc-client-ts`. Tokens are kept in `localStorage` and shared across tabs. The `clinic-spa` client must allow `/login/callback` as a redirect URI and `/` as a post-logout redirect.
 
-Serve the app over HTTPS in production. Over plain HTTP on a non-localhost address, a small shim (`src/infrastructure/oidc/insecure-context-crypto.ts`) fills in the missing Web Crypto functions.
+Serve the app over HTTPS in production. Over plain HTTP on a non-localhost address, a small shim (`src/lib/auth/insecure-context-crypto.ts`) fills in the missing Web Crypto functions.
+
+## Project structure
+
+```
+src/
+  app/           Next.js routes; each page renders one feature component
+  features/      one folder per feature: api.ts (TanStack Query hooks),
+                 schemas.ts (zod schemas and enums), utils.ts, components/
+  components/    shared UI, including the react-hook-form inputs in form.tsx
+  hooks/         generic hooks (paged lists, optimistic undo, clock)
+  lib/           API client (openapi-fetch), query client, auth session, dates
+```
+
+- API types come from `src/lib/api-schema.gen.ts`; refer to them as `Schemas["..."]`.
+- Every mutation refetches the active queries, so writes never refresh data by hand.
+- Forms are `FormDialog` + a zod schema; server field errors land on the matching inputs.

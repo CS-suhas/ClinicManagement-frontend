@@ -1,15 +1,30 @@
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
-import { SEVERITY_LEVELS } from "@/domain/entities";
+import { z } from "zod";
 
-export { highestSeverity, severityRank } from "@/domain/entities";
+export const Severity = z.enum(["MILD", "MODERATE", "SEVERE"]);
+export type SeverityLevel = z.infer<typeof Severity> | "UNKNOWN";
 
-export type SeverityLevel = (typeof SEVERITY_LEVELS)[number] | "UNKNOWN";
+export function severityRank(severity: string | null | undefined) {
+  const parsed = Severity.safeParse((severity ?? "").trim().toUpperCase());
+  return parsed.success ? Severity.options.indexOf(parsed.data) + 1 : 0;
+}
+
+export function highestSeverity(
+  severities: readonly (string | null | undefined)[],
+) {
+  let best: string | null = null;
+  for (const severity of severities) {
+    if (best === null || severityRank(severity) > severityRank(best))
+      best = severity ?? null;
+  }
+  return best;
+}
 
 export function severityLevel(
   severity: string | null | undefined,
 ): SeverityLevel {
   const value = (severity ?? "").trim().toUpperCase();
-  return (SEVERITY_LEVELS as readonly string[]).includes(value)
+  return Severity.safeParse(value).success
     ? (value as SeverityLevel)
     : "UNKNOWN";
 }
