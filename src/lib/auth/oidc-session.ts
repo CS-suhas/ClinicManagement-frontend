@@ -4,7 +4,6 @@ import {
   type UserManagerSettings,
   WebStorageStateStore,
 } from "oidc-client-ts";
-import { ensureCryptoInInsecureContext } from "./insecure-context-crypto";
 import { resolveOidcClientSettings } from "./oidc-config";
 
 const REFRESH_MARGIN_SECONDS = 30;
@@ -52,7 +51,6 @@ export class OidcSession {
   }
 
   private async createManager() {
-    ensureCryptoInInsecureContext();
     const client = resolveOidcClientSettings(
       await this.loadConfig(),
       window.location.origin,

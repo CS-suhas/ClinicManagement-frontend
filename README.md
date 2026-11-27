@@ -47,7 +47,7 @@ location /     { proxy_pass http://frontend:3000; }
 
 Sign-in uses Keycloak (Authorization Code + PKCE) via `oidc-client-ts`. Tokens are kept in `localStorage` and shared across tabs. The `clinic-spa` client must allow `/login/callback` as a redirect URI and `/` as a post-logout redirect.
 
-Serve the app over HTTPS in production. Over plain HTTP on a non-localhost address, a small shim (`src/lib/auth/insecure-context-crypto.ts`) fills in the missing Web Crypto functions.
+Serve the app over HTTPS (or from `localhost`). Sign-in uses the browser's Web Crypto API for PKCE, which browsers only provide in secure contexts, so it fails over plain HTTP on any other address.
 
 ## Project structure
 
