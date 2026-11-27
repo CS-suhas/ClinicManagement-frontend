@@ -21,31 +21,31 @@ import { CrudService } from "./crud-service";
 export type { PatientRosterRow } from "@/domain/repositories";
 
 /** The provider behind a patient's latest appointment, as the appointment list reports it. */
-export interface RosterProvider {
+export type RosterProvider = {
   id: string;
   name: string;
   specialty: string;
-}
+};
 
 /** Visit facts for one patient, relative to a point in time. */
-export interface PatientVisits {
+export type PatientVisits = {
   /** Most recent appointment on the books, past or upcoming. */
   latestVisit?: AppointmentListItem;
   /** Most recent appointment before `now`. */
   lastVisit?: AppointmentListItem;
   /** Soonest appointment at or after `now`. */
   nextVisit?: AppointmentListItem;
-}
+};
 
 /** One line of the admin patients page, with visits across every provider. */
-export interface PatientVisitRow {
+export type PatientVisitRow = {
   patient: PatientListItem;
   lastVisit?: AppointmentListItem;
   nextVisit?: AppointmentListItem;
   /** Most recent appointment on the books; supplies the reason and provider. */
   latestVisit?: AppointmentListItem;
   provider?: RosterProvider;
-}
+};
 
 const APPOINTMENT_PAGE_SIZE = 200;
 

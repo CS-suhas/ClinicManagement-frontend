@@ -30,7 +30,16 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "style": {
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "fix": "safe",
+          "options": {
+            "style": "type"
+          }
+        }
+      }
     },
     "domains": {
       "next": "recommended",
@@ -43,5 +52,13 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/lib/api-schema.gen.ts"],
+      "linter": {
+        "enabled": false
+      }
+    }
+  ]
 }

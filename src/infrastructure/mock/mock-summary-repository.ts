@@ -36,12 +36,12 @@ import type {
 } from "@/domain/repositories";
 import { delay } from "./local-storage-collection";
 
-interface Listable<T> {
+type Listable<T> = {
   list(): Promise<T[]>;
-}
+};
 
 /** The lists the summaries read. Each is a plain store read, so no extra latency per list. */
-export interface MockSummarySources {
+export type MockSummarySources = {
   patients: Listable<Patient>;
   providers: Listable<Provider>;
   clinics: Listable<Clinic>;
@@ -49,7 +49,7 @@ export interface MockSummarySources {
   allergies: Listable<PatientAllergy>;
   allergyTypes: Listable<AllergyType>;
   settings: AppointmentSettings;
-}
+};
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const BLOCKING: ReadonlySet<AppointmentStatus> = new Set([

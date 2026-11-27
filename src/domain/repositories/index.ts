@@ -19,33 +19,33 @@ import type {
 } from "../entities";
 
 /** Port: generic persistence contract for entities with a string id. */
-export interface CrudRepository<T extends { id: string }, TInput> {
+export type CrudRepository<T extends { id: string }, TInput> = {
   list(): Promise<T[]>;
   getById(id: string): Promise<T | null>;
   /** `id` lets callers pick the id up front, e.g. for optimistic UI. */
   create(input: TInput, id?: string): Promise<T>;
   update(id: string, input: TInput): Promise<T>;
   delete(id: string): Promise<void>;
-}
+};
 
-export interface PagedResult<T> {
+export type PagedResult<T> = {
   items: T[];
   totalCount: number;
   page: number;
   pageSize: number;
-}
+};
 
-export interface SearchOptions {
+export type SearchOptions = {
   search?: string;
   page: number;
   pageSize: number;
-}
+};
 
-export interface ProviderSearchOptions extends SearchOptions {
+export type ProviderSearchOptions = SearchOptions & {
   clinicId?: string;
-}
+};
 
-export interface AppointmentSearchOptions extends SearchOptions {
+export type AppointmentSearchOptions = SearchOptions & {
   /** Inclusive ISO date-time. Must be strictly before `to`. */
   from?: string;
   /** Exclusive ISO date-time. */
@@ -56,18 +56,17 @@ export interface AppointmentSearchOptions extends SearchOptions {
   providerIds?: string[];
   patientId?: string;
   status?: AppointmentStatus;
-}
+};
 
-export interface SearchRepository<
+export type SearchRepository<
   T,
   TOptions extends SearchOptions = SearchOptions,
-> {
+> = {
   search(options: TOptions): Promise<PagedResult<T>>;
-}
+};
 
 /** An appointment as the list endpoints return it, with names and clinic joined in. */
-export interface AppointmentListItem
-  extends Omit<Appointment, "reasonForVisit"> {
+export type AppointmentListItem = Omit<Appointment, "reasonForVisit"> & {
   patientName: string;
   providerName: string;
   providerSpecialty: string;
@@ -78,82 +77,82 @@ export interface AppointmentListItem
   patientAllergyCount?: number;
   /** Highest recorded severity of the patient, or null. Optional for older responses. */
   patientHighestAllergySeverity?: string | null;
-}
+};
 
 /** Port: status transitions. Each one throws ConflictError on an invalid transition and ForbiddenError for the wrong caller. */
-export interface AppointmentActionRepository {
+export type AppointmentActionRepository = {
   confirm(id: string): Promise<void>;
   decline(id: string): Promise<void>;
   complete(id: string): Promise<void>;
   cancel(id: string): Promise<void>;
-}
+};
 
-export interface DashboardData {
+export type DashboardData = {
   clinics: number;
   providers: number;
   patients: number;
   allergyTypes: number;
   appointments: number;
   upcomingAppointments: AppointmentListItem[];
-}
+};
 
-export interface AdminDashboard {
+export type AdminDashboard = {
   clinicCount: number;
   providerCount: number;
   patientCount: number;
   pendingProviderVerificationCount: number;
   todayAppointmentCount: number;
-}
+};
 
 export type ClinicAdminDashboard = AdminDashboard;
 
-export interface DoctorDashboard {
+export type DoctorDashboard = {
   todayAppointmentCount: number;
   weekAppointmentCount: number;
   distinctPatientCount: number;
   nextAppointment: AppointmentListItem | null;
   /** REQUESTED appointments starting now or later. Optional for older responses. */
   pendingRequestCount?: number;
-}
+};
 
 /** A recent decision on one of the patient's requests. Uses the CURRENT status, so a later change drops it. */
-export interface RecentDecision {
+export type RecentDecision = {
   appointmentId: string;
   status: "CONFIRMED" | "DECLINED";
   decidedAtUtc: string | null;
   providerName: string;
-}
+};
 
-export interface PatientDashboard {
+export type PatientDashboard = {
   nextAppointment: AppointmentListItem | null;
   upcomingAppointmentCount: number;
   /** Up to five, newest first. Optional for older responses. */
   recentDecisions?: RecentDecision[];
-}
+};
 
 /** Response of GET /api/me/dashboard. A section is null unless the caller holds that role (and, for doctor and patient, the linked record). */
-export interface MeDashboard {
+export type MeDashboard = {
   admin: AdminDashboard | null;
   clinicAdmin: ClinicAdminDashboard | null;
   doctor: DoctorDashboard | null;
   patient: PatientDashboard | null;
-}
+};
 
-export interface DashboardRepository {
+export type DashboardRepository = {
   getDashboard(): Promise<DashboardData>;
   /** The signed-in user's dashboard, one section per role. */
   getMine(): Promise<MeDashboard>;
-}
+};
 
 /** The visit facts a provider's roster shows for one patient. */
-export interface PatientVisitSummary {
+export type PatientVisitSummary = {
   id: string;
   appointmentDateTime: string;
   reasonForVisit: string | null;
-}
+};
 
 /** One line of a provider's patient roster. Visit facts count only that provider's appointments. */
-export interface PatientRosterRow {
+export type PatientRosterRow = {
   patient: PatientListItem;
   /** Latest past appointment, ignoring DECLINED and CANCELLED. */
   lastVisit: PatientVisitSummary | null;
@@ -161,19 +160,19 @@ export interface PatientRosterRow {
   nextVisit: PatientVisitSummary | null;
   /** Every appointment with this provider, whatever its status. */
   appointmentCount: number;
-}
+};
 
 /** Port: the patients a provider has appointments with, paged and ordered by last name, first name. */
-export interface ProviderRosterRepository {
+export type ProviderRosterRepository = {
   searchProviderRoster(
     providerId: string,
     options: SearchOptions,
   ): Promise<PagedResult<PatientRosterRow>>;
-}
+};
 
-export interface ProviderDirectoryOptions extends SearchOptions {
+export type ProviderDirectoryOptions = SearchOptions & {
   clinicId?: string;
-}
+};
 
 /** A directory row: the provider and the name of its clinic, null when unknown. */
 export type ProviderDirectoryEntry = Provider & { clinicName: string | null };
@@ -182,23 +181,23 @@ export type ProviderDirectoryEntry = Provider & { clinicName: string | null };
  * Port: the public list of bookable doctors, i.e. verified providers.
  * `search` matches first name, last name, specialty or clinic name.
  */
-export interface ProviderDirectoryRepository {
+export type ProviderDirectoryRepository = {
   list(
     options: ProviderDirectoryOptions,
   ): Promise<PagedResult<ProviderDirectoryEntry>>;
-}
+};
 
-export interface VerificationSearchOptions extends SearchOptions {
+export type VerificationSearchOptions = SearchOptions & {
   /** Non-admins are always limited to VERIFIED, whatever is passed. */
   verificationStatus?: VerificationStatus;
-}
+};
 
 /**
  * Port: doctor verification. Admins act on any doctor, clinic admins on doctors
  * at a clinic they administer; each action throws ConflictError on an invalid
  * transition.
  */
-export interface ProviderVerificationRepository {
+export type ProviderVerificationRepository = {
   searchByStatus(
     options: VerificationSearchOptions,
   ): Promise<PagedResult<Provider>>;
@@ -208,13 +207,13 @@ export interface ProviderVerificationRepository {
   verify(id: string): Promise<void>;
   /** From PENDING only. Throws ConflictError otherwise. */
   reject(id: string): Promise<void>;
-}
+};
 
 /** Port: busy slots for one doctor on one local day. Public, and carries no patient data. */
-export interface AppointmentAvailabilityRepository {
+export type AppointmentAvailabilityRepository = {
   /** `date` is "YYYY-MM-DD". Resolves to the ISO start times of REQUESTED and CONFIRMED appointments that day. */
   getBusyStarts(providerId: string, date: string): Promise<string[]>;
-}
+};
 
 export type ClinicRepository = CrudRepository<Clinic, ClinicInput> &
   SearchRepository<Clinic>;
@@ -234,7 +233,7 @@ export type AppointmentRepository = CrudRepository<
   SearchRepository<AppointmentListItem, AppointmentSearchOptions> &
   AppointmentActionRepository;
 
-export interface PatientAllergyRepository {
+export type PatientAllergyRepository = {
   listByPatient(patientId: string): Promise<PatientAllergy[]>;
   searchByPatient(
     patientId: string,
@@ -250,9 +249,9 @@ export interface PatientAllergyRepository {
   /** Creates or replaces the record identified by (patientId, allergyId). */
   save(record: PatientAllergy): Promise<PatientAllergy>;
   delete(patientId: string, allergyId: string): Promise<void>;
-}
+};
 
-export interface ConfigurationRepository {
+export type ConfigurationRepository = {
   getAllergySeverities(): Promise<unknown>;
   getAppointmentSettings(): Promise<unknown>;
-}
+};

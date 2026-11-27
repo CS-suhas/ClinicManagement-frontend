@@ -12,7 +12,7 @@ export type Role = (typeof ROLES)[number];
 export type VerificationStatus = "PENDING" | "VERIFIED" | "REJECTED";
 
 /** Response of GET /api/me. */
-export interface MeResponse {
+export type MeResponse = {
   subject: string;
   roles: Role[];
   patient: { id: string } | null;
@@ -26,37 +26,37 @@ export interface MeResponse {
   displayName: string | null;
   /** Clinics the user administers. Empty unless the user holds the clinicadmin role. */
   clinicAdminOf: string[];
-}
+};
 
-export interface CurrentUser extends Omit<MeResponse, "displayName"> {
+export type CurrentUser = Omit<MeResponse, "displayName"> & {
   /** Falls back to the subject when the API has no display name. */
   displayName: string;
-}
+};
 
 /** A demo identity offered by the mock sign-in picker. */
-export interface AuthPersona {
+export type AuthPersona = {
   id: string;
   label: string;
   description: string;
   user: CurrentUser;
-}
+};
 
 /** Options for a sign-in that leaves the app (the Keycloak redirect flow). */
-export interface SignInOptions {
+export type SignInOptions = {
   /** Same-app path to open once the user is back from the identity provider. */
   returnTo?: string;
   /** Open the identity provider's registration form instead of its sign-in form. */
   register?: boolean;
-}
+};
 
 /** Which parts of the app anonymous visitors may open. Set per deployment at runtime. */
-export interface PublicAccess {
+export type PublicAccess = {
   /** The doctor directory (/doctors and /doctors/[id]). */
   doctors: boolean;
-}
+};
 
 /** Port: session management. Mock and Keycloak-backed adapters implement it. */
-export interface AuthRepository {
+export type AuthRepository = {
   /** Resolves to null when nobody is signed in. */
   getCurrentUser(): Promise<CurrentUser | null>;
   /**
@@ -81,4 +81,4 @@ export interface AuthRepository {
    * (409) when the user is already linked to a provider.
    */
   registerAsProvider(input: ProviderRegistrationInput): Promise<Provider>;
-}
+};

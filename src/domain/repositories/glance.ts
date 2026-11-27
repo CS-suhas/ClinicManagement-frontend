@@ -12,14 +12,14 @@ import type {
  */
 
 /** One allergy on a patient, as the glance shows it. */
-export interface AllergyEntry {
+export type AllergyEntry = {
   allergyId: string;
   name: string;
   severity: Severity;
-}
+};
 
 /** A visit as a glance shows it. Built from the appointment list, so names are included. */
-export interface VisitFact {
+export type VisitFact = {
   id: string;
   appointmentDateTime: string;
   reasonForVisit: string | null;
@@ -28,18 +28,18 @@ export interface VisitFact {
   providerId: string;
   providerName: string;
   status: AppointmentStatus;
-}
+};
 
-export interface VisitCounts {
+export type VisitCounts = {
   total: number;
   requested: number;
   confirmed: number;
   completed: number;
   cancelled: number;
   declined: number;
-}
+};
 
-export interface PatientSummary {
+export type PatientSummary = {
   /** Null when the caller may not read the patient record (the card keeps its seed name). */
   patient: Patient | null;
   /** Null when the caller may not read allergies. An empty array means none recorded. */
@@ -52,9 +52,9 @@ export interface PatientSummary {
   counts: VisitCounts | null;
   /** The latest three visits, any status, newest first. Null when hidden. */
   recent: VisitFact[] | null;
-}
+};
 
-export interface ProviderSummary {
+export type ProviderSummary = {
   /** Null when the provider record is not readable by the caller. */
   provider: Provider | null;
   /** Null when the clinic is not readable (e.g. the doctor is not verified yet). */
@@ -67,16 +67,16 @@ export interface ProviderSummary {
   nextAvailableStart: string | null;
   /** Distinct patients. Null unless the caller is an admin, the doctor, or a clinic admin of the clinic. */
   patientCount: number | null;
-}
+};
 
-export interface ClinicDoctorRef {
+export type ClinicDoctorRef = {
   id: string;
   firstName: string;
   lastName: string;
   specialty: string;
-}
+};
 
-export interface ClinicSummary {
+export type ClinicSummary = {
   /** Null when the clinic is not readable by the caller. */
   clinic: Clinic | null;
   /** Verified doctors at the clinic (the public directory count). */
@@ -87,17 +87,17 @@ export interface ClinicSummary {
   topSpecialties: string[];
   /** Appointments today at the clinic. Null unless the caller is an admin or a clinic admin of it. */
   todayAppointmentCount: number | null;
-}
+};
 
 /** Doctors per clinic for list tables, from one directory read. */
-export interface ClinicDoctorPreview {
+export type ClinicDoctorPreview = {
   count: number;
   doctors: ClinicDoctorRef[];
-}
+};
 
 /** One allergy's usage across patients, for the allergy glance and expansion. */
-export interface AllergyUsage {
+export type AllergyUsage = {
   patientCount: number;
   /** Up to ten affected patients. */
   patients: { id: string; name: string }[];
-}
+};

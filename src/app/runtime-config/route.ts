@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { runtimeConfigFromEnv } from "@/infrastructure/config/runtime-config";
+import { runtimeConfigFromEnv } from "@/lib/runtime-config";
 
 /**
  * GET /runtime-config: per-deployment settings for the browser (Keycloak URL,

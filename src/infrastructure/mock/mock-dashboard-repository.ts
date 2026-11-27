@@ -20,9 +20,9 @@ import type {
 } from "@/domain/repositories";
 import { toAppointmentListItems } from "./mock-appointment-view";
 
-interface Listable<T> {
+type Listable<T> = {
   list(): Promise<T[]>;
-}
+};
 
 const DAY_MS = 86_400_000;
 const CANCELLED_OR_DECLINED = new Set(["DECLINED", "CANCELLED"]);

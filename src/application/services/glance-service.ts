@@ -133,14 +133,14 @@ function toVisitFact(
 }
 
 /** Application-layer read models for the glance cards. */
-export interface GlanceDependencies {
+export type GlanceDependencies = {
   summaries: SummaryRepository;
   patients: PatientService;
   patientAllergies: PatientAllergyService;
   appointments: AppointmentService;
   providers: ProviderService;
   configuration: ConfigurationService;
-}
+};
 
 /**
  * The one place the glance cards read from. Patient, clinic and provider facts

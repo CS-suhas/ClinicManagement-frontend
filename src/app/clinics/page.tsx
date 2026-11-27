@@ -1,21 +1,18 @@
 "use client";
 
 import { Text } from "@radix-ui/themes";
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { type Column, DataTable } from "@/components/data-table";
+import { ClinicChip, ClinicDoctorsChip } from "@/components/glance";
+import { ListPage } from "@/components/list-page";
+import { RowActions } from "@/components/row-actions";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useService } from "@/di/container-provider";
 import type { Clinic } from "@/domain/entities";
-import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
-import { type Column, DataTable } from "@/presentation/components/data-table";
-import {
-  ClinicChip,
-  ClinicDoctorsChip,
-} from "@/presentation/components/glance";
-import { ListPage } from "@/presentation/components/list-page";
-import { RowActions } from "@/presentation/components/row-actions";
-import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
-import { ClinicDetails } from "@/presentation/features/clinics/clinic-details";
-import { ClinicFormDialog } from "@/presentation/features/clinics/clinic-form-dialog";
-import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
+import { ClinicDetails } from "@/features/clinics/components/clinic-details";
+import { ClinicFormDialog } from "@/features/clinics/components/clinic-form-dialog";
+import { useAsyncData } from "@/hooks/use-async-data";
+import { PAGE_SIZE, useCrudPage } from "@/hooks/use-crud-page";
 
 const muted = { color: "var(--mp-muted)" } as const;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardView } from "@/presentation/features/dashboard/dashboard-view";
+import { DashboardView } from "@/features/dashboard/components/dashboard-view";
 
 export default function Page() {
   return <DashboardView />;

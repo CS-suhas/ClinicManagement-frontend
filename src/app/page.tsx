@@ -4,9 +4,9 @@ import Link from "next/link";
 import {
   LandingHeaderAuth,
   SignedOutOnly,
-} from "@/presentation/features/landing/landing-auth";
-import { LandingSearch } from "@/presentation/features/landing/landing-search";
-import { LandingWelcome } from "@/presentation/features/landing/landing-welcome";
+} from "@/features/landing/components/landing-auth";
+import { LandingSearch } from "@/features/landing/components/landing-search";
+import { LandingWelcome } from "@/features/landing/components/landing-welcome";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin"],

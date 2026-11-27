@@ -19,9 +19,9 @@ import type {
 import { delay, type LocalStorageCollection } from "./local-storage-collection";
 import { MockCrudRepository } from "./mock-repositories";
 
-interface Listable<T> {
+type Listable<T> = {
   list(): Promise<T[]>;
-}
+};
 
 const paginate = <T>(items: T[], options: SearchOptions): PagedResult<T> => {
   const start = (options.page - 1) * options.pageSize;

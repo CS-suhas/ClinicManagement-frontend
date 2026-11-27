@@ -12,7 +12,7 @@ import type {
   ProviderRegistrationInput,
 } from "@/domain/entities";
 import { UnauthorizedError } from "@/domain/errors";
-import type { OidcSession } from "@/infrastructure/oidc/oidc-session";
+import type { OidcSession } from "@/lib/auth/oidc-session";
 import type { ApiGet, ApiPost } from "./api-types";
 import type { HttpClient } from "./http-client";
 

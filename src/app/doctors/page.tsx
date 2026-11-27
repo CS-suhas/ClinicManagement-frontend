@@ -4,27 +4,27 @@ import { Heading, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { AsyncContent } from "@/components/async-content";
+import { PublicNavbar } from "@/components/public-navbar";
+import { SearchField } from "@/components/search-field";
 import { useService } from "@/di/container-provider";
-import { AsyncContent } from "@/presentation/components/async-content";
-import { PublicNavbar } from "@/presentation/components/public-navbar";
-import { SearchField } from "@/presentation/components/search-field";
-import { DoctorBookingDialogs } from "@/presentation/features/doctors/doctor-booking-dialogs";
+import { DoctorBookingDialogs } from "@/features/doctors/components/doctor-booking-dialogs";
 import {
   DEFAULT_FILTERS,
   DoctorFilters,
   type DoctorFilterValues,
-} from "@/presentation/features/doctors/doctor-filters";
-import { DoctorList } from "@/presentation/features/doctors/doctor-list";
+} from "@/features/doctors/components/doctor-filters";
+import { DoctorList } from "@/features/doctors/components/doctor-list";
 import {
   type DoctorProfile,
   toDoctorProfile,
-} from "@/presentation/features/doctors/doctor-profile";
+} from "@/features/doctors/components/doctor-profile";
 import {
   filterDoctors,
   specialtyOptions,
-} from "@/presentation/features/doctors/filter-doctors";
-import { useBookingGate } from "@/presentation/features/doctors/use-booking-gate";
-import { useAsyncData } from "@/presentation/hooks/use-async-data";
+} from "@/features/doctors/components/filter-doctors";
+import { useBookingGate } from "@/features/doctors/components/use-booking-gate";
+import { useAsyncData } from "@/hooks/use-async-data";
 
 /**
  * The directory URL for a clinic, search text and specialty, leaving out empty

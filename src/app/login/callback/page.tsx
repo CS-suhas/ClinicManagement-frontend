@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { needsOnboarding } from "@/application/auth/permissions";
-import { useAuth } from "@/presentation/auth/auth-provider";
-import { ErrorCallout } from "@/presentation/components/error-callout";
-import { PublicNavbar } from "@/presentation/components/public-navbar";
-import { Surface } from "@/presentation/components/ui/surface";
-import { getErrorMessage } from "@/presentation/lib/errors";
-import { safeNext } from "@/presentation/lib/safe-next";
+import { ErrorCallout } from "@/components/error-callout";
+import { PublicNavbar } from "@/components/public-navbar";
+import { Surface } from "@/components/ui/surface";
+import { useAuth } from "@/features/auth/auth-provider";
+import { getErrorMessage } from "@/lib/errors";
+import { safeNext } from "@/lib/safe-next";
 
 /**
  * Where Keycloak sends the browser after sign-in or registration. Swaps the

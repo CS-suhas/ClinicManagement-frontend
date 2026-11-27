@@ -1,4 +1,4 @@
-import { ClinicDetailView } from "@/presentation/features/clinic-detail/clinic-detail-view";
+import { ClinicDetailView } from "@/features/clinic-detail/components/clinic-detail-view";
 
 export default async function ClinicPage({
   params,

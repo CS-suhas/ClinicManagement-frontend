@@ -27,13 +27,13 @@ export function highestSeverity(
 }
 
 /** Join entity between Patient and AllergyType. Composite key: (patientId, allergyId). */
-export interface PatientAllergy {
+export type PatientAllergy = {
   patientId: string;
   allergyId: string;
   allergyName?: string;
   notes: string;
   severity: Severity;
-}
+};
 
 export function validatePatientAllergy(input: PatientAllergy): FieldErrors {
   const errors: FieldErrors = {};

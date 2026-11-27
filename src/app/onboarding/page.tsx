@@ -2,7 +2,7 @@
 
 import { Flex, Spinner } from "@radix-ui/themes";
 import { Suspense } from "react";
-import { OnboardingFlow } from "@/presentation/features/onboarding/onboarding-flow";
+import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 
 export default function OnboardingPage() {
   return (

@@ -1,7 +1,7 @@
 import {
   PatientDetailView,
   type PatientTab,
-} from "@/presentation/features/patient-detail/patient-detail-view";
+} from "@/features/patient-detail/components/patient-detail-view";
 
 const TABS: PatientTab[] = ["overview", "appointments", "allergies"];
 

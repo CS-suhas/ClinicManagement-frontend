@@ -37,7 +37,6 @@ import type {
   ProviderVerificationRepository,
   SummaryRepository,
 } from "@/domain/repositories";
-import { RuntimeConfigClient } from "@/infrastructure/config/runtime-config";
 import { resolveApiBaseUrl } from "@/infrastructure/http/api-base-url";
 import type { Api } from "@/infrastructure/http/api-types";
 import { type BaseUrl, HttpClient } from "@/infrastructure/http/http-client";
@@ -83,18 +82,19 @@ import { createMockProviderRosterRepository } from "@/infrastructure/mock/mock-p
 import { MockPatientAllergyRepository } from "@/infrastructure/mock/mock-repositories";
 import { createMockSummaryRepository } from "@/infrastructure/mock/mock-summary-repository";
 import * as seed from "@/infrastructure/mock/seed";
-import { OidcSession } from "@/infrastructure/oidc/oidc-session";
+import { OidcSession } from "@/lib/auth/oidc-session";
+import { RuntimeConfigClient } from "@/lib/runtime-config";
 
 export type DataSource = "mock" | "rest";
 
-export interface ContainerConfig {
+export type ContainerConfig = {
   dataSource: DataSource;
   /** Usually `resolveApiBaseUrl`, so the URL is picked per request (browser vs. server). */
   apiBaseUrl: BaseUrl;
-}
+};
 
 /** Everything the presentation layer is allowed to depend on. */
-export interface Container {
+export type Container = {
   clinicService: ClinicService;
   providerService: ProviderService;
   patientService: PatientService;
@@ -112,9 +112,9 @@ export interface Container {
   authPersonas: AuthPersona[];
   /** What anonymous visitors may open, from the runtime config (PUBLIC_DOCTORS). */
   getPublicAccess: () => Promise<PublicAccess>;
-}
+};
 
-interface Repositories {
+type Repositories = {
   dashboard: DashboardRepository;
   auth: AuthRepository;
   clinics: ClinicRepository;
@@ -128,7 +128,7 @@ interface Repositories {
   appointmentAvailability: AppointmentAvailabilityRepository;
   providerRoster: ProviderRosterRepository;
   summaries: SummaryRepository;
-}
+};
 
 const STORAGE_PREFIX = "clinic-admin:";
 

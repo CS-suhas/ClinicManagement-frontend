@@ -1,4 +1,4 @@
-import type { components, paths } from "./api-schema.gen";
+import type { components, paths } from "@/lib/api-schema.gen";
 
 /**
  * Types for the backend API, generated from its OpenAPI document. Type every

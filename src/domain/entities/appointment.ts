@@ -16,7 +16,7 @@ export const APPOINTMENT_STATUSES = [
 ] as const;
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
-export interface Appointment {
+export type Appointment = {
   id: string;
   patientId: string;
   providerId: string;
@@ -29,7 +29,7 @@ export interface Appointment {
   createdAtUtc?: string | null;
   /** When the status last changed (UTC); the API falls back to createdAtUtc. */
   statusChangedAtUtc?: string | null;
-}
+};
 
 /** Status is changed through the confirm, decline, complete and cancel actions, never by a form. */
 export type AppointmentInput = Omit<Appointment, "id" | "status">;

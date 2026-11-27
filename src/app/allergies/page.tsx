@@ -1,16 +1,16 @@
 "use client";
 
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { type Column, DataTable } from "@/components/data-table";
+import { AllergyChip } from "@/components/glance/allergy-chip";
+import { ListPage } from "@/components/list-page";
+import { RowActions } from "@/components/row-actions";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useService } from "@/di/container-provider";
 import type { AllergyType } from "@/domain/entities";
-import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
-import { type Column, DataTable } from "@/presentation/components/data-table";
-import { AllergyChip } from "@/presentation/components/glance/allergy-chip";
-import { ListPage } from "@/presentation/components/list-page";
-import { RowActions } from "@/presentation/components/row-actions";
-import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
-import { AllergyTypeFormDialog } from "@/presentation/features/allergies/allergy-type-form-dialog";
-import { AllergyUsagePanel } from "@/presentation/features/allergies/allergy-usage-panel";
-import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
+import { AllergyTypeFormDialog } from "@/features/allergies/components/allergy-type-form-dialog";
+import { AllergyUsagePanel } from "@/features/allergies/components/allergy-usage-panel";
+import { PAGE_SIZE, useCrudPage } from "@/hooks/use-crud-page";
 
 /** Why an allergy type cannot be deleted yet, or undefined when it can. */
 function inUseReason(allergy: AllergyType): string | undefined {

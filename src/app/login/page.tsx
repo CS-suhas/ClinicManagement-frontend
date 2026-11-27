@@ -5,15 +5,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { needsOnboarding } from "@/application/auth/permissions";
+import { ErrorCallout } from "@/components/error-callout";
+import { PublicNavbar } from "@/components/public-navbar";
+import { PersonAvatar } from "@/components/ui/person-avatar";
+import { Surface } from "@/components/ui/surface";
 import { useService } from "@/di/container-provider";
-import { useAuth } from "@/presentation/auth/auth-provider";
-import { RoleBadges } from "@/presentation/auth/role-badges";
-import { ErrorCallout } from "@/presentation/components/error-callout";
-import { PublicNavbar } from "@/presentation/components/public-navbar";
-import { PersonAvatar } from "@/presentation/components/ui/person-avatar";
-import { Surface } from "@/presentation/components/ui/surface";
-import { getErrorMessage } from "@/presentation/lib/errors";
-import { safeNext } from "@/presentation/lib/safe-next";
+import { useAuth } from "@/features/auth/auth-provider";
+import { RoleBadges } from "@/features/auth/role-badges";
+import { getErrorMessage } from "@/lib/errors";
+import { safeNext } from "@/lib/safe-next";
 
 function LoginContent() {
   const router = useRouter();

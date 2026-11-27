@@ -2,33 +2,30 @@
 
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { useState } from "react";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { type Column, DataTable } from "@/components/data-table";
+import { ErrorCallout } from "@/components/error-callout";
+import { ALL_FILTER, FilterSelect } from "@/components/filter-select";
+import { ClinicChip } from "@/components/glance/clinic-chip";
+import { DoctorChip } from "@/components/glance/doctor-chip";
+import { StatusPill } from "@/components/glance/status-chip";
+import { ListPage } from "@/components/list-page";
+import { useNotify } from "@/components/notifications";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useService } from "@/di/container-provider";
 import {
   PROVIDER_GENDER_LABELS,
   type Provider,
   providerFullName,
 } from "@/domain/entities";
-import { useAuth } from "@/presentation/auth/auth-provider";
-import { ConfirmActionDialog } from "@/presentation/components/confirm-action-dialog";
-import { ConfirmDeleteDialog } from "@/presentation/components/confirm-delete-dialog";
-import { type Column, DataTable } from "@/presentation/components/data-table";
-import { ErrorCallout } from "@/presentation/components/error-callout";
-import {
-  ALL_FILTER,
-  FilterSelect,
-} from "@/presentation/components/filter-select";
-import { ClinicChip } from "@/presentation/components/glance/clinic-chip";
-import { DoctorChip } from "@/presentation/components/glance/doctor-chip";
-import { StatusPill } from "@/presentation/components/glance/status-chip";
-import { ListPage } from "@/presentation/components/list-page";
-import { useNotify } from "@/presentation/components/notifications";
-import { TableSkeleton } from "@/presentation/components/ui/table-skeleton";
-import { ProviderDetails } from "@/presentation/features/providers/provider-details";
-import { ProviderFormDialog } from "@/presentation/features/providers/provider-form-dialog";
-import { useAsyncData } from "@/presentation/hooks/use-async-data";
-import { PAGE_SIZE, useCrudPage } from "@/presentation/hooks/use-crud-page";
-import { invalidateGlanceData } from "@/presentation/hooks/use-glance-data";
-import { formatFee } from "@/presentation/lib/format";
+import { useAuth } from "@/features/auth/auth-provider";
+import { ProviderDetails } from "@/features/providers/components/provider-details";
+import { ProviderFormDialog } from "@/features/providers/components/provider-form-dialog";
+import { useAsyncData } from "@/hooks/use-async-data";
+import { PAGE_SIZE, useCrudPage } from "@/hooks/use-crud-page";
+import { invalidateGlanceData } from "@/hooks/use-glance-data";
+import { formatFee } from "@/lib/format";
 
 type Decision = "verify" | "reject";
 

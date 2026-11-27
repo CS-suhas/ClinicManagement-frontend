@@ -13,9 +13,9 @@ import type {
 } from "@/domain/repositories";
 import { delay } from "./local-storage-collection";
 
-interface Listable<T> {
+type Listable<T> = {
   list(): Promise<T[]>;
-}
+};
 
 const summary = (appointment: Appointment): PatientVisitSummary => ({
   id: appointment.id,

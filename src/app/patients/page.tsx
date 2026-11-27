@@ -1,9 +1,9 @@
 "use client";
 
 import { hasRole } from "@/application/auth/permissions";
-import { useAuth } from "@/presentation/auth/auth-provider";
-import { AdminPatientsView } from "@/presentation/features/patients/admin-patients-view";
-import { DoctorPatientsView } from "@/presentation/features/patients/doctor-patients-view";
+import { useAuth } from "@/features/auth/auth-provider";
+import { AdminPatientsView } from "@/features/patients/components/admin-patients-view";
+import { DoctorPatientsView } from "@/features/patients/components/doctor-patients-view";
 
 /** Admins manage every patient; doctors see the patients they have seen or booked. */
 export default function Page() {

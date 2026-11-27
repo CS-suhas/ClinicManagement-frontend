@@ -1,6 +1,6 @@
 "use client";
 
-import { ApprovalsView } from "@/presentation/features/approvals/approvals-view";
+import { ApprovalsView } from "@/features/approvals/components/approvals-view";
 
 export default function ApprovalsPage() {
   return <ApprovalsView />;

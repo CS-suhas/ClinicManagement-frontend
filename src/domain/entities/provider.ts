@@ -11,7 +11,7 @@ export const PROVIDER_GENDER_LABELS: Record<ProviderGender, string> = {
   OTHER: "Other",
 };
 
-export interface Provider {
+export type Provider = {
   id: string;
   /** Every provider belongs to a clinic, including a PENDING self-registered one. */
   clinicId: string;
@@ -22,7 +22,7 @@ export interface Provider {
   fee?: number | null;
   gender?: ProviderGender | null;
   verificationStatus?: VerificationStatus;
-}
+};
 
 /** What the admin form sends. Verification is set by the backend, not here. */
 export type ProviderInput = Omit<Provider, "id" | "verificationStatus">;
@@ -37,18 +37,18 @@ const isProviderGender = (value: string): value is ProviderGender =>
   (PROVIDER_GENDERS as readonly string[]).includes(value.toUpperCase());
 
 /** The fields every provider has, whether an admin creates it or the doctor registers. */
-export interface ProviderDetails {
+export type ProviderDetails = {
   firstName: string;
   lastName: string;
   specialty: string;
   fee?: number | null;
   gender?: ProviderGender | null;
-}
+};
 
 /** What a doctor sends to register themself, at the clinic they practise at. */
-export interface ProviderRegistrationInput extends ProviderDetails {
+export type ProviderRegistrationInput = ProviderDetails & {
   clinicId: string;
-}
+};
 
 function validateProviderDetails(input: ProviderDetails): FieldErrors {
   const errors: FieldErrors = {};

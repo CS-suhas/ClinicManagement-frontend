@@ -30,13 +30,13 @@ export const ROUTE_ROLES = {
 /** Nav badges the shell fills from the signed-in user's dashboard counts. */
 export type NavBadge = "approvals" | "clinicApprovals";
 
-export interface NavItem {
+export type NavItem = {
   href: string;
   label: string;
   /** Roles that can see the item; `null` means any signed-in user. */
   roles: readonly Role[] | null;
   badge?: NavBadge;
-}
+};
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", roles: ROUTE_ROLES["/dashboard"] },

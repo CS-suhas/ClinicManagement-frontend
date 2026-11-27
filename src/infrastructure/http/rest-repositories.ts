@@ -32,10 +32,10 @@ import type { HttpClient } from "./http-client";
 import { queryString } from "./query-string";
 
 /** Translates between the API's JSON and the domain's shapes. */
-export interface RestMapper<T, TInput, TResponse> {
+export type RestMapper<T, TInput, TResponse> = {
   fromResponse(response: TResponse): T;
   toRequest(input: TInput): object;
-}
+};
 
 /**
  * For resources whose API response already has the domain shape. The

@@ -32,22 +32,22 @@ const PAGE_SIZE = 100;
 const MAX_PAGES = 20;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-export interface AppointmentDayQuery {
+export type AppointmentDayQuery = {
   /** Local calendar day, "YYYY-MM-DD". */
   date: string;
   /** Only these providers. An empty array matches nothing. */
   providerIds?: string[];
   patientId?: string;
   clinicId?: string;
-}
+};
 
 /** What a patient picks on the booking screens. */
-export interface PatientBookingInput {
+export type PatientBookingInput = {
   providerId: string;
   /** Local `YYYY-MM-DDTHH:mm`. The service adds the offset. */
   appointmentDateTime: string;
   reasonForVisit: string;
-}
+};
 
 /**
  * What the signed-in user may see on the appointments page. Mirrors the

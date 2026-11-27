@@ -1,14 +1,14 @@
 import type { FieldErrors } from "../errors";
 import { isBlank, isPhone } from "../validation";
 
-export interface Clinic {
+export type Clinic = {
   id: string;
   name: string;
   location: string | null;
   phoneNumber: string;
   /** Verified doctors. Optional: only list and search responses carry it. */
   providerCount?: number;
-}
+};
 
 export type ClinicInput = Omit<Clinic, "id" | "providerCount">;
 

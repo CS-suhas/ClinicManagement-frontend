@@ -13,21 +13,21 @@ import type { VisitCounts } from "./glance";
  */
 
 /** A visit in a patient summary. The patient is implied, so no patient fields. */
-export interface SummaryVisit {
+export type SummaryVisit = {
   id: string;
   appointmentDateTime: string;
   reasonForVisit: string | null;
   status: AppointmentStatus;
   providerName: string;
-}
+};
 
-export interface SummaryAllergy {
+export type SummaryAllergy = {
   allergyId: string;
   name: string;
   severity: Severity;
-}
+};
 
-export interface PatientSummaryData {
+export type PatientSummaryData = {
   patient: Patient;
   allergies: SummaryAllergy[];
   /** Latest past visit, ignoring DECLINED and CANCELLED. */
@@ -37,12 +37,12 @@ export interface PatientSummaryData {
   counts: VisitCounts;
   /** The latest three visits, any status, newest first. */
   recent: SummaryVisit[];
-}
+};
 
 /** A provider with the name of its clinic (null when it has none). */
 export type SummaryProvider = Provider & { clinicName: string | null };
 
-export interface ClinicSummaryData {
+export type ClinicSummaryData = {
   clinic: Clinic;
   /** Verified doctors at the clinic. */
   providerCount: number;
@@ -52,9 +52,9 @@ export interface ClinicSummaryData {
   topSpecialties: string[];
   /** Up to five verified doctors. */
   providers: SummaryProvider[];
-}
+};
 
-export interface ProviderSummaryData {
+export type ProviderSummaryData = {
   provider: SummaryProvider;
   clinic: Clinic;
   /**
@@ -63,37 +63,37 @@ export interface ProviderSummaryData {
    */
   nextAvailableStart: string | null;
   todayAppointmentCount: number;
-}
+};
 
-export interface SearchPatientHit {
+export type SearchPatientHit = {
   id: string;
   name: string;
   /** The patient's email. */
   subtitle: string;
-}
+};
 
-export interface SearchProviderHit {
+export type SearchProviderHit = {
   id: string;
   name: string;
   specialty: string;
   /** Null when the API cannot resolve the clinic's name. */
   clinicName: string | null;
-}
+};
 
-export interface SearchClinicHit {
+export type SearchClinicHit = {
   id: string;
   name: string;
   address: string | null;
-}
+};
 
-export interface SearchResults {
+export type SearchResults = {
   patients: SearchPatientHit[];
   providers: SearchProviderHit[];
   clinics: SearchClinicHit[];
-}
+};
 
 /** Port: server-side summaries and global search. */
-export interface SummaryRepository {
+export type SummaryRepository = {
   /** 403 for a caller who may not see the patient; 404 for an unknown patient to an admin. */
   getPatientSummary(id: string): Promise<PatientSummaryData>;
   /** Signed in. 404 for an unknown clinic. */
@@ -102,4 +102,4 @@ export interface SummaryRepository {
   getProviderSummary(id: string): Promise<ProviderSummaryData>;
   /** Signed in. `q` must be at least 2 characters (ValidationError on "q"); `limit` is 1-20. */
   search(q: string, limit: number): Promise<SearchResults>;
-}
+};

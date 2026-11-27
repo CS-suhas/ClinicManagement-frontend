@@ -12,7 +12,7 @@ import {
 } from "@/domain/entities";
 import type { AppointmentListItem } from "@/domain/repositories";
 
-export interface AppointmentLookups {
+export type AppointmentLookups = {
   patients: Pick<Patient, "id" | "firstName" | "lastName">[];
   providers: Pick<
     Provider,
@@ -24,7 +24,7 @@ export interface AppointmentLookups {
    * each item. Omit to leave both fields out.
    */
   allergies?: Pick<PatientAllergy, "patientId" | "severity">[];
-}
+};
 
 /**
  * Joins appointments with patient, provider and clinic names, as the list

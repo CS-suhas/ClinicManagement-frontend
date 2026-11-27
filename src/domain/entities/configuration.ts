@@ -1,8 +1,8 @@
-export interface AppointmentSettings {
+export type AppointmentSettings = {
   appointmentDurationMinutes: number;
   clinicOpeningTime: string;
   clinicClosingTime: string;
-}
+};
 
 /** "HH:mm" or "HH:mm:ss" to minutes since midnight; null when malformed. */
 export function clockToMinutes(time: string): number | null {
