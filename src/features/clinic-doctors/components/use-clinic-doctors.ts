@@ -1,33 +1,34 @@
 "use client";
 
-import { useService } from "@/di/container-provider";
-import type { VerificationStatus } from "@/domain/auth";
-import { type Provider, providerFullName } from "@/domain/entities";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { VerificationStatus } from "@/features/auth/schemas";
 import { announceCountsChanged } from "@/features/notification-bell/components/use-my-dashboard";
-import { useAsyncData } from "@/hooks/use-async-data";
+import {
+  fetchClinicProviders,
+  rejectProvider,
+  verifyProvider,
+} from "@/features/providers/api";
+import type { Provider } from "@/features/providers/schemas";
+import { providerFullName } from "@/features/providers/utils";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { getErrorMessage } from "@/lib/errors";
 
 const statusOf = (p: Provider): VerificationStatus =>
   p.verificationStatus ?? "PENDING";
 
 export function useClinicDoctors(clinicId: string | null) {
-  const providerService = useService("providerService");
-  const { data, loading, error, reload, refresh, mutate } = useAsyncData<
-    Provider[]
-  >(
-    () =>
-      clinicId ? providerService.clinicRoster(clinicId) : Promise.resolve([]),
-    clinicId ?? "",
-  );
-  const doctors = data ?? [];
-
-  const runOptimistic = useOptimisticMutations(() => {
-    void refresh();
-    announceCountsChanged();
+  const queryClient = useQueryClient();
+  const queryKey = ["providers", "clinic", clinicId ?? ""];
+  const query = useQuery({
+    queryKey,
+    queryFn: () => (clinicId ? fetchClinicProviders(clinicId) : []),
   });
+  const doctors = query.data ?? [];
+
+  const runOptimistic = useOptimisticMutations();
 
   const setStatus = (id: string, status: VerificationStatus) =>
-    mutate((current) =>
+    queryClient.setQueryData<Provider[]>(queryKey, (current) =>
       current?.map((p) =>
         p.id === id ? { ...p, verificationStatus: status } : p,
       ),
@@ -39,7 +40,7 @@ export function useClinicDoctors(clinicId: string | null) {
     runOptimistic({
       apply: () => setStatus(row.id, "VERIFIED"),
       rollback: () => setStatus(row.id, before),
-      request: () => providerService.verify(row.id),
+      request: () => verifyProvider(row.id).finally(announceCountsChanged),
       failureMessage: `Could not admit ${name}`,
       successMessage: `${name} admitted`,
     });
@@ -50,7 +51,7 @@ export function useClinicDoctors(clinicId: string | null) {
     runOptimistic({
       apply: () => setStatus(row.id, "REJECTED"),
       rollback: () => setStatus(row.id, "PENDING"),
-      request: () => providerService.reject(row.id),
+      request: () => rejectProvider(row.id).finally(announceCountsChanged),
       failureMessage: `Could not decline ${name}`,
       successMessage: `${name} declined`,
       undo: {},
@@ -60,5 +61,13 @@ export function useClinicDoctors(clinicId: string | null) {
   const byStatus = (status: VerificationStatus) =>
     doctors.filter((p) => statusOf(p) === status);
 
-  return { doctors, byStatus, loading, error, reload, verify, reject };
+  return {
+    doctors,
+    byStatus,
+    loading: query.isPending,
+    error: query.error ? getErrorMessage(query.error) : null,
+    reload: () => void query.refetch(),
+    verify,
+    reject,
+  };
 }

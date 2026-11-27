@@ -1,10 +1,10 @@
+import type { AppointmentSettings } from "../schemas";
 import {
-  type AppointmentSettings,
   clockToMinutes,
   isWithinClinicHours,
   minutesToClock,
   overlapsBusyStart,
-} from "@/domain/entities";
+} from "../utils";
 
 export type SlotPeriod = "Morning" | "Afternoon" | "Evening";
 

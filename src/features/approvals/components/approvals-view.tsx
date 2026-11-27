@@ -10,8 +10,8 @@ import { SearchField } from "@/components/search-field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
-import type { Provider } from "@/domain/entities";
-import { providerFullName } from "@/domain/entities";
+import type { Provider } from "@/features/providers/schemas";
+import { providerFullName } from "@/features/providers/utils";
 import { formatFee } from "@/lib/format";
 import { type ApprovalTab, useDoctorApprovals } from "./use-doctor-approvals";
 

@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useNotify } from "@/components/notifications";
-import { useService } from "@/di/container-provider";
-import {
-  overlapsBusyStart,
-  validateAppointmentSchedule,
-} from "@/domain/entities";
-import { ConflictError } from "@/domain/errors";
 import { useAuth } from "@/features/auth/auth-provider";
 import { canBookOnline } from "@/features/auth/permissions";
-import { useAsyncData } from "@/hooks/use-async-data";
-import { useFormSubmit } from "@/hooks/use-form-submit";
+import { ApiError } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  useAppointmentSettings,
+  useBookAppointment,
+  useBusyStarts,
+  usePatient,
+} from "../api";
+import { bookingTimeError, overlapsBusyStart } from "../utils";
 import type { DoctorProfile } from "./doctor-profile";
 import { toDateKey } from "./time-slots";
 
@@ -28,72 +29,45 @@ export type BookingChoice = {
 };
 
 export function useDoctorBooking() {
-  const appointmentService = useService("appointmentService");
-  const configurationService = useService("configurationService");
-  const patientService = useService("patientService");
   const { user } = useAuth();
   const { notifyError } = useNotify();
-  const { submitting, formError, run, reset } = useFormSubmit();
+  const book = useBookAppointment();
 
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [choice, setChoice] = useState<BookingChoice | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [dateKey, setDateKey] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const providerId = (choice?.doctor ?? doctor)?.id;
   const ownPatientId =
     user && canBookOnline(user) ? user.patient?.id : undefined;
 
   const detailsPatientId = choice ? ownPatientId : undefined;
-  const ownPatient = useAsyncData(
-    () =>
-      detailsPatientId
-        ? patientService.get(detailsPatientId)
-        : Promise.resolve(undefined),
-    detailsPatientId ?? "",
-  );
-
-  const settings = useAsyncData(() =>
-    configurationService.getAppointmentSettings(),
-  );
-  const busy = useAsyncData(
-    () =>
-      providerId && dateKey
-        ? appointmentService.busyStarts(providerId, dateKey)
-        : Promise.resolve<string[]>([]),
-    `${providerId ?? ""}|${dateKey}`,
-  );
+  const ownPatient = usePatient(detailsPatientId);
+  const settings = useAppointmentSettings();
+  const busy = useBusyStarts(providerId, dateKey);
 
   useEffect(() => {
-    if (settings.error) notifyError(settings.error);
+    if (settings.error) notifyError(getErrorMessage(settings.error));
   }, [settings.error, notifyError]);
   useEffect(() => {
-    if (busy.error) notifyError(busy.error);
+    if (busy.error) notifyError(getErrorMessage(busy.error));
   }, [busy.error, notifyError]);
 
   const busyStarts = busy.data ?? [];
 
   const confirm = async (details: BookingDetails) => {
     if (!choice || !ownPatientId) return;
-    const ok = await run(async () => {
+    setFormError(null);
+    try {
       if (!settings.data)
         throw new Error(
           "Appointment settings could not be loaded from the API.",
         );
       const reasonForVisit = details.reasonForVisit.trim();
-      const scheduleErrors = validateAppointmentSchedule(
-        {
-          patientId: ownPatientId,
-          providerId: choice.doctor.id,
-          appointmentDateTime: choice.dateTime,
-          reasonForVisit,
-        },
-        settings.data,
-        [],
-      );
-      if (scheduleErrors.appointmentDateTime)
-        throw new Error(
-          `${scheduleErrors.appointmentDateTime}. Go back and pick another time.`,
-        );
+      const timeError = bookingTimeError(choice.dateTime, settings.data);
+      if (timeError)
+        throw new Error(`${timeError}. Go back and pick another time.`);
       if (
         overlapsBusyStart(
           choice.dateTime,
@@ -104,21 +78,21 @@ export function useDoctorBooking() {
         throw new Error(SLOT_TAKEN_MESSAGE);
 
       try {
-        await appointmentService.bookAsPatient(
-          {
-            providerId: choice.doctor.id,
-            appointmentDateTime: choice.dateTime,
-            reasonForVisit,
-          },
-          user,
-        );
+        await book.mutateAsync({
+          patientId: ownPatientId,
+          providerId: choice.doctor.id,
+          dateTime: choice.dateTime,
+          reasonForVisit,
+        });
       } catch (e) {
-        if (e instanceof ConflictError) throw new Error(SLOT_TAKEN_MESSAGE);
+        if (e instanceof ApiError && e.status === 409)
+          throw new Error(SLOT_TAKEN_MESSAGE);
         throw e;
       }
-      await busy.refresh();
-    });
-    if (ok) setConfirmed(true);
+      setConfirmed(true);
+    } catch (e) {
+      setFormError(getErrorMessage(e));
+    }
   };
 
   const finish = () => {
@@ -126,7 +100,7 @@ export function useDoctorBooking() {
     setDoctor(null);
     setDateKey("");
     setConfirmed(false);
-    reset();
+    setFormError(null);
   };
 
   return {
@@ -142,21 +116,21 @@ export function useDoctorBooking() {
     bookedStarts: busyStarts,
     choice,
     chooseSlot: (chosen: DoctorProfile, dateTime: string) => {
-      reset();
+      setFormError(null);
       setChoice({ doctor: chosen, dateTime });
       setDoctor(null);
     },
     backToSlots: () => {
       if (choice) setDoctor(choice.doctor);
       setChoice(null);
-      reset();
+      setFormError(null);
     },
     patient: ownPatient.data,
-    patientError: ownPatient.error,
+    patientError: ownPatient.error ? getErrorMessage(ownPatient.error) : null,
     confirmed,
     confirm,
     finish,
-    submitting,
+    submitting: book.isPending,
     formError,
   };
 }

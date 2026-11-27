@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge, Button, Flex, Select, Tabs, Text } from "@radix-ui/themes";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AsyncContent } from "@/components/async-content";
 import { type Column, DataTable } from "@/components/data-table";
@@ -9,12 +10,11 @@ import { SearchField } from "@/components/search-field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
-import { useService } from "@/di/container-provider";
-import type { VerificationStatus } from "@/domain/auth";
-import type { Clinic, Provider } from "@/domain/entities";
-import { providerFullName } from "@/domain/entities";
 import { useAuth } from "@/features/auth/auth-provider";
-import { useAsyncData } from "@/hooks/use-async-data";
+import type { VerificationStatus } from "@/features/auth/schemas";
+import { fetchClinic } from "@/features/providers/api";
+import type { Provider } from "@/features/providers/schemas";
+import { providerFullName } from "@/features/providers/utils";
 import { formatFee } from "@/lib/format";
 import { useClinicDoctors } from "./use-clinic-doctors";
 
@@ -46,17 +46,16 @@ const EMPTY_COPY: Record<
 export function ClinicDoctorsView() {
   const { user } = useAuth();
   const clinicIds = user?.clinicAdminOf ?? [];
-  const clinicService = useService("clinicService");
   const [selected, setSelected] = useState<string | null>(null);
   const clinicId =
     selected && clinicIds.includes(selected)
       ? selected
       : (clinicIds[0] ?? null);
 
-  const clinics = useAsyncData<Clinic[]>(
-    () => Promise.all(clinicIds.map((id) => clinicService.get(id))),
-    clinicIds.join(","),
-  );
+  const clinics = useQuery({
+    queryKey: ["clinics", "administered", clinicIds.join(",")],
+    queryFn: () => Promise.all(clinicIds.map((id) => fetchClinic(id))),
+  });
   const clinic = clinics.data?.find((c) => c.id === clinicId) ?? null;
 
   const [tab, setTab] = useState<VerificationStatus>("PENDING");

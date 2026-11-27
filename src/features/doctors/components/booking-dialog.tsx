@@ -2,8 +2,8 @@
 
 import { Cross2Icon, HomeIcon } from "@radix-ui/react-icons";
 import { Button, Dialog, Flex, IconButton, Text } from "@radix-ui/themes";
-import { useEffect, useMemo, useState } from "react";
-import type { AppointmentSettings } from "@/domain/entities";
+import { useMemo, useState } from "react";
+import type { AppointmentSettings } from "../schemas";
 import { DoctorAvatar } from "./doctor-avatar";
 import type { DoctorProfile } from "./doctor-profile";
 import { SlotPicker } from "./slot-picker";
@@ -31,13 +31,12 @@ export function BookingDialog({
   onContinue,
 }: BookingDialogProps) {
   const days = useMemo(() => upcomingDays(DAYS_AHEAD), []);
-  const [slot, setSlot] = useState("");
   const doctorId = doctor?.id;
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: start fresh for each doctor.
-  useEffect(() => {
-    setSlot("");
-  }, [doctorId]);
+  const [picked, setPicked] = useState<{ doctorId?: string; value: string }>({
+    value: "",
+  });
+  const slot = picked.doctorId === doctorId ? picked.value : "";
+  const setSlot = (value: string) => setPicked({ doctorId, value });
 
   const slots = useMemo(
     () => (settings ? buildSlots(dateKey, settings, bookedStarts) : []),

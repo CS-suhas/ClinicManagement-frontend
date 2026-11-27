@@ -2,13 +2,15 @@
 
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { Dialog, Flex, IconButton, Spinner, Text } from "@radix-ui/themes";
+import { useQuery } from "@tanstack/react-query";
 import { ErrorCallout } from "@/components/error-callout";
 import { SearchField } from "@/components/search-field";
 import { PersonAvatar } from "@/components/ui/person-avatar";
-import { useService } from "@/di/container-provider";
-import { providerFullName } from "@/domain/entities";
-import { useSearchOptions } from "@/hooks/use-search-options";
+import { providerFullName } from "@/features/providers/utils";
+import { usePagedSearch } from "@/hooks/use-paged-search";
+import { getErrorMessage } from "@/lib/errors";
 import { formatFee } from "@/lib/format";
+import { fetchDirectory } from "../api";
 import { type DoctorProfile, toDoctorProfile } from "./doctor-profile";
 
 export type DoctorPickerDialogProps = {
@@ -22,11 +24,17 @@ export function DoctorPickerDialog({
   onOpenChange,
   onPick,
 }: DoctorPickerDialogProps) {
-  const providerService = useService("providerService");
-  const { items, query, setQuery, loading, error, reload } = useSearchOptions(
-    open,
-    (search) => providerService.directory({ search, page: 1, pageSize: 50 }),
-  );
+  const { query, search, setQueryNow } = usePagedSearch();
+  const directory = useQuery({
+    queryKey: ["providers", "directory", "picker", search],
+    queryFn: () =>
+      fetchDirectory({ search: search || undefined, page: 1, pageSize: 50 }),
+    enabled: open,
+  });
+  const items = directory.data?.items ?? [];
+  const loading = directory.isPending;
+  const error = directory.error ? getErrorMessage(directory.error) : null;
+  const reload = () => void directory.refetch();
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -48,7 +56,7 @@ export function DoctorPickerDialog({
             size="2"
             fullWidth
             value={query}
-            onChange={setQuery}
+            onChange={setQueryNow}
             placeholder="Search doctors"
           />
         </div>

@@ -7,26 +7,22 @@ import {
 } from "@/components/glance/glance-popover";
 import { StatusPill } from "@/components/glance/status-chip";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { useService } from "@/di/container-provider";
-import type { Provider } from "@/domain/entities";
-import type { ProviderSummary, VisitFact } from "@/domain/repositories/glance";
-import { useGlanceData } from "@/hooks/use-glance-data";
+import { useCanViewProviderSchedule } from "@/features/doctors/api";
+import { getErrorMessage } from "@/lib/errors";
 import { formatFee } from "@/lib/format";
+import { useProviderPanel, useProviderUpcoming } from "../api";
+import type { Provider } from "../schemas";
 
 const heading = "mb-2 text-[12px] font-semibold uppercase tracking-wide";
 
 export function ProviderDetails({ provider }: { provider: Provider }) {
-  const glance = useService("glanceService");
-  const summary = useGlanceData<ProviderSummary>(
-    `provider:${provider.id}`,
-    () => glance.getProviderSummary(provider.id),
-  );
-  const upcoming = useGlanceData<VisitFact[]>(
-    `provider-upcoming:${provider.id}`,
-    () => glance.getProviderUpcoming(provider.id, 5),
-  );
+  const canSeeUpcoming = useCanViewProviderSchedule(provider.id);
+  const summary = useProviderPanel(provider.id);
+  const upcoming = useProviderUpcoming(provider.id, canSeeUpcoming);
   const clinic = summary.data?.clinic;
   const slots = summary.data?.todaySlots;
+  const summaryError = summary.error ? getErrorMessage(summary.error) : null;
+  const upcomingError = upcoming.error ? getErrorMessage(upcoming.error) : null;
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -34,20 +30,21 @@ export function ProviderDetails({ provider }: { provider: Provider }) {
         <h3 className={heading} style={{ color: "var(--mp-muted)" }}>
           Clinic
         </h3>
-        {summary.error && (
-          <GlanceError message={summary.error} onRetry={summary.retry} />
+        {summaryError && (
+          <GlanceError
+            message={summaryError}
+            onRetry={() => void summary.refetch()}
+          />
         )}
-        {!summary.error && summary.loading && !summary.data && (
-          <GlanceSkeleton rows={2} />
-        )}
+        {!summaryError && summary.isPending && <GlanceSkeleton rows={2} />}
         {summary.data && (
           <Flex direction="column" gap="1">
             <Text size="2" weight="medium" style={{ color: "var(--mp-ink)" }}>
               {clinic?.name ?? "Clinic details unavailable"}
             </Text>
-            {clinic?.location && (
+            {clinic?.address && (
               <Text size="2" style={{ color: "var(--mp-muted)" }}>
-                {clinic.location}
+                {clinic.address}
               </Text>
             )}
             {clinic?.phoneNumber && (
@@ -82,12 +79,13 @@ export function ProviderDetails({ provider }: { provider: Provider }) {
         <h3 className={heading} style={{ color: "var(--mp-muted)" }}>
           Next appointments
         </h3>
-        {upcoming.error && (
-          <GlanceError message={upcoming.error} onRetry={upcoming.retry} />
+        {upcomingError && (
+          <GlanceError
+            message={upcomingError}
+            onRetry={() => void upcoming.refetch()}
+          />
         )}
-        {!upcoming.error && upcoming.loading && !upcoming.data && (
-          <GlanceSkeleton rows={3} />
-        )}
+        {!upcomingError && upcoming.isPending && <GlanceSkeleton rows={3} />}
         {upcoming.data && upcoming.data.length === 0 && (
           <Text size="2" style={{ color: "var(--mp-muted)" }}>
             No upcoming appointments.

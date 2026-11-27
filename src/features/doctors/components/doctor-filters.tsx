@@ -8,8 +8,8 @@ import {
   Text,
 } from "@radix-ui/themes";
 import type { ReactNode } from "react";
-import type { Clinic } from "@/domain/entities";
 import { formatFeeShort } from "@/lib/format";
+import type { Clinic } from "../schemas";
 
 export const FEE_RANGE = { min: 0, max: 10000, step: 250 };
 

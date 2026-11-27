@@ -1,15 +1,11 @@
-import {
-  type Clinic,
-  type ProviderGender,
-  providerFullName,
-} from "@/domain/entities";
-import type { ProviderDirectoryEntry } from "@/domain/repositories";
+import { providerFullName } from "@/features/providers/utils";
+import type { Clinic, ProviderDirectoryEntry } from "../schemas";
 
-const GENDER_KEYS: Record<ProviderGender, Lowercase<ProviderGender>> = {
+const GENDER_KEYS = {
   MALE: "male",
   FEMALE: "female",
   OTHER: "other",
-};
+} as const;
 
 export type DoctorProfile = {
   id: string;
@@ -23,7 +19,7 @@ export type DoctorProfile = {
   rating?: number;
   experienceYears?: number;
   consultationFee?: number;
-  gender?: Lowercase<ProviderGender>;
+  gender?: (typeof GENDER_KEYS)[keyof typeof GENDER_KEYS];
 };
 
 export function toDoctorProfile(
@@ -36,7 +32,7 @@ export function toDoctorProfile(
     specialties: [provider.specialty],
     clinicId: provider.clinicId,
     clinicName: provider.clinicName ?? clinic?.name ?? "",
-    location: clinic?.location ?? null,
+    location: clinic?.address ?? null,
     phone: clinic?.phoneNumber || null,
     consultationFee: provider.fee ?? undefined,
     gender: provider.gender ? GENDER_KEYS[provider.gender] : undefined,

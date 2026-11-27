@@ -1,79 +1,73 @@
 "use client";
 
-import { FormDialog } from "@/components/form-dialog";
-import { SelectFormField, TextFormField } from "@/components/form-fields";
+import type { Option } from "@/components/form";
 import {
-  type Clinic,
-  PROVIDER_GENDER_LABELS,
-  PROVIDER_GENDERS,
+  FormDialog,
+  NumberInput,
+  SelectInput,
+  TextInput,
+} from "@/components/form";
+import { useSaveProvider } from "../api";
+import {
+  ProviderGender as GenderSchema,
   type Provider,
-  type ProviderInput,
-} from "@/domain/entities";
-import { useEntityForm } from "@/hooks/use-entity-form";
+  type ProviderGender,
+  providerForm,
+  providerGenderLabels,
+} from "../schemas";
 
-const EMPTY: ProviderInput = {
-  clinicId: "",
-  firstName: "",
-  lastName: "",
-  specialty: "",
-  fee: null,
-  gender: null,
-};
-
-const NOT_SPECIFIED = "NOT_SPECIFIED";
-const GENDER_OPTIONS = [
-  { value: NOT_SPECIFIED, label: "Not specified" },
-  ...PROVIDER_GENDERS.map((g) => ({
+const genderOptions: Option[] = GenderSchema.options.map(
+  (g: ProviderGender) => ({
     value: g,
-    label: PROVIDER_GENDER_LABELS[g],
-  })),
-];
+    label: providerGenderLabels[g],
+  }),
+);
 
 export function ProviderFormDialog({
   open,
   onOpenChange,
   provider,
   clinics,
-  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   provider: Provider | null;
-  clinics: Clinic[];
-  onSave: (input: ProviderInput, editing: Provider | null) => void;
+  clinics: { id: string; name: string }[];
 }) {
-  const form = useEntityForm({
-    entityName: "provider",
-    idPrefix: "provider",
-    open,
-    onOpenChange,
-    onSave,
-    entity: provider,
-    empty: EMPTY,
-  });
+  const save = useSaveProvider();
 
   return (
-    <FormDialog {...form.dialogProps}>
-      <TextFormField label="First name" {...form.field("firstName")} />
-      <TextFormField label="Last name" {...form.field("lastName")} />
-      <TextFormField label="Specialty" {...form.field("specialty")} />
-      <SelectFormField
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={provider ? "Edit provider" : "New provider"}
+      submitLabel={provider ? "Save changes" : "Create provider"}
+      schema={providerForm}
+      defaultValues={{
+        clinicId: provider?.clinicId ?? "",
+        firstName: provider?.firstName ?? "",
+        lastName: provider?.lastName ?? "",
+        specialty: provider?.specialty ?? "",
+        fee: provider?.fee ?? null,
+        gender: provider?.gender ?? null,
+      }}
+      onSubmit={(values) => save.mutateAsync({ id: provider?.id, values })}
+    >
+      <TextInput name="firstName" label="First name" />
+      <TextInput name="lastName" label="Last name" />
+      <TextInput name="specialty" label="Specialty" />
+      <SelectInput
+        name="clinicId"
         label="Clinic"
         placeholder="Select a clinic"
         options={clinics.map((c) => ({ value: c.id, label: c.name }))}
-        {...form.selectField("clinicId")}
       />
-      <TextFormField
-        label="Fee"
-        type="number"
-        min={0}
-        step={0.01}
-        {...form.numberField("fee")}
-      />
-      <SelectFormField
+      <NumberInput name="fee" label="Fee" min={0} step={0.01} />
+      <SelectInput
+        name="gender"
         label="Gender"
-        options={GENDER_OPTIONS}
-        {...form.nullableSelectField("gender", NOT_SPECIFIED)}
+        options={genderOptions}
+        noneLabel="Not specified"
       />
     </FormDialog>
   );

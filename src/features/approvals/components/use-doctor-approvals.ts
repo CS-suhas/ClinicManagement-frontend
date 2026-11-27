@@ -1,46 +1,44 @@
 "use client";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotify } from "@/components/notifications";
-import { useService } from "@/di/container-provider";
-import { type Provider, providerFullName } from "@/domain/entities";
+import type { VerificationStatus } from "@/features/auth/schemas";
 import { announceCountsChanged } from "@/features/notification-bell/components/use-my-dashboard";
-import { useAsyncData } from "@/hooks/use-async-data";
+import {
+  rejectProvider,
+  searchProvidersByStatus,
+  verifyProvider,
+} from "@/features/providers/api";
+import type { Provider } from "@/features/providers/schemas";
+import { providerFullName } from "@/features/providers/utils";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { getErrorMessage } from "@/lib/errors";
 
-export type ApprovalTab = "PENDING" | "REJECTED" | "VERIFIED";
-
-const QUEUE_PAGE_SIZE = 100;
+export type ApprovalTab = VerificationStatus;
 
 export function useDoctorApprovals(tab: ApprovalTab, search: string) {
-  const providerService = useService("providerService");
+  const queryClient = useQueryClient();
   const { notifyError, notifySuccess } = useNotify();
-  const { data, loading, error, reload, refresh, mutate } = useAsyncData<
-    Provider[]
-  >(
-    async () =>
-      (
-        await providerService.searchByStatus({
-          verificationStatus: tab,
-          search: search || undefined,
-          page: 1,
-          pageSize: QUEUE_PAGE_SIZE,
-        })
-      ).items,
-    `${tab}|${search}`,
-  );
-  const providers = data ?? [];
-
-  const runOptimistic = useOptimisticMutations(() => {
-    void refresh();
-    announceCountsChanged();
+  const queryKey = ["providers", "verification", tab, search];
+  const query = useQuery({
+    queryKey,
+    queryFn: async () =>
+      (await searchProvidersByStatus(tab, search || undefined)).items,
   });
+  const providers = query.data ?? [];
+
+  const runOptimistic = useOptimisticMutations();
+
+  const mutateRows = (change: (rows: Provider[]) => Provider[]) =>
+    queryClient.setQueryData<Provider[]>(queryKey, (current) =>
+      current ? change(current) : current,
+    );
 
   const removeRow = (id: string) =>
-    mutate((current) => current?.filter((p) => p.id !== id));
+    mutateRows((current) => current.filter((p) => p.id !== id));
 
   const restoreRow = (row: Provider, index: number) =>
-    mutate((current) => {
-      if (!current) return current;
+    mutateRows((current) => {
       const next = current.filter((p) => p.id !== row.id);
       next.splice(Math.max(0, Math.min(index, next.length)), 0, row);
       return next;
@@ -52,7 +50,7 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
     runOptimistic({
       apply: () => removeRow(row.id),
       rollback: () => restoreRow(row, index),
-      request: () => providerService.verify(row.id),
+      request: () => verifyProvider(row.id).finally(announceCountsChanged),
       failureMessage: `Could not verify ${name}`,
       successMessage: `${name} verified`,
     });
@@ -64,7 +62,7 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
     runOptimistic({
       apply: () => removeRow(row.id),
       rollback: () => restoreRow(row, index),
-      request: () => providerService.reject(row.id),
+      request: () => rejectProvider(row.id).finally(announceCountsChanged),
       failureMessage: `Could not reject ${name}`,
       successMessage: `${name} rejected`,
       undo: {},
@@ -73,20 +71,20 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
 
   const verifyMany = async (rows: Provider[], clear: () => void) => {
     const ids = new Set(rows.map((r) => r.id));
-    mutate((current) => current?.filter((p) => !ids.has(p.id)));
+    mutateRows((current) => current.filter((p) => !ids.has(p.id)));
     clear();
     const failed: Provider[] = [];
     let verified = 0;
     for (const row of rows) {
       try {
-        await providerService.verify(row.id);
+        await verifyProvider(row.id);
         verified++;
       } catch {
         failed.push(row);
       }
     }
     if (failed.length > 0) {
-      mutate((current) => (current ? [...current, ...failed] : current));
+      mutateRows((current) => [...current, ...failed]);
       notifyError(
         `Could not verify ${failed.map(providerFullName).join(", ")}`,
       );
@@ -97,15 +95,15 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
           ? `${verified} verified, ${failed.length} failed`
           : `${verified} verified`,
       );
-    void refresh();
+    void queryClient.invalidateQueries();
     announceCountsChanged();
   };
 
   return {
     providers,
-    loading,
-    error,
-    reload,
+    loading: query.isPending,
+    error: query.error ? getErrorMessage(query.error) : null,
+    reload: () => void query.refetch(),
     verify,
     reject,
     verifyMany,

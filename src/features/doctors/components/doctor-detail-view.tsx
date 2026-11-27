@@ -10,10 +10,9 @@ import { PublicNavbar } from "@/components/public-navbar";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Surface } from "@/components/ui/surface";
-import { useService } from "@/di/container-provider";
 import { useAuth } from "@/features/auth/auth-provider";
-import { useAsyncData } from "@/hooks/use-async-data";
 import { formatFee } from "@/lib/format";
+import { useNextFreeSlot } from "../api";
 import { DoctorBookingDialogs } from "./doctor-booking-dialogs";
 import { useBookableDoctor } from "./use-bookable-doctor";
 import { useBookingGate } from "./use-booking-gate";
@@ -27,28 +26,24 @@ export function DoctorDetailView({ providerId }: { providerId: string }) {
 }
 
 function DoctorDetail({ providerId }: { providerId: string }) {
-  const glanceService = useService("glanceService");
   const searchParams = useSearchParams();
   const wantsBooking = searchParams.get("book") === "1";
   const { loading: authLoading } = useAuth();
   const gate = useBookingGate();
   const doctor = useBookableDoctor(providerId);
-  const nextFree = useAsyncData(
-    () => glanceService.getNextFreeSlot(providerId),
-    providerId,
-  );
+  const nextFree = useNextFreeSlot(providerId);
 
   const returnTo = `/doctors/${providerId}`;
   const bookReturnTo = `/doctors/${providerId}?book=1`;
 
   const autoOpened = useRef(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: opens once per page load.
+  const { requestBooking } = gate;
   useEffect(() => {
     if (!wantsBooking || autoOpened.current || authLoading || !doctor.data)
       return;
     autoOpened.current = true;
-    gate.requestBooking(doctor.data, bookReturnTo);
-  }, [wantsBooking, authLoading, doctor.data, bookReturnTo]);
+    requestBooking(doctor.data, bookReturnTo);
+  }, [wantsBooking, authLoading, doctor.data, bookReturnTo, requestBooking]);
 
   const name = doctor.data?.name ?? "Doctor";
 
@@ -157,7 +152,7 @@ function DoctorDetail({ providerId }: { providerId: string }) {
                       className="m-0 mt-1 text-base"
                       style={{ color: "var(--mp-ink)" }}
                     >
-                      {nextFree.loading && nextFree.data === undefined ? (
+                      {nextFree.isPending && nextFree.data === undefined ? (
                         "Checking availability…"
                       ) : nextFree.data ? (
                         <RelativeTime iso={nextFree.data} />

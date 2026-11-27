@@ -14,8 +14,9 @@ import {
 import { type FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/form-field";
 import { PersonAvatar } from "@/components/ui/person-avatar";
-import { type Patient, patientFullName } from "@/domain/entities";
 import { formatDateTime } from "@/lib/format";
+import type { Patient } from "../schemas";
+import { patientFullName } from "../utils";
 import { DoctorAvatar } from "./doctor-avatar";
 import type { BookingChoice, BookingDetails } from "./use-doctor-booking";
 
