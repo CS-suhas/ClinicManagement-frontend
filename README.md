@@ -62,5 +62,5 @@ src/
 ```
 
 - API types come from `src/lib/api-schema.gen.ts`; refer to them as `Schemas["..."]`.
-- Every mutation refetches the active queries, so writes never refresh data by hand.
+- Each mutation lists the query keys it changes in `meta.invalidates`; only those refetch (see `src/lib/query-client.ts`).
 - Forms are `FormDialog` + a zod schema; server field errors land on the matching inputs.

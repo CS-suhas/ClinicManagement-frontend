@@ -11,6 +11,7 @@ import { severityLevel } from "@/components/ui/severity";
 import { Surface } from "@/components/ui/surface";
 import { useAuth } from "@/features/auth/auth-provider";
 import { canBookOnline } from "@/features/auth/permissions";
+import { useAllClinics } from "@/features/clinics/api";
 import { DoctorBookingDialogs } from "@/features/doctors/components/doctor-booking-dialogs";
 import { DoctorPickerDialog } from "@/features/doctors/components/doctor-picker-dialog";
 import type { DoctorProfile } from "@/features/doctors/components/doctor-profile";
@@ -18,7 +19,6 @@ import { findBookableDoctor } from "@/features/doctors/components/use-bookable-d
 import { useBookingGate } from "@/features/doctors/components/use-booking-gate";
 import { useNow } from "@/hooks/use-now";
 import { formatDateTime } from "@/lib/format";
-import { useClinics } from "../api";
 import {
   type AppointmentAction,
   type AppointmentListItem,
@@ -100,7 +100,7 @@ export function AppointmentsView() {
   const [clinicChoice, setClinicChoice] = useState<string | null>(null);
   const manyClinics =
     baseScope.mode === "clinic" && baseScope.clinicIds.length > 1;
-  const clinics = useClinics(manyClinics);
+  const clinics = useAllClinics(manyClinics);
   const scope: AppointmentScope = useMemo(
     () =>
       baseScope.mode === "clinic" &&

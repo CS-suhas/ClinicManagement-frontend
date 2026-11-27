@@ -7,8 +7,9 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { AsyncContent } from "@/components/async-content";
 import { PublicNavbar } from "@/components/public-navbar";
 import { SearchField } from "@/components/search-field";
+import { useAllClinics } from "@/features/clinics/api";
 import { getErrorMessage } from "@/lib/errors";
-import { useClinics, useDirectory } from "../api";
+import { useDirectory } from "../api";
 import { DoctorBookingDialogs } from "./doctor-booking-dialogs";
 import {
   DEFAULT_FILTERS,
@@ -56,7 +57,7 @@ function DoctorDirectory() {
     if (current !== returnTo) window.history.replaceState(null, "", returnTo);
   }, [returnTo]);
 
-  const clinics = useClinics();
+  const clinics = useAllClinics();
   const directory = useDirectory(clinicId);
 
   const clinicList = clinics.data ?? [];

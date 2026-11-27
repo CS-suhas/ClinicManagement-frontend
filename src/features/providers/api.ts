@@ -16,6 +16,7 @@ import {
 import { api, newId, unwrap } from "@/lib/api";
 import { toOffsetDateTime } from "@/lib/dates";
 import { getErrorMessage } from "@/lib/errors";
+import { PROVIDER_KEYS } from "@/lib/query-client";
 import type { Provider, ProviderForm } from "./schemas";
 
 export const ALL_CLINICS = "all";
@@ -42,18 +43,6 @@ export function useProviderList(clinicFilter: string) {
   return usePagedList(["providers", "list", clinicFilter], (params) =>
     searchProviders({ ...params, clinicId }),
   );
-}
-
-export function useClinicOptions() {
-  return useQuery({
-    queryKey: ["clinics", "options"],
-    queryFn: () =>
-      unwrap(
-        api.GET("/api/clinics/search", {
-          params: { query: { Page: 1, PageSize: 100 } },
-        }),
-      ),
-  });
 }
 
 export const searchProvidersByStatus = (
@@ -105,6 +94,7 @@ export function usePatchProviderLists() {
 export function useSaveProvider() {
   const { notifySuccess } = useNotify();
   return useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
     mutationFn: ({ id, values }: { id?: string; values: ProviderForm }) => {
       const body = {
         clinicId: values.clinicId,
@@ -133,6 +123,7 @@ export function useSaveProvider() {
 export function useDeleteProvider() {
   const { notifySuccess, notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
     mutationFn: (id: string) =>
       unwrap(api.DELETE("/api/providers/{id}", { params: { path: { id } } })),
     onSuccess: () => notifySuccess("Provider deleted"),

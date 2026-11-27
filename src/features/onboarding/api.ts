@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, newId, unwrap } from "@/lib/api";
+import { PROVIDER_KEYS } from "@/lib/query-client";
 import type { PatientForm } from "./schemas";
 
 export type ProviderRegistration = {
@@ -13,6 +14,7 @@ export type ProviderRegistration = {
 
 export function useCreatePatientProfile() {
   return useMutation({
+    meta: { invalidates: [["patients"], ["dashboard"]] },
     mutationFn: (values: PatientForm) =>
       unwrap(
         api.POST("/api/me/patient", {
@@ -24,6 +26,7 @@ export function useCreatePatientProfile() {
 
 export function useRegisterProvider() {
   return useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
     mutationFn: (values: ProviderRegistration) =>
       unwrap(
         api.POST("/api/providers/register", {

@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNotify } from "@/components/notifications";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { PROVIDER_KEYS } from "@/lib/query-client";
 import { rejectProvider, usePatchProviderLists, verifyProvider } from "../api";
 import type { Provider } from "../schemas";
 import { providerFullName } from "../utils";
@@ -24,7 +25,7 @@ const decisionRequest = (decision: Decision, id: string) =>
 
 export function useProviderDecisions() {
   const { notifyError, notifySuccess } = useNotify();
-  const runOptimistic = useOptimisticMutations();
+  const runOptimistic = useOptimisticMutations(PROVIDER_KEYS);
   const patch = usePatchProviderLists();
 
   const decide = (provider: Provider, decision: Decision) => {
@@ -41,6 +42,7 @@ export function useProviderDecisions() {
   };
 
   const bulk = useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
     mutationFn: async ({
       decision,
       targets,

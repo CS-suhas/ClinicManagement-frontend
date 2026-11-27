@@ -13,10 +13,11 @@ import { StatusPill } from "@/components/glance/status-chip";
 import { ListPage } from "@/components/list-page";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { useAuth } from "@/features/auth/auth-provider";
+import { useAllClinics } from "@/features/clinics/api";
 import { PAGE_SIZE } from "@/hooks/use-paged-list";
 import { getErrorMessage } from "@/lib/errors";
 import { formatFee } from "@/lib/format";
-import { useClinicOptions, useDeleteProvider, useProviderList } from "../api";
+import { useDeleteProvider, useProviderList } from "../api";
 import { type Provider, providerGenderLabels } from "../schemas";
 import { providerFullName } from "../utils";
 import { ProviderDetails } from "./provider-details";
@@ -44,11 +45,11 @@ export function ProviderList() {
   const [deleting, setDeleting] = useState<Provider | null>(null);
 
   const list = useProviderList(clinicFilter);
-  const clinics = useClinicOptions();
+  const clinics = useAllClinics();
   const remove = useDeleteProvider();
   const { decide, bulk: bulkDecision } = useProviderDecisions();
 
-  const clinicItems = clinics.data?.items ?? [];
+  const clinicItems = clinics.data ?? [];
   const clinicById = new Map(clinicItems.map((c) => [c.id, c]));
   const hasFilters = list.query !== "" || clinicFilter !== ALL_FILTER;
   const clearClinicFilter = () => {

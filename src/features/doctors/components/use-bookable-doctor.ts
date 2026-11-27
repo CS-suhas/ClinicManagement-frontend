@@ -1,24 +1,22 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { api, unwrap } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import { fetchDirectory } from "../api";
+import { unlessDenied } from "../api";
 import { type DoctorProfile, toDoctorProfile } from "./doctor-profile";
-
-const PAGE_SIZE = 100;
-const MAX_PAGES = 10;
 
 export async function findBookableDoctor(
   providerId: string,
 ): Promise<DoctorProfile | null> {
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const result = await fetchDirectory({ page, pageSize: PAGE_SIZE });
-    const found = result.items.find((item) => item.id === providerId);
-    if (found) return toDoctorProfile(found, undefined);
-    if (result.items.length === 0 || page * PAGE_SIZE >= result.totalCount)
-      break;
-  }
-  return null;
+  const provider = await unlessDenied(() =>
+    unwrap(
+      api.GET("/api/providers/{id}", { params: { path: { id: providerId } } }),
+    ),
+  );
+  return provider?.verificationStatus === "VERIFIED"
+    ? toDoctorProfile(provider, undefined)
+    : null;
 }
 
 export function useBookableDoctor(providerId: string) {

@@ -21,6 +21,7 @@ export function useAllergyTypeList() {
 export function useSaveAllergyType() {
   const { notifySuccess } = useNotify();
   return useMutation({
+    meta: { invalidates: [["allergy-types"], ["patients"]] },
     mutationFn: ({ id, values }: { id?: string; values: AllergyTypeForm }) =>
       id
         ? unwrap(
@@ -42,6 +43,7 @@ export function useSaveAllergyType() {
 export function useDeleteAllergyType() {
   const { notifySuccess, notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: [["allergy-types"]] },
     mutationFn: (id: string) =>
       unwrap(
         api.DELETE("/api/allergy-types/{id}", { params: { path: { id } } }),

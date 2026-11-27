@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { VerificationStatus } from "@/features/auth/schemas";
-import { announceCountsChanged } from "@/features/notification-bell/components/use-my-dashboard";
 import {
   fetchClinicProviders,
   rejectProvider,
@@ -12,6 +11,7 @@ import type { Provider } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 import { getErrorMessage } from "@/lib/errors";
+import { PROVIDER_KEYS } from "@/lib/query-client";
 
 const statusOf = (p: Provider): VerificationStatus =>
   p.verificationStatus ?? "PENDING";
@@ -25,7 +25,7 @@ export function useClinicDoctors(clinicId: string | null) {
   });
   const doctors = query.data ?? [];
 
-  const runOptimistic = useOptimisticMutations();
+  const runOptimistic = useOptimisticMutations(PROVIDER_KEYS);
 
   const setStatus = (id: string, status: VerificationStatus) =>
     queryClient.setQueryData<Provider[]>(queryKey, (current) =>
@@ -40,7 +40,7 @@ export function useClinicDoctors(clinicId: string | null) {
     runOptimistic({
       apply: () => setStatus(row.id, "VERIFIED"),
       rollback: () => setStatus(row.id, before),
-      request: () => verifyProvider(row.id).finally(announceCountsChanged),
+      request: () => verifyProvider(row.id),
       failureMessage: `Could not admit ${name}`,
       successMessage: `${name} admitted`,
     });
@@ -51,7 +51,7 @@ export function useClinicDoctors(clinicId: string | null) {
     runOptimistic({
       apply: () => setStatus(row.id, "REJECTED"),
       rollback: () => setStatus(row.id, "PENDING"),
-      request: () => rejectProvider(row.id).finally(announceCountsChanged),
+      request: () => rejectProvider(row.id),
       failureMessage: `Could not decline ${name}`,
       successMessage: `${name} declined`,
       undo: {},

@@ -64,6 +64,7 @@ export function useClinicList() {
 export function useSaveClinic() {
   const { notifySuccess } = useNotify();
   return useMutation({
+    meta: { invalidates: [["clinics"], ["providers"], ["dashboard"]] },
     mutationFn: ({ id, values }: { id?: string; values: ClinicForm }) =>
       id
         ? unwrap(
@@ -85,6 +86,7 @@ export function useSaveClinic() {
 export function useDeleteClinic() {
   const { notifySuccess, notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: [["clinics"], ["dashboard"]] },
     mutationFn: async (id: string) => {
       const { totalCount } = await unwrap(
         api.GET("/api/providers/search", {
@@ -172,5 +174,13 @@ export function useClinicSummary(clinicId: string | null) {
         ? fetchClinicSummary(clinicId, staff)
         : EMPTY_SUMMARY,
     enabled: clinicId !== null,
+  });
+}
+
+export function useAllClinics(enabled = true) {
+  return useQuery({
+    queryKey: ["clinics", "all"],
+    queryFn: () => unwrap(api.GET("/api/clinics")),
+    enabled,
   });
 }

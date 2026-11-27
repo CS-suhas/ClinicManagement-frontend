@@ -73,19 +73,18 @@ async function fetchAllAppointments(): Promise<AppointmentListItem[]> {
 
 export function usePatientVisits(patientIds: string[]) {
   return useQuery({
-    queryKey: ["patients", "visits", patientIds],
-    queryFn: async (): Promise<Map<string, PatientVisits>> =>
-      groupVisitsByPatient(
-        patientIds.length === 0 ? [] : await fetchAllAppointments(),
-        patientIds,
-        Date.now(),
-      ),
+    queryKey: ["appointments", "all"],
+    queryFn: fetchAllAppointments,
+    enabled: patientIds.length > 0,
+    select: (appointments): Map<string, PatientVisits> =>
+      groupVisitsByPatient(appointments, patientIds, Date.now()),
   });
 }
 
 export function useSavePatient() {
   const { notifySuccess, notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: [["patients"], ["dashboard"]] },
     mutationFn: ({ id, values }: { id?: string; values: PatientForm }) =>
       id
         ? unwrap(
@@ -132,6 +131,7 @@ async function deletePatient(id: string) {
 export function useDeletePatient() {
   const { notifySuccess, notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: [["patients"], ["dashboard"]] },
     mutationFn: deletePatient,
     onSuccess: () => notifySuccess("Patient deleted"),
     onError: (e) =>
@@ -239,6 +239,7 @@ type PatientAllergyWrite = {
 export function useAddPatientAllergy() {
   const { notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: [["patients"], ["allergy-types"]] },
     mutationFn: ({
       patientId,
       allergyId,
@@ -258,6 +259,7 @@ export function useAddPatientAllergy() {
 export function useUpdatePatientAllergy() {
   const { notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: [["patients"], ["allergy-types"]] },
     mutationFn: ({
       patientId,
       allergyId,
@@ -278,6 +280,7 @@ export function useUpdatePatientAllergy() {
 export function useRemovePatientAllergy() {
   const { notifyError } = useNotify();
   return useMutation({
+    meta: { invalidates: [["patients"], ["allergy-types"]] },
     mutationFn: ({
       patientId,
       allergyId,

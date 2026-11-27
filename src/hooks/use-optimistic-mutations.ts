@@ -1,10 +1,11 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { type QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useNotify } from "@/components/notifications";
 import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { invalidate } from "@/lib/query-client";
 
 export const UNDO_WINDOW_MS = 5000;
 
@@ -39,13 +40,14 @@ function createHold(ms: number) {
   };
 }
 
-export function useOptimisticMutations(onIdle: () => void = () => {}) {
+export function useOptimisticMutations(invalidates: QueryKey[]) {
   const { notifyError, notifySuccess } = useNotify();
   const queryClient = useQueryClient();
   const queue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
-  const onIdleRef = useRef(onIdle);
-  onIdleRef.current = onIdle;
+  const sent = useRef(false);
+  const invalidatesRef = useRef(invalidates);
+  invalidatesRef.current = invalidates;
 
   return useCallback(
     ({
@@ -73,6 +75,7 @@ export function useOptimisticMutations(onIdle: () => void = () => {}) {
             rollback();
             return;
           }
+          sent.current = true;
           await request();
           if (!hold && successMessage) notifySuccess(successMessage);
         } catch (e) {
@@ -80,9 +83,9 @@ export function useOptimisticMutations(onIdle: () => void = () => {}) {
           notifyError(failureText(failureMessage, e));
         } finally {
           pending.current--;
-          if (pending.current === 0) {
-            void queryClient.invalidateQueries();
-            onIdleRef.current();
+          if (pending.current === 0 && sent.current) {
+            sent.current = false;
+            void invalidate(queryClient, invalidatesRef.current);
           }
         }
       });

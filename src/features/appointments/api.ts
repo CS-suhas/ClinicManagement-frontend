@@ -136,14 +136,6 @@ export function useProviders(enabled: boolean) {
   });
 }
 
-export function useClinics(enabled: boolean) {
-  return useQuery({
-    queryKey: ["clinics"],
-    queryFn: () => unwrap(api.GET("/api/clinics")),
-    enabled,
-  });
-}
-
 export function usePatientOptions(enabled: boolean, search: string) {
   return useQuery({
     queryKey: ["patients", "options", search],

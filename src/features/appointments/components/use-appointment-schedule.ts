@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 import { newId } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { APPOINTMENT_KEYS } from "@/lib/query-client";
 import {
   createAppointment,
   deleteAppointment,
@@ -26,7 +27,7 @@ export function useAppointmentSchedule(
   const settings = useAppointmentSettings();
   const providers = useProviders(scope.mode === "all");
   const items = useAppointmentRange(range, scope);
-  const runOptimistic = useOptimisticMutations();
+  const runOptimistic = useOptimisticMutations(APPOINTMENT_KEYS);
   const [form, setForm] = useState<{
     open: boolean;
     editing: AppointmentListItem | null;

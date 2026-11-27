@@ -3,7 +3,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotify } from "@/components/notifications";
 import type { VerificationStatus } from "@/features/auth/schemas";
-import { announceCountsChanged } from "@/features/notification-bell/components/use-my-dashboard";
 import {
   rejectProvider,
   searchProvidersByStatus,
@@ -13,6 +12,7 @@ import type { Provider } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 import { getErrorMessage } from "@/lib/errors";
+import { invalidate, PROVIDER_KEYS } from "@/lib/query-client";
 
 export type ApprovalTab = VerificationStatus;
 
@@ -27,7 +27,7 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
   });
   const providers = query.data ?? [];
 
-  const runOptimistic = useOptimisticMutations();
+  const runOptimistic = useOptimisticMutations(PROVIDER_KEYS);
 
   const mutateRows = (change: (rows: Provider[]) => Provider[]) =>
     queryClient.setQueryData<Provider[]>(queryKey, (current) =>
@@ -50,7 +50,7 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
     runOptimistic({
       apply: () => removeRow(row.id),
       rollback: () => restoreRow(row, index),
-      request: () => verifyProvider(row.id).finally(announceCountsChanged),
+      request: () => verifyProvider(row.id),
       failureMessage: `Could not verify ${name}`,
       successMessage: `${name} verified`,
     });
@@ -62,7 +62,7 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
     runOptimistic({
       apply: () => removeRow(row.id),
       rollback: () => restoreRow(row, index),
-      request: () => rejectProvider(row.id).finally(announceCountsChanged),
+      request: () => rejectProvider(row.id),
       failureMessage: `Could not reject ${name}`,
       successMessage: `${name} rejected`,
       undo: {},
@@ -95,8 +95,7 @@ export function useDoctorApprovals(tab: ApprovalTab, search: string) {
           ? `${verified} verified, ${failed.length} failed`
           : `${verified} verified`,
       );
-    void queryClient.invalidateQueries();
-    announceCountsChanged();
+    void invalidate(queryClient, PROVIDER_KEYS);
   };
 
   return {

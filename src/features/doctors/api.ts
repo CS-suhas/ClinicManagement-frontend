@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/auth-provider";
 import { ApiError, api, newId, unwrap } from "@/lib/api";
 import { addDays, toOffsetDateTime } from "@/lib/dates";
+import { APPOINTMENT_KEYS } from "@/lib/query-client";
 import { freeSlotStarts, localDayOf, slotCount } from "./utils";
 
 const FREE_SLOT_SEARCH_DAYS = 7;
@@ -36,8 +37,6 @@ export const fetchDirectory = (params: {
       },
     }),
   );
-
-export const fetchClinics = () => unwrap(api.GET("/api/clinics"));
 
 export const fetchAppointmentSettings = () =>
   unwrap(api.GET("/api/appointment-settings"));
@@ -117,13 +116,6 @@ export function useDirectory(clinicId: string) {
   });
 }
 
-export function useClinics() {
-  return useQuery({
-    queryKey: ["clinics", "list"],
-    queryFn: fetchClinics,
-  });
-}
-
 export function useBusyStarts(providerId: string | undefined, date: string) {
   return useQuery({
     queryKey: ["providers", providerId, "busy-starts", date],
@@ -149,6 +141,7 @@ export function usePatient(id: string | undefined) {
 
 export function useBookAppointment() {
   return useMutation({
+    meta: { invalidates: APPOINTMENT_KEYS },
     mutationFn: ({
       patientId,
       providerId,

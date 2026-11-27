@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { APPOINTMENT_KEYS } from "@/lib/query-client";
 import { transitionAppointment } from "../api";
 import type { AppointmentAction, AppointmentListItem } from "../schemas";
 import { nextAppointmentStatus } from "../utils";
@@ -42,7 +43,7 @@ export function useAppointmentActions(
     change: (items: AppointmentListItem[]) => AppointmentListItem[],
   ) => void,
 ) {
-  const runOptimistic = useOptimisticMutations();
+  const runOptimistic = useOptimisticMutations(APPOINTMENT_KEYS);
 
   const run = (item: AppointmentListItem, action: AppointmentAction) => {
     const status = nextAppointmentStatus(item.status, action);

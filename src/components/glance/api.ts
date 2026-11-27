@@ -4,6 +4,7 @@ import { hasRole } from "@/features/auth/permissions";
 import type { CurrentUser } from "@/features/auth/schemas";
 import { ApiError, api, type Schemas, unwrap } from "@/lib/api";
 import { addDays } from "@/lib/dates";
+import { PROVIDER_KEYS } from "@/lib/query-client";
 import {
   type AppointmentSettings,
   freeSlotStarts,
@@ -11,7 +12,6 @@ import {
   slotCount,
 } from "./utils";
 
-const STALE_TIME_MS = 60_000;
 const SLOT_SEARCH_DAYS = 7;
 
 export type PatientGlance = {
@@ -109,7 +109,6 @@ export function usePatientGlance(patientId: string, enabled: boolean) {
     queryKey: ["patients", patientId, "glance", user?.subject ?? null],
     queryFn: () => loadPatientGlance(patientId, user),
     enabled,
-    staleTime: STALE_TIME_MS,
   });
 }
 
@@ -220,7 +219,6 @@ export function useDoctorGlance(providerId: string, enabled: boolean) {
     queryKey: ["providers", providerId, "glance", user?.subject ?? null],
     queryFn: () => loadDoctorGlance(providerId, user),
     enabled,
-    staleTime: STALE_TIME_MS,
   });
 }
 
@@ -256,7 +254,6 @@ export function useClinicGlance(clinicId: string, enabled: boolean) {
     queryKey: ["clinics", clinicId, "glance", user?.subject ?? null],
     queryFn: () => loadClinicGlance(clinicId, user),
     enabled,
-    staleTime: STALE_TIME_MS,
   });
 }
 
@@ -289,12 +286,12 @@ export function useAllergyGlance(allergyId: string, enabled: boolean) {
     queryKey: ["allergy-types", allergyId, "glance", user?.subject ?? null],
     queryFn: () => loadAllergyGlance(allergyId, user),
     enabled,
-    staleTime: STALE_TIME_MS,
   });
 }
 
 export function useProviderDecision() {
   return useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
     mutationFn: ({
       id,
       action,
