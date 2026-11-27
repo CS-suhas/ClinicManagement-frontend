@@ -46,19 +46,6 @@ export function appointmentTimeBounds(
   };
 }
 
-export function overlapsBusyStart(
-  dateTime: string,
-  durationMinutes: number,
-  busyStarts: readonly string[],
-): boolean {
-  const durationMs = durationMinutes * 60_000;
-  const start = Date.parse(dateTime);
-  return busyStarts.some((busy) => {
-    const existing = Date.parse(busy);
-    return start < existing + durationMs && existing < start + durationMs;
-  });
-}
-
 const ACTION_RULES: Record<
   AppointmentAction,
   { from: readonly AppointmentStatus[]; to: AppointmentStatus }

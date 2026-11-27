@@ -20,13 +20,13 @@ Other scripts:
 
 ## Configuration
 
-| Variable                  | Read at           | Purpose                                                                              |
-| ------------------------- | ----------------- | ------------------------------------------------------------------------------------ |
-| `API_INTERNAL_URL`        | Runtime (server)  | API base URL for server-side code. Default `http://localhost:8080/api`.              |
-| `KEYCLOAK_URL`            | Runtime (browser) | Keycloak base URL, e.g. `http://localhost:8081/auth`. Default: `<page origin>/auth`. |
-| `KEYCLOAK_REALM`          | Runtime (browser) | Keycloak realm. Default `clinic`.                                                    |
-| `KEYCLOAK_CLIENT_ID`      | Runtime (browser) | Public OIDC client. Default `clinic-spa`.                                            |
-| `PUBLIC_DOCTORS`          | Runtime (browser) | `true` (default) makes `/doctors` pages public; `false` requires sign-in.            |
+| Variable             | Read at           | Purpose                                                                              |
+| -------------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `API_INTERNAL_URL`   | Runtime (server)  | API base URL for server-side code. Default `http://localhost:8080/api`.              |
+| `KEYCLOAK_URL`       | Runtime (browser) | Keycloak base URL, e.g. `http://localhost:8081/auth`. Default: `<page origin>/auth`. |
+| `KEYCLOAK_REALM`     | Runtime (browser) | Keycloak realm. Default `clinic`.                                                    |
+| `KEYCLOAK_CLIENT_ID` | Runtime (browser) | Public OIDC client. Default `clinic-spa`.                                            |
+| `PUBLIC_DOCTORS`     | Runtime (browser) | `true` (default) makes `/doctors` pages public; `false` requires sign-in.            |
 
 Nothing host-specific is baked into the build, so one image runs on any host. Browser-facing settings are served from `GET /runtime-config`; change a value and restart the container.
 

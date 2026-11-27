@@ -25,9 +25,3 @@ export function formatFee(fee: number | null | undefined) {
 
 export const formatFeeShort = (fee: number) =>
   `${FEE_CURRENCY} ${fee.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-
-export function matchesQuery(query: string, ...fields: (string | undefined)[]) {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  return fields.some((f) => f?.toLowerCase().includes(q));
-}

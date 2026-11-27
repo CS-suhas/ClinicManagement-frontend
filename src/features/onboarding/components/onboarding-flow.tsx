@@ -8,9 +8,6 @@ import { Surface } from "@/components/ui/surface";
 import { useAuth } from "@/features/auth/auth-provider";
 import { safeNext } from "@/lib/safe-next";
 import type { DoctorForm, PatientForm } from "../schemas";
-import { ApprovalStatusStep } from "./approval-status-step";
-import { DoctorStep } from "./doctor-step";
-import { OnboardingStepper } from "./onboarding-stepper";
 import {
   destinationAfter,
   doctorDefaults,
@@ -19,7 +16,10 @@ import {
   patientDefaults,
   resolveStep,
   stepLabels,
-} from "./onboarding-steps";
+} from "../steps";
+import { ApprovalStatusStep } from "./approval-status-step";
+import { DoctorStep } from "./doctor-step";
+import { OnboardingStepper } from "./onboarding-stepper";
 import { PatientStep } from "./patient-step";
 import { RoleStep } from "./role-step";
 

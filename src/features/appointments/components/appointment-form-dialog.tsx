@@ -72,6 +72,14 @@ function AppointmentFields({
 
   const clinicId = form.watch("clinicId");
   const dateTime = form.watch("appointmentDateTime");
+
+  useEffect(() => {
+    const subscription = form.watch((_, { name, type }) => {
+      if (name === "clinicId" && type === "change")
+        form.setValue("providerId", "");
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
   const providerQuery =
     providerText.clinicId === clinicId ? providerText.text : "";
 

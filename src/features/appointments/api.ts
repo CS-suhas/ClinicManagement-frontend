@@ -1,21 +1,17 @@
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/features/auth/auth-provider";
-import { hasRole } from "@/features/auth/permissions";
-import { api, newId, type Schemas, unwrap } from "@/lib/api";
-import { localMidnightIso, toOffsetDateTime } from "@/lib/dates";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { api, type Schemas, unwrap } from "@/lib/api";
+import { localMidnightIso } from "@/lib/dates";
 import {
   type AppointmentAction,
   type AppointmentInput,
   type AppointmentListItem,
   type AppointmentStatus,
-  allergySeveritiesSchema,
   appointmentSettingsSchema,
 } from "./schemas";
-import { type AppointmentScope, fullName, scopeFilter } from "./utils";
+import { type AppointmentScope, scopeFilter } from "./utils";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 20;
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export type DateRange = { from: string; to: string };
 
@@ -132,37 +128,6 @@ export function useAppointmentSettings() {
   });
 }
 
-export function useAllergySeverities() {
-  return useQuery({
-    queryKey: ["allergy-severities"],
-    queryFn: async () => {
-      const parsed = allergySeveritiesSchema.safeParse(
-        await unwrap(api.GET("/api/allergy-severities")),
-      );
-      if (!parsed.success)
-        throw new Error("The API returned invalid allergy severity settings.");
-      return parsed.data;
-    },
-  });
-}
-
-export function useBusyStarts(providerId: string | null, date: string | null) {
-  return useQuery({
-    queryKey: ["providers", providerId, "busy-slots", date],
-    queryFn: async () => {
-      if (!date || !DATE_PATTERN.test(date))
-        throw new Error("Date must be YYYY-MM-DD");
-      const response = await unwrap(
-        api.GET("/api/providers/{id}/busy-slots", {
-          params: { path: { id: providerId as string }, query: { date } },
-        }),
-      );
-      return response.busyStartTimes;
-    },
-    enabled: providerId !== null && date !== null,
-  });
-}
-
 export function useProviders(enabled: boolean) {
   return useQuery({
     queryKey: ["providers"],
@@ -246,39 +211,6 @@ export function usePatientById(id: string | undefined) {
   });
 }
 
-const GENDERS = { MALE: "male", FEMALE: "female", OTHER: "other" } as const;
-const DIRECTORY_PAGE_SIZE = 100;
-const DIRECTORY_MAX_PAGES = 10;
-
-export async function findBookableDoctor(providerId: string) {
-  for (let page = 1; page <= DIRECTORY_MAX_PAGES; page++) {
-    const result = await unwrap(
-      api.GET("/api/providers/directory", {
-        params: { query: { Page: page, PageSize: DIRECTORY_PAGE_SIZE } },
-      }),
-    );
-    const found = result.items.find((item) => item.id === providerId);
-    if (found)
-      return {
-        id: found.id,
-        name: `Dr. ${fullName(found)}`,
-        specialties: [found.specialty],
-        clinicId: found.clinicId,
-        clinicName: found.clinicName ?? "",
-        location: null,
-        phone: null,
-        consultationFee: found.fee ?? undefined,
-        gender: found.gender ? GENDERS[found.gender] : undefined,
-      };
-    if (
-      result.items.length === 0 ||
-      page * DIRECTORY_PAGE_SIZE >= result.totalCount
-    )
-      break;
-  }
-  return null;
-}
-
 export function createAppointment(id: string, input: AppointmentInput) {
   return unwrap(api.POST("/api/appointments", { body: { id, ...input } }));
 }
@@ -328,25 +260,3 @@ const transitions: Record<AppointmentAction, (id: string) => Promise<unknown>> =
 
 export const transitionAppointment = (id: string, action: AppointmentAction) =>
   transitions[action](id);
-
-export function useBookAppointment() {
-  const { user } = useAuth();
-  return useMutation({
-    mutationFn: (input: {
-      providerId: string;
-      appointmentDateTime: string;
-      reasonForVisit: string;
-    }) => {
-      if (!user)
-        throw new Error("Your session has expired. Please sign in again.");
-      if (!hasRole(user, "patient") || !user.patient)
-        throw new Error("Only patients with a patient record can book.");
-      return createAppointment(newId(), {
-        patientId: user.patient.id,
-        providerId: input.providerId,
-        appointmentDateTime: toOffsetDateTime(input.appointmentDateTime),
-        reasonForVisit: input.reasonForVisit.trim(),
-      });
-    },
-  });
-}

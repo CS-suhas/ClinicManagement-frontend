@@ -14,10 +14,11 @@ import { canBookOnline } from "@/features/auth/permissions";
 import { DoctorBookingDialogs } from "@/features/doctors/components/doctor-booking-dialogs";
 import { DoctorPickerDialog } from "@/features/doctors/components/doctor-picker-dialog";
 import type { DoctorProfile } from "@/features/doctors/components/doctor-profile";
+import { findBookableDoctor } from "@/features/doctors/components/use-bookable-doctor";
 import { useBookingGate } from "@/features/doctors/components/use-booking-gate";
 import { useNow } from "@/hooks/use-now";
 import { formatDateTime } from "@/lib/format";
-import { findBookableDoctor, useClinics } from "../api";
+import { useClinics } from "../api";
 import {
   type AppointmentAction,
   type AppointmentListItem,

@@ -19,7 +19,7 @@ import type {
   AppointmentStatus,
 } from "../schemas";
 import type { AppointmentScope } from "../utils";
-import { clockOf, toneOf } from "./schedule-time";
+import { clockOf } from "./schedule-time";
 import { ACTION_LABEL } from "./use-appointment-actions";
 
 const AMBER = "var(--mp-warn)";
@@ -378,6 +378,3 @@ const PILL_COLORS: Record<string, { background: string; color: string }> = {
 
 export const pillColorsFor = (status: string) =>
   PILL_COLORS[statusPresentation("appointment", status).tone];
-
-export const accentFor = (providerId: string, order: readonly string[]) =>
-  toneOf(providerId, order);

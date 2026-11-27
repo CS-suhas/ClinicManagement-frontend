@@ -41,7 +41,11 @@ export function DashboardView() {
       />
       <AsyncContent
         loading={dashboard.isPending}
-        error={dashboard.error ? getErrorMessage(dashboard.error) : null}
+        error={
+          dashboard.error && !dashboard.data
+            ? getErrorMessage(dashboard.error)
+            : null
+        }
         isEmpty={!dashboard.data}
         onRetry={() => void dashboard.refetch()}
       >

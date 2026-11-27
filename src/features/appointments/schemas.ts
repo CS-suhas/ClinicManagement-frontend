@@ -41,10 +41,6 @@ export const appointmentSettingsSchema = z
       (clockToMinutes(clinicClosingTime) ?? 0),
   );
 
-export const allergySeveritiesSchema = z
-  .array(z.string().refine((severity) => severity.trim() !== ""))
-  .min(1);
-
 export type AppointmentFormValues = {
   patientId: string;
   clinicId: string;

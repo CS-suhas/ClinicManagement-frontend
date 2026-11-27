@@ -124,13 +124,6 @@ export function useClinics() {
   });
 }
 
-export function useAppointmentSettings() {
-  return useQuery({
-    queryKey: ["appointment-settings"],
-    queryFn: fetchAppointmentSettings,
-  });
-}
-
 export function useBusyStarts(providerId: string | undefined, date: string) {
   return useQuery({
     queryKey: ["providers", providerId, "busy-starts", date],

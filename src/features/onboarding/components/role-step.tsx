@@ -4,7 +4,7 @@ import { IdCardIcon, MixIcon } from "@radix-ui/react-icons";
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { IconCircle } from "@/components/ui/icon-circle";
-import type { OnboardingChoice } from "./onboarding-steps";
+import type { OnboardingChoice } from "../steps";
 
 const OPTIONS: {
   value: OnboardingChoice;

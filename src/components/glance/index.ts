@@ -4,25 +4,17 @@ export {
   ClinicDoctorsChip,
   type ClinicDoctorsChipProps,
 } from "./clinic-doctors-chip";
+export { DoctorChip, type DoctorChipProps } from "./doctor-chip";
 export {
-  DoctorChip,
-  type DoctorChipProps,
-  doctorShortName,
-} from "./doctor-chip";
-export {
-  GlanceAction,
-  GlanceError,
   GlanceFooter,
   GlanceHeader,
   GlancePopover,
   type GlancePopoverProps,
   type GlanceRenderState,
   GlanceSection,
-  GlanceSkeleton,
 } from "./glance-popover";
-export { PatientChip, type PatientChipProps, SevereMark } from "./patient-chip";
+export { PatientChip, type PatientChipProps } from "./patient-chip";
 export {
-  appointmentLabel,
   StatusChip,
   type StatusKind,
   StatusPill,

@@ -2,16 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useNotify } from "@/components/notifications";
+import { useAppointmentSettings } from "@/features/appointments/api";
 import { useAuth } from "@/features/auth/auth-provider";
 import { canBookOnline } from "@/features/auth/permissions";
 import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
-import {
-  useAppointmentSettings,
-  useBookAppointment,
-  useBusyStarts,
-  usePatient,
-} from "../api";
+import { useBookAppointment, useBusyStarts, usePatient } from "../api";
 import { bookingTimeError, overlapsBusyStart } from "../utils";
 import type { DoctorProfile } from "./doctor-profile";
 import { toDateKey } from "./time-slots";

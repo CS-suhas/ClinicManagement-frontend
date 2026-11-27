@@ -51,9 +51,6 @@ export function formatSpan(iso: string, now: number): string {
   return dateFormat.format(target);
 }
 
-export const formatClock = (iso: string) =>
-  iso ? timeFormat.format(new Date(iso)) : "";
-
 export function startsSoon(iso: string, now: number, windowMs = 15 * MINUTE) {
   const diff = Date.parse(iso) - now;
   return diff >= 0 && diff <= windowMs;

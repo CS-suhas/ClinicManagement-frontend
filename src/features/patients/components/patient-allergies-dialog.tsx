@@ -42,8 +42,19 @@ type DialogProps = {
 };
 
 export function PatientAllergiesDialog(props: DialogProps) {
-  if (!props.open) return null;
-  return <AllergiesDialogContent key={props.patient?.id ?? ""} {...props} />;
+  const [openCount, setOpenCount] = useState(props.open ? 1 : 0);
+  const [wasOpen, setWasOpen] = useState(props.open);
+  if (props.open !== wasOpen) {
+    setWasOpen(props.open);
+    if (props.open) setOpenCount((count) => count + 1);
+  }
+  if (openCount === 0) return null;
+  return (
+    <AllergiesDialogContent
+      key={`${props.patient?.id ?? ""}:${openCount}`}
+      {...props}
+    />
+  );
 }
 
 function AllergiesDialogContent({

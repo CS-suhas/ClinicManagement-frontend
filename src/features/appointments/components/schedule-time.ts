@@ -45,11 +45,6 @@ export function clock12(minutes: number): string {
 
 export const clockOf = (iso: string) => clock12(minutesOfDay(Date.parse(iso)));
 
-export function timeRange(start: number, duration: number): string {
-  const plain = (m: number) => `${Math.floor(m / 60)}:${pad(m % 60)}`;
-  return `${plain(start)} – ${plain(start + duration)}`;
-}
-
 export function dayLabel(dateKey: string): string {
   return parseISO(dateKey).toLocaleDateString(undefined, {
     year: "numeric",

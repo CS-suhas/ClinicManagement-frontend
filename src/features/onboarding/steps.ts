@@ -1,6 +1,6 @@
 import { needsOnboarding } from "@/features/auth/permissions";
 import type { CurrentUser } from "@/features/auth/schemas";
-import type { DoctorForm, PatientForm } from "../schemas";
+import type { DoctorForm, PatientForm } from "./schemas";
 
 export type OnboardingChoice = "patient" | "doctor";
 

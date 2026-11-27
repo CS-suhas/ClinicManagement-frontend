@@ -3,7 +3,6 @@
 import { Flex, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { RelativeTime } from "@/components/ui/relative-time";
-import type { Schemas } from "@/lib/api";
 import {
   GlanceFooter,
   GlanceHeader,
@@ -12,8 +11,6 @@ import {
 } from "./glance-popover";
 
 export type StatusKind = "appointment" | "verification";
-
-type AppointmentStatus = Schemas["PatientVisitResponse"]["status"];
 
 type Palette = {
   background: string;
@@ -68,9 +65,6 @@ export function statusPresentation(
     }
   );
 }
-
-export const appointmentLabel = (status: AppointmentStatus) =>
-  statusPresentation("appointment", status).label;
 
 function defaultNote(kind: StatusKind, status: string): string | null {
   if (kind === "appointment" && status === "DECLINED")

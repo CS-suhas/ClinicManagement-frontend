@@ -9,17 +9,6 @@ export function severityRank(severity: string | null | undefined) {
   return parsed.success ? Severity.options.indexOf(parsed.data) + 1 : 0;
 }
 
-export function highestSeverity(
-  severities: readonly (string | null | undefined)[],
-) {
-  let best: string | null = null;
-  for (const severity of severities) {
-    if (best === null || severityRank(severity) > severityRank(best))
-      best = severity ?? null;
-  }
-  return best;
-}
-
 export function severityLevel(
   severity: string | null | undefined,
 ): SeverityLevel {

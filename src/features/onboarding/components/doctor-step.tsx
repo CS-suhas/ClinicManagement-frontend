@@ -5,7 +5,7 @@ import { Button, Callout, Flex, Grid, Text } from "@radix-ui/themes";
 import { useEffect, useId } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { ErrorCallout } from "@/components/error-callout";
-import { SearchSelectInput } from "@/components/form";
+import { SearchSelectInput, setFormErrors, TextInput } from "@/components/form";
 import { FormField } from "@/components/form-field";
 import { useNotify } from "@/components/notifications";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
@@ -15,8 +15,7 @@ import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useClinicOptions, useRegisterProvider } from "../api";
 import { type DoctorForm, doctorForm } from "../schemas";
-import { OnboardingInput, setSubmitError } from "./onboarding-form";
-import { COMMON_SPECIALTIES } from "./onboarding-steps";
+import { COMMON_SPECIALTIES } from "../steps";
 
 const GENDER_OPTIONS: { value: DoctorForm["gender"]; label: string }[] = [
   { value: "MALE", label: "Male" },
@@ -94,7 +93,7 @@ export function DoctorStep({
         return;
       }
       if (!(e instanceof ApiError && e.status === 409)) {
-        setSubmitError(form, e);
+        setFormErrors(form, e);
         return;
       }
       notifyInfo("You already have a doctor profile.");
@@ -125,13 +124,13 @@ export function DoctorStep({
             disabled={clinics.isLoading && clinicOptions.length === 0}
           />
           <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-            <OnboardingInput
+            <TextInput
               name="firstName"
               label="First name"
               id="doctor-firstName"
               autoComplete="given-name"
             />
-            <OnboardingInput
+            <TextInput
               name="lastName"
               label="Last name"
               id="doctor-lastName"
@@ -139,7 +138,7 @@ export function DoctorStep({
             />
           </Grid>
 
-          <OnboardingInput
+          <TextInput
             name="specialty"
             label="Specialty"
             id="doctor-specialty"
@@ -153,7 +152,7 @@ export function DoctorStep({
           </datalist>
 
           <Grid columns={{ initial: "1", sm: "2" }} gap="3" align="start">
-            <OnboardingInput
+            <TextInput
               name="fee"
               label="Consultation fee (optional)"
               id="doctor-fee"

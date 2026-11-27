@@ -69,12 +69,7 @@ export function FormDialog<
       await onSubmit(values);
       onOpenChange(false);
     } catch (e) {
-      if (e instanceof ApiError && e.fieldErrors) {
-        for (const [name, message] of Object.entries(e.fieldErrors))
-          form.setError(name as Path<z.input<TSchema>>, { message });
-      } else {
-        form.setError("root", { message: getErrorMessage(e) });
-      }
+      setFormErrors(form, e);
     }
   });
 
@@ -117,6 +112,18 @@ export function FormDialog<
   );
 }
 
+export function setFormErrors<T extends FieldValues>(
+  form: UseFormReturn<T, unknown, unknown>,
+  error: unknown,
+) {
+  if (error instanceof ApiError && error.fieldErrors) {
+    for (const [name, message] of Object.entries(error.fieldErrors))
+      form.setError(name as Path<T>, { message });
+    return;
+  }
+  form.setError("root", { message: getErrorMessage(error) });
+}
+
 function useFieldError(name: string) {
   const { formState, getFieldState } = useFormContext();
   return getFieldState(name, formState).error?.message;
@@ -125,17 +132,21 @@ function useFieldError(name: string) {
 export function TextInput({
   name,
   label,
-  type,
-}: {
+  slot,
+  ...inputProps
+}: Omit<ComponentProps<typeof TextField.Root>, "name" | "children"> & {
   name: string;
   label: string;
-  type?: ComponentProps<typeof TextField.Root>["type"];
+  slot?: string;
 }) {
-  const id = useId();
+  const generatedId = useId();
+  const id = inputProps.id ?? generatedId;
   const { register } = useFormContext();
   return (
     <FormField label={label} htmlFor={id} error={useFieldError(name)}>
-      <TextField.Root id={id} type={type} {...register(name)} />
+      <TextField.Root {...inputProps} id={id} {...register(name)}>
+        {slot && <TextField.Slot>{slot}</TextField.Slot>}
+      </TextField.Root>
     </FormField>
   );
 }

@@ -3,11 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Callout, Flex, Grid } from "@radix-ui/themes";
 import { FormProvider, useForm } from "react-hook-form";
+import { setFormErrors, TextInput } from "@/components/form";
 import { useNotify } from "@/components/notifications";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useCreatePatientProfile } from "../api";
 import { type PatientForm, patientForm } from "../schemas";
-import { OnboardingInput, setSubmitError } from "./onboarding-form";
 
 export function PatientStep({
   values,
@@ -35,7 +35,7 @@ export function PatientStep({
       await createProfile.mutateAsync(input);
       await refresh();
     } catch (e) {
-      setSubmitError(form, e);
+      setFormErrors(form, e);
       return;
     }
     notifySuccess("Profile created");
@@ -47,20 +47,20 @@ export function PatientStep({
       <form onSubmit={submit} noValidate>
         <Flex direction="column" gap="3">
           <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-            <OnboardingInput
+            <TextInput
               name="firstName"
               label="First name"
               id="onboarding-firstName"
               autoComplete="given-name"
             />
-            <OnboardingInput
+            <TextInput
               name="lastName"
               label="Last name"
               id="onboarding-lastName"
               autoComplete="family-name"
             />
           </Grid>
-          <OnboardingInput
+          <TextInput
             name="dateOfBirth"
             label="Date of birth"
             id="onboarding-dateOfBirth"
@@ -68,14 +68,14 @@ export function PatientStep({
             autoComplete="bday"
           />
           <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-            <OnboardingInput
+            <TextInput
               name="phoneNumber"
               label="Phone number"
               id="onboarding-phoneNumber"
               type="tel"
               autoComplete="tel"
             />
-            <OnboardingInput
+            <TextInput
               name="email"
               label="Email"
               id="onboarding-email"
