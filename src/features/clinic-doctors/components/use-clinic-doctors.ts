@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNotify } from "@/components/notifications";
 import type { VerificationStatus } from "@/features/auth/schemas";
 import {
   fetchClinicProviders,
@@ -9,65 +10,44 @@ import {
 } from "@/features/providers/api";
 import type { Provider } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
-import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 import { getErrorMessage } from "@/lib/errors";
 import { PROVIDER_KEYS } from "@/lib/query-client";
 
 const statusOf = (p: Provider): VerificationStatus =>
   p.verificationStatus ?? "PENDING";
 
+type Decision = "admit" | "decline";
+
 export function useClinicDoctors(clinicId: string | null) {
-  const queryClient = useQueryClient();
-  const queryKey = ["providers", "clinic", clinicId ?? ""];
+  const { notifyError, notifySuccess } = useNotify();
   const query = useQuery({
-    queryKey,
+    queryKey: ["providers", "clinic", clinicId ?? ""],
     queryFn: () => (clinicId ? fetchClinicProviders(clinicId) : []),
   });
   const doctors = query.data ?? [];
 
-  const runOptimistic = useOptimisticMutations(PROVIDER_KEYS);
-
-  const setStatus = (id: string, status: VerificationStatus) =>
-    queryClient.setQueryData<Provider[]>(queryKey, (current) =>
-      current?.map((p) =>
-        p.id === id ? { ...p, verificationStatus: status } : p,
+  const decide = useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
+    mutationFn: ({ row, decision }: { row: Provider; decision: Decision }) =>
+      decision === "admit" ? verifyProvider(row.id) : rejectProvider(row.id),
+    onSuccess: (_, { row, decision }) =>
+      notifySuccess(
+        `${providerFullName(row)} ${decision === "admit" ? "admitted" : "declined"}`,
       ),
-    );
-
-  const verify = (row: Provider) => {
-    const name = providerFullName(row);
-    const before = statusOf(row);
-    runOptimistic({
-      apply: () => setStatus(row.id, "VERIFIED"),
-      rollback: () => setStatus(row.id, before),
-      request: () => verifyProvider(row.id),
-      failureMessage: `Could not admit ${name}`,
-      successMessage: `${name} admitted`,
-    });
-  };
-
-  const reject = (row: Provider) => {
-    const name = providerFullName(row);
-    runOptimistic({
-      apply: () => setStatus(row.id, "REJECTED"),
-      rollback: () => setStatus(row.id, "PENDING"),
-      request: () => rejectProvider(row.id),
-      failureMessage: `Could not decline ${name}`,
-      successMessage: `${name} declined`,
-      undo: {},
-    });
-  };
-
-  const byStatus = (status: VerificationStatus) =>
-    doctors.filter((p) => statusOf(p) === status);
+    onError: (e, { row, decision }) =>
+      notifyError(
+        `Could not ${decision} ${providerFullName(row)}: ${getErrorMessage(e)}`,
+      ),
+  });
 
   return {
     doctors,
-    byStatus,
+    byStatus: (status: VerificationStatus) =>
+      doctors.filter((p) => statusOf(p) === status),
     loading: query.isPending,
     error: query.error ? getErrorMessage(query.error) : null,
     reload: () => void query.refetch(),
-    verify,
-    reject,
+    verify: (row: Provider) => decide.mutate({ row, decision: "admit" }),
+    reject: (row: Provider) => decide.mutate({ row, decision: "decline" }),
   };
 }

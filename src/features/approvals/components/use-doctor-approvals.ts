@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNotify } from "@/components/notifications";
 import type { VerificationStatus } from "@/features/auth/schemas";
 import {
@@ -10,101 +10,72 @@ import {
 } from "@/features/providers/api";
 import type { Provider } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
-import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
 import { getErrorMessage } from "@/lib/errors";
-import { invalidate, PROVIDER_KEYS } from "@/lib/query-client";
+import { PROVIDER_KEYS } from "@/lib/query-client";
 
 export type ApprovalTab = VerificationStatus;
 
+type Decision = "verify" | "reject";
+
 export function useDoctorApprovals(tab: ApprovalTab, search: string) {
-  const queryClient = useQueryClient();
   const { notifyError, notifySuccess } = useNotify();
-  const queryKey = ["providers", "verification", tab, search];
   const query = useQuery({
-    queryKey,
+    queryKey: ["providers", "verification", tab, search],
     queryFn: async () =>
       (await searchProvidersByStatus(tab, search || undefined)).items,
   });
-  const providers = query.data ?? [];
 
-  const runOptimistic = useOptimisticMutations(PROVIDER_KEYS);
-
-  const mutateRows = (change: (rows: Provider[]) => Provider[]) =>
-    queryClient.setQueryData<Provider[]>(queryKey, (current) =>
-      current ? change(current) : current,
-    );
-
-  const removeRow = (id: string) =>
-    mutateRows((current) => current.filter((p) => p.id !== id));
-
-  const restoreRow = (row: Provider, index: number) =>
-    mutateRows((current) => {
-      const next = current.filter((p) => p.id !== row.id);
-      next.splice(Math.max(0, Math.min(index, next.length)), 0, row);
-      return next;
-    });
-
-  const verify = (row: Provider) => {
-    const index = providers.findIndex((p) => p.id === row.id);
-    const name = providerFullName(row);
-    runOptimistic({
-      apply: () => removeRow(row.id),
-      rollback: () => restoreRow(row, index),
-      request: () => verifyProvider(row.id),
-      failureMessage: `Could not verify ${name}`,
-      successMessage: `${name} verified`,
-    });
-  };
-
-  const reject = (row: Provider) => {
-    const index = providers.findIndex((p) => p.id === row.id);
-    const name = providerFullName(row);
-    runOptimistic({
-      apply: () => removeRow(row.id),
-      rollback: () => restoreRow(row, index),
-      request: () => rejectProvider(row.id),
-      failureMessage: `Could not reject ${name}`,
-      successMessage: `${name} rejected`,
-      undo: {},
-    });
-  };
-
-  const verifyMany = async (rows: Provider[], clear: () => void) => {
-    const ids = new Set(rows.map((r) => r.id));
-    mutateRows((current) => current.filter((p) => !ids.has(p.id)));
-    clear();
-    const failed: Provider[] = [];
-    let verified = 0;
-    for (const row of rows) {
-      try {
-        await verifyProvider(row.id);
-        verified++;
-      } catch {
-        failed.push(row);
-      }
-    }
-    if (failed.length > 0) {
-      mutateRows((current) => [...current, ...failed]);
-      notifyError(
-        `Could not verify ${failed.map(providerFullName).join(", ")}`,
-      );
-    }
-    if (verified > 0)
+  const decide = useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
+    mutationFn: ({ row, decision }: { row: Provider; decision: Decision }) =>
+      decision === "verify" ? verifyProvider(row.id) : rejectProvider(row.id),
+    onSuccess: (_, { row, decision }) =>
       notifySuccess(
-        failed.length > 0
-          ? `${verified} verified, ${failed.length} failed`
-          : `${verified} verified`,
-      );
-    void invalidate(queryClient, PROVIDER_KEYS);
-  };
+        `${providerFullName(row)} ${decision === "verify" ? "verified" : "rejected"}`,
+      ),
+    onError: (e, { row, decision }) =>
+      notifyError(
+        `Could not ${decision} ${providerFullName(row)}: ${getErrorMessage(e)}`,
+      ),
+  });
+
+  const verifyAll = useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
+    mutationFn: async (rows: Provider[]) => {
+      const failed: Provider[] = [];
+      for (const row of rows) {
+        try {
+          await verifyProvider(row.id);
+        } catch {
+          failed.push(row);
+        }
+      }
+      return { verified: rows.length - failed.length, failed };
+    },
+    onSuccess: ({ verified, failed }) => {
+      if (failed.length > 0)
+        notifyError(
+          `Could not verify ${failed.map(providerFullName).join(", ")}`,
+        );
+      if (verified > 0)
+        notifySuccess(
+          failed.length > 0
+            ? `${verified} verified, ${failed.length} failed`
+            : `${verified} verified`,
+        );
+    },
+  });
 
   return {
-    providers,
+    providers: query.data ?? [],
     loading: query.isPending,
     error: query.error ? getErrorMessage(query.error) : null,
     reload: () => void query.refetch(),
-    verify,
-    reject,
-    verifyMany,
+    verify: (row: Provider) => decide.mutate({ row, decision: "verify" }),
+    reject: (row: Provider) => decide.mutate({ row, decision: "reject" }),
+    verifyMany: async (rows: Provider[], clear: () => void) => {
+      clear();
+      await verifyAll.mutateAsync(rows);
+    },
   };
 }

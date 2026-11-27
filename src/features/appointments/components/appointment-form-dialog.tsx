@@ -230,8 +230,7 @@ export function AppointmentFormDialog({
   onSave: (
     input: AppointmentInput,
     editing: AppointmentListItem | null,
-    overrides: Partial<AppointmentListItem>,
-  ) => void;
+  ) => Promise<unknown>;
   defaultDateTime?: string;
   defaultPatientId?: string;
   onDelete?: (appointment: AppointmentListItem) => void;
@@ -258,32 +257,7 @@ export function AppointmentFormDialog({
       appointmentDateTime: values.appointmentDateTime,
       reasonForVisit: values.reasonForVisit,
     };
-    const patient = lookups.current.patients.find(
-      (p) => p.id === values.patientId,
-    );
-    const clinic = lookups.current.clinics.find(
-      (c) => c.id === values.clinicId,
-    );
-    const provider = lookups.current.providers.find(
-      (p) => p.id === values.providerId,
-    );
-    const unchanged = (field: "patientId" | "clinicId") =>
-      appointment?.[field] === values[field];
-    onSave(input, appointment, {
-      patientName: patient
-        ? fullName(patient)
-        : unchanged("patientId")
-          ? appointment?.patientName
-          : "",
-      providerName: provider ? fullName(provider) : "",
-      providerSpecialty: provider?.specialty ?? "",
-      clinicId: values.clinicId,
-      clinicName: clinic
-        ? clinic.name
-        : unchanged("clinicId")
-          ? appointment?.clinicName
-          : "",
-    });
+    return onSave(input, appointment);
   };
 
   return (

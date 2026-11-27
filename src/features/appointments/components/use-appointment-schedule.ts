@@ -1,15 +1,14 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { useNotify } from "@/components/notifications";
 import { newId } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { APPOINTMENT_KEYS } from "@/lib/query-client";
 import {
   createAppointment,
   deleteAppointment,
-  rangeQueryKey,
   updateAppointment,
   useAppointmentRange,
   useAppointmentSettings,
@@ -23,11 +22,10 @@ export function useAppointmentSchedule(
   range: DateRange | null,
   scope: AppointmentScope,
 ) {
-  const queryClient = useQueryClient();
   const settings = useAppointmentSettings();
   const providers = useProviders(scope.mode === "all");
   const items = useAppointmentRange(range, scope);
-  const runOptimistic = useOptimisticMutations(APPOINTMENT_KEYS);
+  const { notifyError } = useNotify();
   const [form, setForm] = useState<{
     open: boolean;
     editing: AppointmentListItem | null;
@@ -35,68 +33,31 @@ export function useAppointmentSchedule(
   }>({ open: false, editing: null });
   const [deleting, setDeleting] = useState<AppointmentListItem | null>(null);
 
-  const inRange = (iso: string) =>
-    range !== null &&
-    Date.parse(iso) >= Date.parse(range.from) &&
-    Date.parse(iso) < Date.parse(range.to);
-  const editItems = (
-    change: (items: AppointmentListItem[]) => AppointmentListItem[],
-  ) =>
-    queryClient.setQueryData<AppointmentListItem[]>(
-      rangeQueryKey(range, scope),
-      (current) => current && change(current),
-    );
+  const saveMutation = useMutation({
+    meta: { invalidates: APPOINTMENT_KEYS },
+    mutationFn: ({
+      input,
+      editing,
+    }: {
+      input: AppointmentInput;
+      editing: AppointmentListItem | null;
+    }) =>
+      editing
+        ? updateAppointment(editing.id, input)
+        : createAppointment(newId(), input),
+  });
 
-  const save = (
-    input: AppointmentInput,
-    editing: AppointmentListItem | null,
-    overrides: Partial<AppointmentListItem>,
-  ) => {
-    if (editing) {
-      const updated = { ...editing, ...input, ...overrides };
-      runOptimistic({
-        apply: () =>
-          editItems((list) =>
-            list.flatMap((item) => {
-              if (item.id !== editing.id) return [item];
-              return inRange(updated.appointmentDateTime) ? [updated] : [];
-            }),
-          ),
-        rollback: () =>
-          editItems((list) =>
-            list.map((item) => (item.id === editing.id ? editing : item)),
-          ),
-        request: () => updateAppointment(editing.id, input),
-        failureMessage: "Could not update appointment",
-      });
-      return;
-    }
-    const created = {
-      ...input,
-      id: newId(),
-      ...overrides,
-    } as AppointmentListItem;
-    runOptimistic({
-      apply: () =>
-        editItems((list) =>
-          inRange(created.appointmentDateTime) ? [...list, created] : list,
-        ),
-      rollback: () =>
-        editItems((list) => list.filter((item) => item.id !== created.id)),
-      request: () => createAppointment(created.id, input),
-      failureMessage: "Could not add appointment",
-    });
-  };
+  const removeMutation = useMutation({
+    meta: { invalidates: APPOINTMENT_KEYS },
+    mutationFn: (item: AppointmentListItem) => deleteAppointment(item.id),
+    onError: (e) =>
+      notifyError(`Could not delete appointment: ${getErrorMessage(e)}`),
+  });
 
-  const remove = (item: AppointmentListItem) => {
-    runOptimistic({
-      apply: () =>
-        editItems((list) => list.filter((other) => other.id !== item.id)),
-      rollback: () => editItems((list) => [...list, item]),
-      request: () => deleteAppointment(item.id),
-      failureMessage: "Could not delete appointment",
-    });
-  };
+  const save = (input: AppointmentInput, editing: AppointmentListItem | null) =>
+    saveMutation.mutateAsync({ input, editing });
+
+  const remove = (item: AppointmentListItem) => removeMutation.mutate(item);
 
   const failure = settings.error ?? providers.error ?? items.error;
 
@@ -112,7 +73,6 @@ export function useAppointmentSchedule(
     items: items.data,
     error: failure ? getErrorMessage(failure) : null,
     retry,
-    mutateItems: editItems,
     save,
     remove,
     form: {

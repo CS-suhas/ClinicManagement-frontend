@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNotify } from "@/components/notifications";
 import type { VerificationStatus } from "@/features/auth/schemas";
 import {
@@ -8,16 +8,12 @@ import {
   unlessDenied,
 } from "@/features/doctors/api";
 import { localDayOf } from "@/features/doctors/utils";
-import {
-  type Page,
-  type PageParams,
-  usePagedList,
-} from "@/hooks/use-paged-list";
+import { type PageParams, usePagedList } from "@/hooks/use-paged-list";
 import { api, newId, unwrap } from "@/lib/api";
 import { toOffsetDateTime } from "@/lib/dates";
 import { getErrorMessage } from "@/lib/errors";
 import { PROVIDER_KEYS } from "@/lib/query-client";
-import type { Provider, ProviderForm } from "./schemas";
+import type { ProviderForm } from "./schemas";
 
 export const ALL_CLINICS = "all";
 
@@ -77,19 +73,6 @@ export const verifyProvider = (id: string) =>
 
 export const rejectProvider = (id: string) =>
   unwrap(api.POST("/api/providers/{id}/reject", { params: { path: { id } } }));
-
-export function usePatchProviderLists() {
-  const queryClient = useQueryClient();
-  return (id: string, change: Partial<Provider>) =>
-    queryClient.setQueriesData<Page<Provider>>(
-      { queryKey: ["providers", "list"] },
-      (page) =>
-        page && {
-          ...page,
-          items: page.items.map((p) => (p.id === id ? { ...p, ...change } : p)),
-        },
-    );
-}
 
 export function useSaveProvider() {
   const { notifySuccess } = useNotify();

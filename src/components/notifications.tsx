@@ -6,7 +6,7 @@ import {
   ExclamationTriangleIcon,
   InfoCircledIcon,
 } from "@radix-ui/react-icons";
-import { Button, Callout, Flex, IconButton } from "@radix-ui/themes";
+import { Callout, Flex, IconButton } from "@radix-ui/themes";
 import {
   createContext,
   type ReactNode,
@@ -21,24 +21,18 @@ const ERROR_MS = 8000;
 const SUCCESS_MS = 4000;
 const MAX_VISIBLE = 3;
 
-export type NotifyOptions = {
-  undo?: () => void;
-  durationMs?: number;
-};
-
 type Tone = "error" | "success" | "info";
 
 type Notification = {
   id: number;
   tone: Tone;
   message: string;
-  undo?: () => void;
 };
 
 export type Notifier = {
   notifyError: (message: string) => void;
-  notifySuccess: (message: string, options?: NotifyOptions) => void;
-  notifyInfo: (message: string, options?: NotifyOptions) => void;
+  notifySuccess: (message: string) => void;
+  notifyInfo: (message: string) => void;
 };
 
 const NotificationContext = createContext<Notifier | null>(null);
@@ -62,11 +56,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const push = useCallback(
-    (tone: Tone, message: string, options?: NotifyOptions) => {
+    (tone: Tone, message: string) => {
       const id = nextId.current++;
-      const duration =
-        options?.durationMs ?? (tone === "error" ? ERROR_MS : SUCCESS_MS);
-      const item: Notification = { id, tone, message, undo: options?.undo };
+      const duration = tone === "error" ? ERROR_MS : SUCCESS_MS;
+      const item: Notification = { id, tone, message };
       setItems((current) => [...current, item].slice(-MAX_VISIBLE));
       timers.current.set(
         id,
@@ -79,8 +72,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const notifier = useMemo<Notifier>(
     () => ({
       notifyError: (message) => push("error", message),
-      notifySuccess: (message, options) => push("success", message, options),
-      notifyInfo: (message, options) => push("info", message, options),
+      notifySuccess: (message) => push("success", message),
+      notifyInfo: (message) => push("info", message),
     }),
     [push],
   );
@@ -116,26 +109,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
               {n.tone === "info" && <InfoCircledIcon />}
             </Callout.Icon>
             <Callout.Text style={{ flex: 1 }}>{n.message}</Callout.Text>
-            {n.undo && (
-              <Button
-                size="1"
-                variant="soft"
-                color={TONE_COLOR[n.tone]}
-                style={{ marginLeft: "auto", flexShrink: 0 }}
-                onClick={() => {
-                  n.undo?.();
-                  dismiss(n.id);
-                }}
-              >
-                Undo
-              </Button>
-            )}
             <IconButton
               size="1"
               variant="ghost"
               color={TONE_COLOR[n.tone]}
               aria-label="Dismiss notification"
-              style={{ marginLeft: n.undo ? 4 : "auto", flexShrink: 0 }}
+              style={{ marginLeft: "auto", flexShrink: 0 }}
               onClick={() => dismiss(n.id)}
             >
               <Cross2Icon />

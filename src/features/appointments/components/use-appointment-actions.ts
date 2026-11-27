@@ -1,6 +1,8 @@
 "use client";
 
-import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { useMutation } from "@tanstack/react-query";
+import { useNotify } from "@/components/notifications";
+import { getErrorMessage } from "@/lib/errors";
 import { APPOINTMENT_KEYS } from "@/lib/query-client";
 import { transitionAppointment } from "../api";
 import type { AppointmentAction, AppointmentListItem } from "../schemas";
@@ -11,6 +13,13 @@ export const ACTION_LABEL: Record<AppointmentAction, string> = {
   decline: "Reject",
   complete: "Complete",
   cancel: "Cancel visit",
+};
+
+export const ACTION_QUESTION: Record<AppointmentAction, string> = {
+  confirm: "Accept this request?",
+  decline: "Reject this request?",
+  complete: "Mark this visit as completed?",
+  cancel: "Cancel this visit?",
 };
 
 const SUCCESS: Record<AppointmentAction, string> = {
@@ -27,48 +36,26 @@ const FAILURE: Record<AppointmentAction, string> = {
   cancel: "Could not cancel appointment",
 };
 
-const UNDOABLE: ReadonlySet<AppointmentAction> = new Set(["decline", "cancel"]);
-const CONFIRMED_FIRST: ReadonlySet<AppointmentAction> = new Set([
-  "confirm",
-  "complete",
-]);
-
 export type PendingAction = {
   item: AppointmentListItem;
   action: AppointmentAction;
 };
 
-export function useAppointmentActions(
-  mutateLists: (
-    change: (items: AppointmentListItem[]) => AppointmentListItem[],
-  ) => void,
-) {
-  const runOptimistic = useOptimisticMutations(APPOINTMENT_KEYS);
+export function useAppointmentActions() {
+  const { notifySuccess, notifyError } = useNotify();
+  const mutation = useMutation({
+    meta: { invalidates: APPOINTMENT_KEYS },
+    mutationFn: ({ item, action }: PendingAction) =>
+      transitionAppointment(item.id, action),
+    onSuccess: (_, { action }) => notifySuccess(SUCCESS[action]),
+    onError: (e, { action }) =>
+      notifyError(`${FAILURE[action]}: ${getErrorMessage(e)}`),
+  });
 
   const run = (item: AppointmentListItem, action: AppointmentAction) => {
-    const status = nextAppointmentStatus(item.status, action);
-    if (!status) return;
-    const replaceWith =
-      (next: AppointmentListItem) => (list: AppointmentListItem[]) =>
-        list.map((other) => (other.id === item.id ? next : other));
-    runOptimistic({
-      apply: () => mutateLists(replaceWith({ ...item, status })),
-      rollback: () => mutateLists(replaceWith(item)),
-      request: () => transitionAppointment(item.id, action),
-      failureMessage: FAILURE[action],
-      successMessage: SUCCESS[action],
-      undo: UNDOABLE.has(action) ? {} : undefined,
-    });
+    if (nextAppointmentStatus(item.status, action))
+      mutation.mutate({ item, action });
   };
 
-  const start = (
-    item: AppointmentListItem,
-    action: AppointmentAction,
-  ): PendingAction | null => {
-    if (CONFIRMED_FIRST.has(action)) return { item, action };
-    run(item, action);
-    return null;
-  };
-
-  return { run, start };
+  return { run };
 }

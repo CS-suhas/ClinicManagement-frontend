@@ -2,9 +2,9 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useNotify } from "@/components/notifications";
-import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { getErrorMessage } from "@/lib/errors";
 import { PROVIDER_KEYS } from "@/lib/query-client";
-import { rejectProvider, usePatchProviderLists, verifyProvider } from "../api";
+import { rejectProvider, verifyProvider } from "../api";
 import type { Provider } from "../schemas";
 import { providerFullName } from "../utils";
 
@@ -15,31 +15,28 @@ const DECISION_VERB: Record<Decision, string> = {
   reject: "rejected",
 };
 
-const DECISION_STATUS = {
-  verify: "VERIFIED",
-  reject: "REJECTED",
-} as const;
-
 const decisionRequest = (decision: Decision, id: string) =>
   decision === "verify" ? verifyProvider(id) : rejectProvider(id);
 
 export function useProviderDecisions() {
   const { notifyError, notifySuccess } = useNotify();
-  const runOptimistic = useOptimisticMutations(PROVIDER_KEYS);
-  const patch = usePatchProviderLists();
 
-  const decide = (provider: Provider, decision: Decision) => {
-    const name = providerFullName(provider);
-    const previous = provider.verificationStatus;
-    runOptimistic({
-      apply: () =>
-        patch(provider.id, { verificationStatus: DECISION_STATUS[decision] }),
-      rollback: () => patch(provider.id, { verificationStatus: previous }),
-      request: () => decisionRequest(decision, provider.id),
-      failureMessage: `Could not ${decision === "verify" ? "verify" : "reject"} ${name}`,
-      successMessage: `${name} ${DECISION_VERB[decision]}`,
-    });
-  };
+  const single = useMutation({
+    meta: { invalidates: PROVIDER_KEYS },
+    mutationFn: ({
+      provider,
+      decision,
+    }: {
+      provider: Provider;
+      decision: Decision;
+    }) => decisionRequest(decision, provider.id),
+    onSuccess: (_, { provider, decision }) =>
+      notifySuccess(`${providerFullName(provider)} ${DECISION_VERB[decision]}`),
+    onError: (e, { provider, decision }) =>
+      notifyError(
+        `Could not ${decision} ${providerFullName(provider)}: ${getErrorMessage(e)}`,
+      ),
+  });
 
   const bulk = useMutation({
     meta: { invalidates: PROVIDER_KEYS },
@@ -50,20 +47,15 @@ export function useProviderDecisions() {
       decision: Decision;
       targets: Provider[];
     }) => {
-      let done = 0;
       let failed = 0;
       for (const provider of targets) {
         try {
           await decisionRequest(decision, provider.id);
-          patch(provider.id, {
-            verificationStatus: DECISION_STATUS[decision],
-          });
-          done++;
         } catch {
           failed++;
         }
       }
-      return { decision, done, failed };
+      return { decision, done: targets.length - failed, failed };
     },
     onSuccess: ({ decision, done, failed }) => {
       const summary = `${done} ${DECISION_VERB[decision]}${failed ? `, ${failed} failed` : ""}`;
@@ -71,6 +63,9 @@ export function useProviderDecisions() {
       else notifySuccess(summary);
     },
   });
+
+  const decide = (provider: Provider, decision: Decision) =>
+    single.mutate({ provider, decision });
 
   return { decide, bulk };
 }

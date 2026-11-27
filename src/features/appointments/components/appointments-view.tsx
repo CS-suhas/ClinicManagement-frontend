@@ -65,6 +65,7 @@ import {
 } from "./schedule-time";
 import {
   ACTION_LABEL,
+  ACTION_QUESTION,
   type PendingAction,
   useAppointmentActions,
 } from "./use-appointment-actions";
@@ -198,17 +199,12 @@ export function AppointmentsView() {
       : null;
   const dayOffset = selectedDate === todayKey ? todayOffset : null;
 
-  const actions = useAppointmentActions((change) => {
-    schedule.mutateItems(change);
-    inbox.mutateItems(change);
-  });
+  const actions = useAppointmentActions();
   const [pending, setPending] = useState<PendingAction | null>(null);
   const actionsFor = (item: AppointmentListItem) =>
     appointmentActionsFor(item, user);
-  const onAct = (item: AppointmentListItem, action: AppointmentAction) => {
-    const next = actions.start(item, action);
-    if (next) setPending(next);
-  };
+  const onAct = (item: AppointmentListItem, action: AppointmentAction) =>
+    setPending({ item, action });
   const showAllergy = !isPatient;
   const common = {
     scope,
@@ -531,11 +527,7 @@ export function AppointmentsView() {
       <ConfirmActionDialog
         open={pending !== null}
         onOpenChange={(open) => !open && setPending(null)}
-        title={
-          pending?.action === "complete"
-            ? "Mark this visit as completed?"
-            : "Accept this request?"
-        }
+        title={pending ? ACTION_QUESTION[pending.action] : ""}
         description={
           pending ? (
             <>
@@ -562,6 +554,11 @@ export function AppointmentsView() {
           )
         }
         confirmLabel={pending ? ACTION_LABEL[pending.action] : "Confirm"}
+        confirmColor={
+          pending?.action === "decline" || pending?.action === "cancel"
+            ? "red"
+            : "teal"
+        }
         onConfirm={() => {
           if (pending) actions.run(pending.item, pending.action);
           setPending(null);

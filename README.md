@@ -57,7 +57,7 @@ src/
   features/      one folder per feature: api.ts (TanStack Query hooks),
                  schemas.ts (zod schemas and enums), utils.ts, components/
   components/    shared UI, including the react-hook-form inputs in form.tsx
-  hooks/         generic hooks (paged lists, optimistic undo, clock)
+  hooks/         generic hooks (paged lists, clock)
   lib/           API client (openapi-fetch), query client, auth session, dates
 ```
 
