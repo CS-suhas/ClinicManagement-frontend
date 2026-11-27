@@ -1,12 +1,11 @@
 "use client";
 
 import { Flex, Text } from "@radix-ui/themes";
-import type { AppointmentScope } from "@/application/services/appointment-service";
 import { ErrorCallout } from "@/components/error-callout";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Surface } from "@/components/ui/surface";
-import type { AppointmentAction } from "@/domain/entities";
-import type { AppointmentListItem } from "@/domain/repositories";
+import type { AppointmentAction, AppointmentListItem } from "../schemas";
+import type { AppointmentScope } from "../utils";
 import { ActionButtons, Party, timeSpan } from "./appointment-parts";
 
 export function PendingRequestsInbox({

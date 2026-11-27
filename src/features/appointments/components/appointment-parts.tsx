@@ -2,8 +2,8 @@
 
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import { Button, Flex, Text } from "@radix-ui/themes";
+import { addMinutes, parseISO } from "date-fns";
 import type { CSSProperties } from "react";
-import type { AppointmentScope } from "@/application/services/appointment-service";
 import {
   DoctorChip,
   PatientChip,
@@ -12,9 +12,13 @@ import {
 } from "@/components/glance";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { severityLevel } from "@/components/ui/severity";
-import type { AppointmentAction, AppointmentStatus } from "@/domain/entities";
-import type { AppointmentListItem } from "@/domain/repositories";
 import { startsSoon } from "@/lib/relative-time";
+import type {
+  AppointmentAction,
+  AppointmentListItem,
+  AppointmentStatus,
+} from "../schemas";
+import type { AppointmentScope } from "../utils";
 import { clockOf, toneOf } from "./schedule-time";
 import { ACTION_LABEL } from "./use-appointment-actions";
 
@@ -31,7 +35,7 @@ export function isSoon(item: AppointmentListItem, now: number | null) {
 }
 
 export function timeSpan(iso: string, duration: number) {
-  const end = new Date(Date.parse(iso) + duration * 60_000).toISOString();
+  const end = addMinutes(parseISO(iso), duration).toISOString();
   return `${clockOf(iso)} – ${clockOf(end)}`;
 }
 

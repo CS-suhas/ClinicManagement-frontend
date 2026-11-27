@@ -1,73 +1,32 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import type {
-  AppointmentScope,
-  AppointmentService,
-} from "@/application/services/appointment-service";
-import { useService } from "@/di/container-provider";
-import type { AppointmentInput, Provider } from "@/domain/entities";
-import type { AppointmentListItem } from "@/domain/repositories";
-import { useAsyncData } from "@/hooks/use-async-data";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
-import { type DateRange, scopeFilter } from "./appointment-range";
-
-const PAGE_SIZE = 100;
-const MAX_PAGES = 20;
-
-export async function fetchRange(
-  appointments: AppointmentService,
-  scope: AppointmentScope,
-  range: DateRange,
-): Promise<AppointmentListItem[]> {
-  const filter = scopeFilter(scope);
-  if (!filter) return [];
-  const found: AppointmentListItem[] = [];
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const result = await appointments.search({
-      ...filter,
-      from: range.from,
-      to: range.to,
-      page,
-      pageSize: PAGE_SIZE,
-    });
-    found.push(...result.items);
-    if (result.items.length < PAGE_SIZE || found.length >= result.totalCount)
-      break;
-  }
-  return found.sort(
-    (a, b) =>
-      Date.parse(a.appointmentDateTime) - Date.parse(b.appointmentDateTime),
-  );
-}
+import { newId } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  createAppointment,
+  deleteAppointment,
+  rangeQueryKey,
+  updateAppointment,
+  useAppointmentRange,
+  useAppointmentSettings,
+  useProviders,
+} from "../api";
+import type { AppointmentInput, AppointmentListItem } from "../schemas";
+import type { AppointmentScope } from "../utils";
+import type { DateRange } from "./appointment-range";
 
 export function useAppointmentSchedule(
   range: DateRange | null,
   scope: AppointmentScope,
 ) {
-  const appointmentService = useService("appointmentService");
-  const configurationService = useService("configurationService");
-  const providerService = useService("providerService");
-  const scopeKey = JSON.stringify(scope);
-  const rangeKey = range ? `${range.from}|${range.to}|${scopeKey}` : "";
-
-  const settings = useAsyncData(
-    () => configurationService.getAppointmentSettings(),
-    "settings",
-  );
-  const providers = useAsyncData<Provider[]>(
-    () => (scope.mode === "all" ? providerService.list() : Promise.resolve([])),
-    scope.mode,
-  );
-  const items = useAsyncData<AppointmentListItem[]>(
-    () =>
-      range
-        ? fetchRange(appointmentService, scope, range)
-        : Promise.resolve([]),
-    rangeKey,
-  );
-
-  const runOptimistic = useOptimisticMutations(items.refresh);
+  const queryClient = useQueryClient();
+  const settings = useAppointmentSettings();
+  const providers = useProviders(scope.mode === "all");
+  const items = useAppointmentRange(range, scope);
+  const runOptimistic = useOptimisticMutations();
   const [form, setForm] = useState<{
     open: boolean;
     editing: AppointmentListItem | null;
@@ -81,7 +40,11 @@ export function useAppointmentSchedule(
     Date.parse(iso) < Date.parse(range.to);
   const editItems = (
     change: (items: AppointmentListItem[]) => AppointmentListItem[],
-  ) => items.mutate((current) => current && change(current));
+  ) =>
+    queryClient.setQueryData<AppointmentListItem[]>(
+      rangeQueryKey(range, scope),
+      (current) => current && change(current),
+    );
 
   const save = (
     input: AppointmentInput,
@@ -102,14 +65,14 @@ export function useAppointmentSchedule(
           editItems((list) =>
             list.map((item) => (item.id === editing.id ? editing : item)),
           ),
-        request: () => appointmentService.update(editing.id, input),
+        request: () => updateAppointment(editing.id, input),
         failureMessage: "Could not update appointment",
       });
       return;
     }
     const created = {
       ...input,
-      id: crypto.randomUUID(),
+      id: newId(),
       ...overrides,
     } as AppointmentListItem;
     runOptimistic({
@@ -119,7 +82,7 @@ export function useAppointmentSchedule(
         ),
       rollback: () =>
         editItems((list) => list.filter((item) => item.id !== created.id)),
-      request: () => appointmentService.create(input, created.id),
+      request: () => createAppointment(created.id, input),
       failureMessage: "Could not add appointment",
     });
   };
@@ -129,25 +92,25 @@ export function useAppointmentSchedule(
       apply: () =>
         editItems((list) => list.filter((other) => other.id !== item.id)),
       rollback: () => editItems((list) => [...list, item]),
-      request: () => appointmentService.delete(item.id),
+      request: () => deleteAppointment(item.id),
       failureMessage: "Could not delete appointment",
     });
   };
 
+  const failure = settings.error ?? providers.error ?? items.error;
+
   const retry = () => {
-    void settings.reload();
-    void providers.reload();
-    void items.reload();
+    void settings.refetch();
+    void providers.refetch();
+    void items.refetch();
   };
 
   return {
     settings: settings.data,
     providers: providers.data,
     items: items.data,
-    loading: settings.loading || providers.loading || items.loading,
-    error: settings.error ?? providers.error ?? items.error,
+    error: failure ? getErrorMessage(failure) : null,
     retry,
-    refresh: items.refresh,
     mutateItems: editItems,
     save,
     remove,

@@ -1,6 +1,5 @@
-import type { AppointmentScope } from "@/application/services/appointment-service";
-import { type Provider, providerFullName } from "@/domain/entities";
-import type { AppointmentListItem } from "@/domain/repositories";
+import type { AppointmentListItem, Provider } from "../schemas";
+import { type AppointmentScope, fullName } from "../utils";
 
 export type ScheduleColumn = {
   id: string;
@@ -17,7 +16,7 @@ export function buildColumns(
   if (scope.mode === "all")
     return providers.map((p) => ({
       id: p.id,
-      name: providerFullName(p),
+      name: fullName(p),
       specialty: p.specialty,
       isYou: false,
     }));

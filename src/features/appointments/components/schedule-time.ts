@@ -1,4 +1,6 @@
-import type { AppointmentSettings } from "@/domain/entities";
+import { format, parseISO } from "date-fns";
+import type { AppointmentSettings } from "../schemas";
+import { clockToMinutes, minutesToClock } from "../utils";
 
 export type AppointmentView = "month" | "day" | "week" | "list";
 
@@ -11,10 +13,7 @@ export const calendarPxPerMinute = (duration: number) =>
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-export function toDateKey(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
+export const toDateKey = (ms: number) => format(ms, "yyyy-MM-dd");
 
 export const dateKeyOf = (iso: string) => toDateKey(Date.parse(iso));
 
@@ -22,9 +21,6 @@ export function minutesOfDay(ms: number): number {
   const d = new Date(ms);
   return d.getHours() * 60 + d.getMinutes();
 }
-
-const clockToMinutes = (time: string) =>
-  Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 
 export type ClinicWindow = {
   opening: number;
@@ -34,24 +30,20 @@ export type ClinicWindow = {
 
 export function clinicWindow(settings: AppointmentSettings): ClinicWindow {
   return {
-    opening: clockToMinutes(settings.clinicOpeningTime),
-    closing: clockToMinutes(settings.clinicClosingTime),
+    opening: clockToMinutes(settings.clinicOpeningTime) ?? 0,
+    closing: clockToMinutes(settings.clinicClosingTime) ?? 0,
     duration: settings.appointmentDurationMinutes,
   };
 }
 
-export const clock24 = (minutes: number) =>
-  `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+export const clock24 = minutesToClock;
 
 export function clock12(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   return `${hours % 12 || 12}:${pad(minutes % 60)} ${hours < 12 ? "am" : "pm"}`;
 }
 
-export const clockOf = (iso: string) => {
-  const d = new Date(iso);
-  return clock12(d.getHours() * 60 + d.getMinutes());
-};
+export const clockOf = (iso: string) => clock12(minutesOfDay(Date.parse(iso)));
 
 export function timeRange(start: number, duration: number): string {
   const plain = (m: number) => `${Math.floor(m / 60)}:${pad(m % 60)}`;
@@ -59,8 +51,7 @@ export function timeRange(start: number, duration: number): string {
 }
 
 export function dayLabel(dateKey: string): string {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+  return parseISO(dateKey).toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
     day: "numeric",

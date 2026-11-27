@@ -3,36 +3,33 @@
 import { Button, Flex, Spinner, Text } from "@radix-ui/themes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import {
-  type AppointmentScope,
-  allowedActions,
-  appointmentScopeFor,
-  canManageAppointments,
-} from "@/application/services/appointment-service";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { ErrorCallout } from "@/components/error-callout";
 import { PageHeader } from "@/components/ui/page-header";
 import { severityLevel } from "@/components/ui/severity";
 import { Surface } from "@/components/ui/surface";
-import { useService } from "@/di/container-provider";
-import {
-  APPOINTMENT_STATUSES,
-  type AppointmentAction,
-  type AppointmentStatus,
-  providerFullName,
-} from "@/domain/entities";
-import type { AppointmentListItem } from "@/domain/repositories";
 import { useAuth } from "@/features/auth/auth-provider";
 import { canBookOnline } from "@/features/auth/permissions";
 import { DoctorBookingDialogs } from "@/features/doctors/components/doctor-booking-dialogs";
 import { DoctorPickerDialog } from "@/features/doctors/components/doctor-picker-dialog";
 import type { DoctorProfile } from "@/features/doctors/components/doctor-profile";
-import { findBookableDoctor } from "@/features/doctors/components/use-bookable-doctor";
 import { useBookingGate } from "@/features/doctors/components/use-booking-gate";
-import { useAsyncData } from "@/hooks/use-async-data";
 import { useNow } from "@/hooks/use-now";
 import { formatDateTime } from "@/lib/format";
+import { findBookableDoctor, useClinics } from "../api";
+import {
+  type AppointmentAction,
+  type AppointmentListItem,
+  AppointmentStatus,
+} from "../schemas";
+import {
+  type AppointmentScope,
+  appointmentActionsFor,
+  appointmentScopeFor,
+  canManageAppointments,
+  fullName,
+} from "../utils";
 import { AppointmentFormDialog } from "./appointment-form-dialog";
 import { timeSpan } from "./appointment-parts";
 import {
@@ -83,8 +80,6 @@ export function AppointmentsView() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const providerService = useService("providerService");
-  const clinicService = useService("clinicService");
   const gate = useBookingGate();
   const narrow = useNarrowViewport();
   const now = useNow();
@@ -104,10 +99,7 @@ export function AppointmentsView() {
   const [clinicChoice, setClinicChoice] = useState<string | null>(null);
   const manyClinics =
     baseScope.mode === "clinic" && baseScope.clinicIds.length > 1;
-  const clinics = useAsyncData(
-    () => (manyClinics ? clinicService.list() : Promise.resolve([])),
-    manyClinics ? "many" : "one",
-  );
+  const clinics = useClinics(manyClinics);
   const scope: AppointmentScope = useMemo(
     () =>
       baseScope.mode === "clinic" &&
@@ -122,10 +114,9 @@ export function AppointmentsView() {
   const urlView = searchParams.get("view");
   const urlDate = searchParams.get("date");
   const urlStatus = searchParams.get("status");
-  const statusFilter: StatusFilter = (
-    APPOINTMENT_STATUSES as readonly string[]
-  ).includes(urlStatus ?? "")
-    ? (urlStatus as AppointmentStatus)
+  const parsedStatus = AppointmentStatus.safeParse(urlStatus);
+  const statusFilter: StatusFilter = parsedStatus.success
+    ? parsedStatus.data
     : ALL_STATUSES;
 
   const updateParams = (changes: Record<string, string | null>) => {
@@ -176,7 +167,7 @@ export function AppointmentsView() {
   const providers = useMemo(
     () =>
       [...(schedule.providers ?? [])].sort((a, b) =>
-        providerFullName(a).localeCompare(providerFullName(b)),
+        fullName(a).localeCompare(fullName(b)),
       ),
     [schedule.providers],
   );
@@ -206,18 +197,13 @@ export function AppointmentsView() {
       : null;
   const dayOffset = selectedDate === todayKey ? todayOffset : null;
 
-  const actions = useAppointmentActions(
-    (change) => {
-      schedule.mutateItems(change);
-      inbox.mutateItems(change);
-    },
-    () => {
-      schedule.refresh();
-      inbox.refresh();
-    },
-  );
+  const actions = useAppointmentActions((change) => {
+    schedule.mutateItems(change);
+    inbox.mutateItems(change);
+  });
   const [pending, setPending] = useState<PendingAction | null>(null);
-  const actionsFor = (item: AppointmentListItem) => allowedActions(item, user);
+  const actionsFor = (item: AppointmentListItem) =>
+    appointmentActionsFor(item, user);
   const onAct = (item: AppointmentListItem, action: AppointmentAction) => {
     const next = actions.start(item, action);
     if (next) setPending(next);
@@ -254,12 +240,10 @@ export function AppointmentsView() {
     if (canBook) {
       handledBook.current = true;
       if (providerParam) {
-        void findBookableDoctor(providerService, providerParam).then(
-          (doctor) => {
-            if (doctor) gate.requestBooking(doctor, BOOK_RETURN);
-            else setPickerOpen(true);
-          },
-        );
+        void findBookableDoctor(providerParam).then((doctor) => {
+          if (doctor) gate.requestBooking(doctor, BOOK_RETURN);
+          else setPickerOpen(true);
+        });
       } else setPickerOpen(true);
     } else if (canWrite && patientParam) {
       handledBook.current = true;
@@ -458,7 +442,7 @@ export function AppointmentsView() {
                 value: providerFilter,
                 options: providers.map((provider) => ({
                   id: provider.id,
-                  name: providerFullName(provider),
+                  name: fullName(provider),
                 })),
                 onChange: setProviderFilter,
               }

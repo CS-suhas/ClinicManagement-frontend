@@ -1,9 +1,8 @@
 "use client";
 
-import type { AppointmentScope } from "@/application/services/appointment-service";
 import { Surface } from "@/components/ui/surface";
-import type { AppointmentAction } from "@/domain/entities";
-import type { AppointmentListItem } from "@/domain/repositories";
+import type { AppointmentAction, AppointmentListItem } from "../schemas";
+import type { AppointmentScope } from "../utils";
 import {
   AppointmentBlock,
   type AppointmentViewProps,

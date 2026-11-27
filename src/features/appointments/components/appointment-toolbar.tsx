@@ -15,10 +15,7 @@ import type { ReactNode } from "react";
 import { statusPresentation } from "@/components/glance";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { Surface } from "@/components/ui/surface";
-import {
-  APPOINTMENT_STATUSES,
-  type AppointmentStatus,
-} from "@/domain/entities";
+import { AppointmentStatus } from "../schemas";
 import type { AppointmentView } from "./schedule-time";
 
 export const ALL_STATUSES = "all" as const;
@@ -167,7 +164,7 @@ export function AppointmentToolbar({
           <Select.Trigger aria-label="Filter by status" />
           <Select.Content>
             <Select.Item value={ALL_STATUSES}>All statuses</Select.Item>
-            {APPOINTMENT_STATUSES.map((value) => (
+            {AppointmentStatus.options.map((value) => (
               <Select.Item key={value} value={value}>
                 {statusPresentation("appointment", value).label}
               </Select.Item>

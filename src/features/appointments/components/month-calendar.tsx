@@ -9,7 +9,7 @@ import {
   statusPresentation,
 } from "@/components/glance";
 import { PersonAvatar } from "@/components/ui/person-avatar";
-import type { AppointmentListItem } from "@/domain/repositories";
+import type { AppointmentListItem } from "../schemas";
 import {
   ActionButtons,
   isMuted,

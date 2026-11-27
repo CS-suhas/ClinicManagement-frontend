@@ -1,10 +1,12 @@
 import {
-  type AppointmentScope,
-  addDays,
-  localMidnightIso,
-} from "@/application/services/appointment-service";
-import type { AppointmentSearchOptions } from "@/domain/repositories";
-import { toDateKey } from "./schedule-time";
+  addMonths,
+  format,
+  isSameMonth,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
+import { addDays, localMidnightIso } from "@/lib/dates";
 
 export type RangeMode = "day" | "week" | "month";
 
@@ -14,28 +16,21 @@ export type DateRange = {
   days: string[];
 };
 
-const pad = (n: number) => String(n).padStart(2, "0");
+const MONDAY = { weekStartsOn: 1 } as const;
+const toKey = (date: Date) => format(date, "yyyy-MM-dd");
+const consecutiveDays = (start: string, count: number) =>
+  Array.from({ length: count }, (_, i) => addDays(start, i));
 
 export const monthKeyOf = (dateKey: string) => dateKey.slice(0, 7);
 
-export function mondayIndex(dateKey: string): number {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  return (new Date(y, m - 1, d).getDay() + 6) % 7;
-}
-
 export const weekStartOf = (dateKey: string) =>
-  addDays(dateKey, -mondayIndex(dateKey));
+  toKey(startOfWeek(parseISO(dateKey), MONDAY));
 
-export function weekDays(dateKey: string): string[] {
-  const start = weekStartOf(dateKey);
-  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-}
+export const weekDays = (dateKey: string) =>
+  consecutiveDays(weekStartOf(dateKey), 7);
 
-export function monthGridDays(dateKey: string): string[] {
-  const first = `${monthKeyOf(dateKey)}-01`;
-  const start = addDays(first, -mondayIndex(first));
-  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
-}
+export const monthGridDays = (dateKey: string) =>
+  consecutiveDays(weekStartOf(toKey(startOfMonth(parseISO(dateKey)))), 42);
 
 export function rangeFor(mode: RangeMode, dateKey: string): DateRange {
   const days =
@@ -56,69 +51,34 @@ export function shiftDate(
   dateKey: string,
   steps: number,
 ): string {
-  if (mode === "month") {
-    const [y, m] = dateKey.split("-").map(Number);
-    const next = new Date(y, m - 1 + steps, 1);
-    return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-01`;
-  }
+  if (mode === "month")
+    return toKey(startOfMonth(addMonths(parseISO(dateKey), steps)));
   return addDays(dateKey, steps * (mode === "week" ? 7 : 1));
 }
 
-export function monthLabel(dateKey: string): string {
-  const [y, m] = dateKey.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString(undefined, {
+export const monthLabel = (dateKey: string) =>
+  parseISO(dateKey).toLocaleDateString(undefined, {
     month: "long",
     year: "numeric",
   });
-}
 
 export function weekLabel(dateKey: string): string {
   const days = weekDays(dateKey);
-  const first = new Date(...splitKey(days[0]));
-  const last = new Date(...splitKey(days[6]));
+  const first = parseISO(days[0]);
+  const last = parseISO(days[6]);
   const left = first.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
   });
-  const right =
-    first.getMonth() === last.getMonth()
-      ? String(last.getDate())
-      : last.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const right = isSameMonth(first, last)
+    ? String(last.getDate())
+    : last.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   return `${left} – ${right}, ${last.getFullYear()}`;
 }
 
-function splitKey(dateKey: string): [number, number, number] {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  return [y, m - 1, d];
-}
-
-export function dayHeading(dateKey: string): string {
-  const [y, m, d] = splitKey(dateKey);
-  return new Date(y, m, d).toLocaleDateString(undefined, {
+export const dayHeading = (dateKey: string) =>
+  parseISO(dateKey).toLocaleDateString(undefined, {
     weekday: "short",
     day: "numeric",
     month: "short",
   });
-}
-
-export function scopeFilter(
-  scope: AppointmentScope,
-): Pick<
-  AppointmentSearchOptions,
-  "clinicId" | "providerId" | "patientId"
-> | null {
-  switch (scope.mode) {
-    case "all":
-      return {};
-    case "clinic":
-      return { clinicId: scope.clinicId };
-    case "provider":
-      return { providerId: scope.providerId };
-    case "patient":
-      return { patientId: scope.patientId };
-    case "none":
-      return null;
-  }
-}
-
-export const todayKeyOf = (ms: number) => toDateKey(ms);

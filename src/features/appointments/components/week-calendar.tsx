@@ -1,7 +1,7 @@
 "use client";
 
 import { Surface } from "@/components/ui/surface";
-import type { AppointmentListItem } from "@/domain/repositories";
+import type { AppointmentListItem } from "../schemas";
 import { AppointmentBlock } from "./appointment-parts";
 import { dayHeading } from "./appointment-range";
 import { type GridCommon, viewFor } from "./day-calendar";

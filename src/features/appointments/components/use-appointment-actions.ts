@@ -1,12 +1,9 @@
 "use client";
 
-import { useService } from "@/di/container-provider";
-import {
-  type AppointmentAction,
-  nextAppointmentStatus,
-} from "@/domain/entities";
-import type { AppointmentListItem } from "@/domain/repositories";
 import { useOptimisticMutations } from "@/hooks/use-optimistic-mutations";
+import { transitionAppointment } from "../api";
+import type { AppointmentAction, AppointmentListItem } from "../schemas";
+import { nextAppointmentStatus } from "../utils";
 
 export const ACTION_LABEL: Record<AppointmentAction, string> = {
   confirm: "Accept",
@@ -44,10 +41,8 @@ export function useAppointmentActions(
   mutateLists: (
     change: (items: AppointmentListItem[]) => AppointmentListItem[],
   ) => void,
-  refresh: () => void,
 ) {
-  const appointmentService = useService("appointmentService");
-  const runOptimistic = useOptimisticMutations(refresh);
+  const runOptimistic = useOptimisticMutations();
 
   const run = (item: AppointmentListItem, action: AppointmentAction) => {
     const status = nextAppointmentStatus(item.status, action);
@@ -58,7 +53,7 @@ export function useAppointmentActions(
     runOptimistic({
       apply: () => mutateLists(replaceWith({ ...item, status })),
       rollback: () => mutateLists(replaceWith(item)),
-      request: () => appointmentService[action](item.id),
+      request: () => transitionAppointment(item.id, action),
       failureMessage: FAILURE[action],
       successMessage: SUCCESS[action],
       undo: UNDOABLE.has(action) ? {} : undefined,
