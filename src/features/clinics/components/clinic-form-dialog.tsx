@@ -1,44 +1,40 @@
 "use client";
 
-import { FormDialog } from "@/components/form-dialog";
-import { TextFormField } from "@/components/form-fields";
-import type { Clinic, ClinicInput } from "@/domain/entities";
-import { useEntityForm } from "@/hooks/use-entity-form";
-
-const EMPTY: ClinicInput = { name: "", location: null, phoneNumber: "" };
+import { FormDialog, TextInput } from "@/components/form";
+import { useSaveClinic } from "../api";
+import { type Clinic, clinicForm } from "../schemas";
 
 export function ClinicFormDialog({
   open,
   onOpenChange,
   clinic,
-  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clinic: Clinic | null;
-  onSave: (input: ClinicInput, editing: Clinic | null) => void;
 }) {
-  const form = useEntityForm({
-    entityName: "clinic",
-    idPrefix: "clinic",
-    open,
-    onOpenChange,
-    onSave,
-    entity: clinic,
-    empty: EMPTY,
-  });
+  const save = useSaveClinic();
 
   return (
-    <FormDialog {...form.dialogProps}>
-      <TextFormField label="Name" {...form.field("name")} />
-      <TextFormField
-        label="Location (optional)"
-        {...form.field("location", { emptyAsNull: true })}
-      />
-      <TextFormField
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={clinic ? "Edit clinic" : "New clinic"}
+      submitLabel={clinic ? "Save changes" : "Create clinic"}
+      schema={clinicForm}
+      defaultValues={{
+        name: clinic?.name ?? "",
+        address: clinic?.address ?? "",
+        phoneNumber: clinic?.phoneNumber ?? "",
+      }}
+      onSubmit={(values) => save.mutateAsync({ id: clinic?.id, values })}
+    >
+      <TextInput name="name" label="Name" />
+      <TextInput name="address" label="Location (optional)" />
+      <TextInput
+        name="phoneNumber"
         label="Phone number (optional)"
         type="tel"
-        {...form.field("phoneNumber")}
       />
     </FormDialog>
   );

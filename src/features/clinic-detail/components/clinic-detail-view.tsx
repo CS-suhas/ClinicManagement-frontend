@@ -9,18 +9,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { IconCircle } from "@/components/ui/icon-circle";
 import { PageHeader } from "@/components/ui/page-header";
 import { Surface } from "@/components/ui/surface";
-import { useService } from "@/di/container-provider";
-import type { ClinicSummary } from "@/domain/repositories/glance";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useClinicSummary } from "@/features/clinics/api";
+import { mapsSearchUrl } from "@/features/clinics/utils";
+import { getErrorMessage } from "@/lib/errors";
 
 export function ClinicDetailView({ clinicId }: { clinicId: string }) {
-  const glance = useService("glanceService");
-  const summary = useAsyncData<ClinicSummary>(
-    () => glance.getClinicSummary(clinicId),
-    clinicId,
-  );
+  const summary = useClinicSummary(clinicId);
 
-  if (summary.loading && !summary.data)
+  if (summary.isPending)
     return (
       <Flex justify="center" py="9">
         <Spinner size="3" />
@@ -29,8 +25,8 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
   if (summary.error)
     return (
       <ErrorCallout
-        message={summary.error}
-        onRetry={() => void summary.reload()}
+        message={getErrorMessage(summary.error)}
+        onRetry={() => void summary.refetch()}
       />
     );
 
@@ -49,15 +45,13 @@ export function ClinicDetailView({ clinicId }: { clinicId: string }) {
       />
     );
 
-  const mapsHref = clinic.location
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clinic.location)}`
-    : null;
+  const mapsHref = clinic.address ? mapsSearchUrl(clinic.address) : null;
 
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
         title={clinic.name}
-        subtitle={clinic.location ?? "No address on record"}
+        subtitle={clinic.address ?? "No address on record"}
       />
 
       <Surface padding="lg">

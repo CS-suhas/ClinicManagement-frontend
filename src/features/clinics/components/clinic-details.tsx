@@ -6,19 +6,20 @@ import {
   GlanceError,
   GlanceSkeleton,
 } from "@/components/glance/glance-popover";
-import { useService } from "@/di/container-provider";
-import type { Clinic } from "@/domain/entities";
-import type { ClinicSummary } from "@/domain/repositories/glance";
-import { useGlanceData } from "@/hooks/use-glance-data";
+import { getErrorMessage } from "@/lib/errors";
+import { useClinicSummary } from "../api";
+import type { Clinic } from "../schemas";
 
 export function ClinicDetails({ clinic }: { clinic: Clinic }) {
-  const glance = useService("glanceService");
-  const summary = useGlanceData<ClinicSummary>(`clinic:${clinic.id}`, () =>
-    glance.getClinicSummary(clinic.id),
-  );
+  const summary = useClinicSummary(clinic.id);
 
   if (summary.error)
-    return <GlanceError message={summary.error} onRetry={summary.retry} />;
+    return (
+      <GlanceError
+        message={getErrorMessage(summary.error)}
+        onRetry={() => void summary.refetch()}
+      />
+    );
   if (!summary.data) return <GlanceSkeleton rows={2} />;
   const data = summary.data;
   return (

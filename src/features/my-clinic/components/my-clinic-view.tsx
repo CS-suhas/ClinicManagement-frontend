@@ -8,12 +8,15 @@ import { ClinicChip } from "@/components/glance";
 import { PageHeader } from "@/components/ui/page-header";
 import { Surface } from "@/components/ui/surface";
 import { useAuth } from "@/features/auth/auth-provider";
-import { useMyClinic } from "./use-my-clinic";
+import { useClinicSummary } from "@/features/clinics/api";
+import { getErrorMessage } from "@/lib/errors";
+import { useMyProvider } from "../api";
 
 export function MyClinicView() {
   const { user, refresh } = useAuth();
-  const providerId = user?.provider?.id ?? null;
-  const state = useMyClinic(providerId);
+  const provider = useMyProvider(user?.provider?.id ?? null);
+  const clinicId = provider.data?.clinicId ?? null;
+  const summary = useClinicSummary(clinicId);
 
   useEffect(() => {
     void refresh();
@@ -26,18 +29,18 @@ export function MyClinicView() {
         subtitle="The clinic you practise at. To change it, contact a platform administrator."
       />
       <AsyncContent
-        loading={state.provider.loading}
-        error={state.provider.error}
+        loading={provider.isPending}
+        error={provider.error ? getErrorMessage(provider.error) : null}
         isEmpty={false}
-        onRetry={() => void state.provider.reload()}
+        onRetry={() => void provider.refetch()}
       >
-        {state.clinicId && (
+        {clinicId && (
           <CurrentClinic
-            clinicId={state.clinicId}
-            name={state.summary.data?.clinic?.name ?? "Your clinic"}
-            location={state.summary.data?.clinic?.location ?? null}
-            phone={state.summary.data?.clinic?.phoneNumber ?? null}
-            doctorCount={state.summary.data?.providerCount ?? null}
+            clinicId={clinicId}
+            name={summary.data?.clinic?.name ?? "Your clinic"}
+            location={summary.data?.clinic?.address ?? null}
+            phone={summary.data?.clinic?.phoneNumber ?? null}
+            doctorCount={summary.data?.providerCount ?? null}
           />
         )}
       </AsyncContent>
