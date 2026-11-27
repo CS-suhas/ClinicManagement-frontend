@@ -1171,6 +1171,8 @@ export interface components {
       /** Format: int32 */
       todayAppointmentCount: number;
     };
+    /** @enum {string} */
+    AllergySeverity: "MILD" | "MODERATE" | "SEVERE";
     AllergyTypeRequest: {
       /** Format: uuid */
       id: string;
@@ -1199,16 +1201,12 @@ export interface components {
       /** Format: date-time */
       appointmentDateTime: string;
       reasonForVisit: null | string;
-      /** @enum {string} */
-      status:
-        | "REQUESTED"
-        | "CONFIRMED"
-        | "DECLINED"
-        | "CANCELLED"
-        | "COMPLETED";
+      status: components["schemas"]["AppointmentStatus"];
       /** Format: int32 */
       patientAllergyCount: number;
-      patientHighestAllergySeverity: null | string;
+      patientHighestAllergySeverity:
+        | null
+        | components["schemas"]["AllergySeverity"];
       /** Format: date-time */
       createdAtUtc: string;
       /** Format: date-time */
@@ -1238,13 +1236,7 @@ export interface components {
       /** Format: date-time */
       appointmentDateTime: string;
       reasonForVisit: null | string;
-      /** @enum {string} */
-      status:
-        | "REQUESTED"
-        | "CONFIRMED"
-        | "DECLINED"
-        | "CANCELLED"
-        | "COMPLETED";
+      status: components["schemas"]["AppointmentStatus"];
     };
     AppointmentSettingsResponse: {
       /** Format: int32 */
@@ -1254,7 +1246,13 @@ export interface components {
       /** Format: time */
       clinicClosingTime: string;
     };
-    AppointmentStatus: number;
+    /** @enum {string} */
+    AppointmentStatus:
+      | "REQUESTED"
+      | "CONFIRMED"
+      | "DECLINED"
+      | "CANCELLED"
+      | "COMPLETED";
     ClinicAdminDashboardSection: {
       /** Format: int32 */
       clinicCount: number;
@@ -1330,6 +1328,8 @@ export interface components {
       /** Format: int32 */
       pendingRequestCount: number;
     };
+    /** @enum {string} */
+    Gender: "MALE" | "FEMALE" | "OTHER";
     HttpValidationProblemDetails: {
       type?: null | string;
       title?: null | string;
@@ -1354,8 +1354,7 @@ export interface components {
     MeLinkedProvider: {
       /** Format: uuid */
       id: string;
-      /** @enum {string} */
-      verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+      verificationStatus: components["schemas"]["ProviderVerificationStatus"];
       /** Format: uuid */
       clinicId: string;
     };
@@ -1433,7 +1432,7 @@ export interface components {
     PatientAllergyRequest: {
       /** Format: uuid */
       allergyId: string;
-      severity: string;
+      severity: components["schemas"]["AllergySeverity"];
       notes: null | string;
     };
     PatientAllergyResponse: {
@@ -1442,7 +1441,7 @@ export interface components {
       /** Format: uuid */
       allergyId: string;
       name: string;
-      severity: string;
+      severity: components["schemas"]["AllergySeverity"];
       notes: null | string;
     };
     PatientDashboardSection: {
@@ -1462,13 +1461,12 @@ export interface components {
       email: string;
       /** Format: int32 */
       allergyCount: number;
-      highestSeverity: null | string;
+      highestSeverity: null | components["schemas"]["AllergySeverity"];
     };
     PatientRecentDecision: {
       /** Format: uuid */
       appointmentId: string;
-      /** @enum {string} */
-      status: "CONFIRMED" | "DECLINED";
+      status: components["schemas"]["AppointmentStatus"];
       /** Format: date-time */
       decidedAtUtc: string;
       providerName: string;
@@ -1497,7 +1495,7 @@ export interface components {
       /** Format: uuid */
       allergyId: string;
       name: string;
-      severity: string;
+      severity: components["schemas"]["AllergySeverity"];
     };
     PatientSummaryPatient: {
       /** Format: uuid */
@@ -1537,13 +1535,7 @@ export interface components {
       /** Format: date-time */
       appointmentDateTime: string;
       reasonForVisit: null | string;
-      /** @enum {string} */
-      status:
-        | "REQUESTED"
-        | "CONFIRMED"
-        | "DECLINED"
-        | "CANCELLED"
-        | "COMPLETED";
+      status: components["schemas"]["AppointmentStatus"];
       providerName: string;
     };
     ProblemDetails: {
@@ -1580,7 +1572,7 @@ export interface components {
       specialty: string;
       /** Format: double */
       fee?: null | number;
-      gender?: null | string;
+      gender?: null | components["schemas"]["Gender"];
     };
     ProviderRequest: {
       /** Format: uuid */
@@ -1592,7 +1584,7 @@ export interface components {
       specialty: string;
       /** Format: double */
       fee?: null | number;
-      gender?: null | string;
+      gender?: null | components["schemas"]["Gender"];
     };
     ProviderResponse: {
       /** Format: uuid */
@@ -1602,12 +1594,10 @@ export interface components {
       firstName: string;
       lastName: string;
       specialty: string;
-      /** @enum {string} */
-      verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+      verificationStatus: components["schemas"]["ProviderVerificationStatus"];
       /** Format: double */
       fee: null | number;
-      /** @enum {null|string} */
-      gender: "MALE" | "FEMALE" | "OTHER" | null;
+      gender: null | components["schemas"]["Gender"];
       clinicName: null | string;
     };
     ProviderSummaryResponse: {
@@ -1618,7 +1608,8 @@ export interface components {
       /** Format: int32 */
       todayAppointmentCount: number;
     };
-    ProviderVerificationStatus: number;
+    /** @enum {string} */
+    ProviderVerificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
     RosterPatient: {
       /** Format: uuid */
       id: string;
@@ -1630,7 +1621,7 @@ export interface components {
       phoneNumber: string;
       /** Format: int32 */
       allergyCount: number;
-      highestSeverity: null | string;
+      highestSeverity: null | components["schemas"]["AllergySeverity"];
     };
     RosterVisit: {
       /** Format: uuid */
@@ -4724,7 +4715,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": string[];
+          "application/json": components["schemas"]["AllergySeverity"][];
         };
       };
     };

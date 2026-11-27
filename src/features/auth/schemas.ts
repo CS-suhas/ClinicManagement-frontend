@@ -4,8 +4,13 @@ import type { Schemas } from "@/lib/api";
 export const Role = z.enum(["patient", "doctor", "admin", "clinicadmin"]);
 export type Role = z.infer<typeof Role>;
 
-export const VerificationStatus = z.enum(["PENDING", "VERIFIED", "REJECTED"]);
-export type VerificationStatus = z.infer<typeof VerificationStatus>;
+export type VerificationStatus = Schemas["ProviderVerificationStatus"];
+export const VERIFICATION_STATUSES = [
+  "PENDING",
+  "VERIFIED",
+  "REJECTED",
+] as const satisfies readonly VerificationStatus[];
+export const VerificationStatus = z.enum(VERIFICATION_STATUSES);
 
 export type CurrentUser = Omit<
   Schemas["MeResponse"],

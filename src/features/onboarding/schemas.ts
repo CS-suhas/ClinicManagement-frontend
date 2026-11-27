@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { GENDERS } from "@/features/providers/schemas";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+()\-\s\d]{7,20}$/;
 const FEE_LIMIT = 100_000_000;
 
-export const ProviderGender = z.enum(["MALE", "FEMALE", "OTHER", "NONE"]);
+export const ProviderGender = z.enum([...GENDERS, "NONE"]);
 export type ProviderGender = z.infer<typeof ProviderGender>;
 
 const feeValue = (fee: string) => Number(fee);

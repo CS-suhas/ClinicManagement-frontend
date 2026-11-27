@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ALLERGY_SEVERITIES } from "@/components/ui/severity";
 import type { Schemas } from "@/lib/api";
 
 export type Patient = Schemas["PatientResponse"];
@@ -64,10 +65,11 @@ export const patientDefaults: PatientForm = {
 
 export const patientAllergyForm = z.object({
   allergyId: z.string().refine(filled, "Allergy is required"),
-  severity: z.string().refine(filled, "Severity is required"),
+  severity: z.string().pipe(z.enum(ALLERGY_SEVERITIES, "Severity is required")),
   notes: z.string(),
 });
-export type PatientAllergyForm = z.infer<typeof patientAllergyForm>;
+export type PatientAllergyForm = z.input<typeof patientAllergyForm>;
+export type PatientAllergyValues = z.output<typeof patientAllergyForm>;
 
 export const patientAllergyDefaults: PatientAllergyForm = {
   allergyId: "",

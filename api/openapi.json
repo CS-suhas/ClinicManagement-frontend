@@ -3703,7 +3703,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/AllergySeverity"
                   }
                 }
               }
@@ -4003,6 +4003,14 @@
           }
         }
       },
+      "AllergySeverity": {
+        "enum": [
+          "MILD",
+          "MODERATE",
+          "SEVERE"
+        ],
+        "type": "string"
+      },
       "AllergyTypeRequest": {
         "required": [
           "id",
@@ -4103,7 +4111,7 @@
             ]
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/AppointmentStatus"
           },
           "patientAllergyCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -4114,9 +4122,13 @@
             "format": "int32"
           },
           "patientHighestAllergySeverity": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AllergySeverity"
+              }
             ]
           },
           "createdAtUtc": {
@@ -4209,7 +4221,7 @@
             ]
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/AppointmentStatus"
           }
         }
       },
@@ -4240,7 +4252,14 @@
         }
       },
       "AppointmentStatus": {
-        "type": "integer"
+        "enum": [
+          "REQUESTED",
+          "CONFIRMED",
+          "DECLINED",
+          "CANCELLED",
+          "COMPLETED"
+        ],
+        "type": "string"
       },
       "ClinicAdminDashboardSection": {
         "required": [
@@ -4571,6 +4590,14 @@
           }
         }
       },
+      "Gender": {
+        "enum": [
+          "MALE",
+          "FEMALE",
+          "OTHER"
+        ],
+        "type": "string"
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -4694,7 +4721,7 @@
             "format": "uuid"
           },
           "verificationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ProviderVerificationStatus"
           },
           "clinicId": {
             "type": "string",
@@ -5060,7 +5087,7 @@
             "format": "uuid"
           },
           "severity": {
-            "type": "string"
+            "$ref": "#/components/schemas/AllergySeverity"
           },
           "notes": {
             "type": [
@@ -5092,7 +5119,7 @@
             "type": "string"
           },
           "severity": {
-            "type": "string"
+            "$ref": "#/components/schemas/AllergySeverity"
           },
           "notes": {
             "type": [
@@ -5178,9 +5205,13 @@
             "format": "int32"
           },
           "highestSeverity": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AllergySeverity"
+              }
             ]
           }
         }
@@ -5199,7 +5230,7 @@
             "format": "uuid"
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/AppointmentStatus"
           },
           "decidedAtUtc": {
             "type": "string",
@@ -5292,7 +5323,7 @@
             "type": "string"
           },
           "severity": {
-            "type": "string"
+            "$ref": "#/components/schemas/AllergySeverity"
           }
         }
       },
@@ -5466,7 +5497,7 @@
             ]
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/AppointmentStatus"
           },
           "providerName": {
             "type": "string"
@@ -5624,9 +5655,13 @@
             "format": "double"
           },
           "gender": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
             ]
           }
         }
@@ -5668,9 +5703,13 @@
             "format": "double"
           },
           "gender": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
             ]
           }
         }
@@ -5707,7 +5746,7 @@
             "type": "string"
           },
           "verificationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ProviderVerificationStatus"
           },
           "fee": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
@@ -5719,9 +5758,13 @@
             "format": "double"
           },
           "gender": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
             ]
           },
           "clinicName": {
@@ -5765,7 +5808,12 @@
         }
       },
       "ProviderVerificationStatus": {
-        "type": "integer"
+        "enum": [
+          "PENDING",
+          "VERIFIED",
+          "REJECTED"
+        ],
+        "type": "string"
       },
       "RosterPatient": {
         "required": [
@@ -5809,9 +5857,13 @@
             "format": "int32"
           },
           "highestSeverity": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AllergySeverity"
+              }
             ]
           }
         }

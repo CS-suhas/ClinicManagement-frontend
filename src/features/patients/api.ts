@@ -8,11 +8,7 @@ import type {
   PatientForm,
   PatientSummary,
 } from "./schemas";
-import {
-  groupVisitsByPatient,
-  type PatientVisits,
-  parseAllergySeverities,
-} from "./utils";
+import { groupVisitsByPatient, type PatientVisits } from "./utils";
 
 const APPOINTMENT_PAGE_SIZE = 200;
 const ALLERGY_PAGE = { Page: 1, PageSize: 100 };
@@ -146,7 +142,6 @@ export function usePatientSummary(patientId: string, enabled = true) {
 
 export function useAllergySeverities() {
   return $api.useQuery("get", "/api/allergy-severities", undefined, {
-    select: parseAllergySeverities,
     staleTime: Number.POSITIVE_INFINITY,
   });
 }

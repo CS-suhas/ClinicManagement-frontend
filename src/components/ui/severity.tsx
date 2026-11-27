@@ -1,8 +1,17 @@
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import { z } from "zod";
+import type { Schemas } from "@/lib/api";
 
-export const Severity = z.enum(["MILD", "MODERATE", "SEVERE"]);
-export type SeverityLevel = z.infer<typeof Severity> | "UNKNOWN";
+export type AllergySeverity = Schemas["AllergySeverity"];
+
+export const ALLERGY_SEVERITIES = [
+  "MILD",
+  "MODERATE",
+  "SEVERE",
+] as const satisfies readonly AllergySeverity[];
+
+export const Severity = z.enum(ALLERGY_SEVERITIES);
+export type SeverityLevel = AllergySeverity | "UNKNOWN";
 
 export function severityRank(severity: string | null | undefined) {
   const parsed = Severity.safeParse((severity ?? "").trim().toUpperCase());

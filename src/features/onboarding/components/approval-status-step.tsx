@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { StatusPill } from "@/components/glance";
 import { Surface } from "@/components/ui/surface";
 import { getCurrentUser } from "@/features/auth/api";
+import type { VerificationStatus } from "@/features/auth/schemas";
 
 export const APPROVAL_POLL_MS = 30_000;
 
@@ -13,7 +14,7 @@ export function ApprovalStatusStep({
   status,
   onRefresh,
 }: {
-  status: "PENDING" | "REJECTED";
+  status: Exclude<VerificationStatus, "VERIFIED">;
   onRefresh: () => Promise<void>;
 }) {
   const [checking, setChecking] = useState(false);

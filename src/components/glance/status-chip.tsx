@@ -3,6 +3,7 @@
 import { Flex, Text } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { RelativeTime } from "@/components/ui/relative-time";
+import type { Schemas } from "@/lib/api";
 import {
   GlanceFooter,
   GlanceHeader,
@@ -45,12 +46,12 @@ const PRESENTATION: Record<StatusKind, Record<string, StatusPresentation>> = {
     DECLINED: { label: "Rejected", tone: "red", glyph: "✕" },
     CANCELLED: { label: "Cancelled", tone: "slate", glyph: "–" },
     COMPLETED: { label: "Completed", tone: "blue", glyph: "✓" },
-  },
+  } satisfies Record<Schemas["AppointmentStatus"], StatusPresentation>,
   verification: {
     PENDING: { label: "Pending", tone: "amber", glyph: "◷" },
     VERIFIED: { label: "Verified", tone: "teal", glyph: "✓" },
     REJECTED: { label: "Rejected", tone: "red", glyph: "✕" },
-  },
+  } satisfies Record<Schemas["ProviderVerificationStatus"], StatusPresentation>,
 };
 
 export function statusPresentation(

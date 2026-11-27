@@ -10,14 +10,15 @@ export type AppointmentInput = Pick<
 >;
 export type Provider = Schemas["ProviderResponse"];
 
-export const AppointmentStatus = z.enum([
+export type AppointmentStatus = Schemas["AppointmentStatus"];
+export const APPOINTMENT_STATUSES = [
   "REQUESTED",
   "CONFIRMED",
   "DECLINED",
   "CANCELLED",
   "COMPLETED",
-]);
-export type AppointmentStatus = z.infer<typeof AppointmentStatus>;
+] as const satisfies readonly AppointmentStatus[];
+export const AppointmentStatus = z.enum(APPOINTMENT_STATUSES);
 
 export const AppointmentAction = z.enum([
   "confirm",

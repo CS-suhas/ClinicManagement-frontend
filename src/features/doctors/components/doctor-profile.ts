@@ -1,3 +1,4 @@
+import type { ProviderGender } from "@/features/providers/schemas";
 import { providerFullName } from "@/features/providers/utils";
 import type { Clinic, ProviderDirectoryEntry } from "../schemas";
 
@@ -5,7 +6,7 @@ const GENDER_KEYS = {
   MALE: "male",
   FEMALE: "female",
   OTHER: "other",
-} as const;
+} as const satisfies Record<ProviderGender, string>;
 
 export type DoctorProfile = {
   id: string;

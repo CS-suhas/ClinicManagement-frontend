@@ -11,6 +11,7 @@ import { notify } from "@/components/notifications";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useClinicOptions } from "@/features/clinics/api";
+import { GENDERS, providerGenderLabels } from "@/features/providers/schemas";
 import { usePagedSearch } from "@/hooks/use-paged-search";
 import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
@@ -19,9 +20,7 @@ import { type DoctorForm, doctorForm } from "../schemas";
 import { COMMON_SPECIALTIES } from "../steps";
 
 const GENDER_OPTIONS: { value: DoctorForm["gender"]; label: string }[] = [
-  { value: "MALE", label: "Male" },
-  { value: "FEMALE", label: "Female" },
-  { value: "OTHER", label: "Other" },
+  ...GENDERS.map((value) => ({ value, label: providerGenderLabels[value] })),
   { value: "NONE", label: "Prefer not to say" },
 ];
 

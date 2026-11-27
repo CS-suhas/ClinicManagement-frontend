@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { $api, api, byId, type Schemas, unwrap } from "@/lib/api";
+import { $api, api, byId, unwrap } from "@/lib/api";
 import { localMidnightIso } from "@/lib/dates";
 import { resourceKey } from "@/lib/query-client";
 import {
@@ -76,7 +76,7 @@ export const usePendingRequestsQuery = (
       params: {
         query: {
           ProviderId: providerId ?? undefined,
-          Status: "REQUESTED" as unknown as Schemas["AppointmentStatus"],
+          Status: "REQUESTED",
           From: todayKey ? localMidnightIso(todayKey) : undefined,
           Page: 1,
           PageSize: PENDING_PAGE_SIZE,

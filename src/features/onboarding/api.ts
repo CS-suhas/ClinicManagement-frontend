@@ -1,4 +1,4 @@
-import { $api, newId } from "@/lib/api";
+import { $api, newId, type Schemas } from "@/lib/api";
 import { PROVIDER_CHANGES } from "@/lib/query-client";
 import type { PatientForm } from "./schemas";
 
@@ -8,7 +8,7 @@ export type ProviderRegistration = {
   lastName: string;
   specialty: string;
   fee: number | null;
-  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  gender: Schemas["Gender"] | null;
 };
 
 export function useCreatePatientProfile() {

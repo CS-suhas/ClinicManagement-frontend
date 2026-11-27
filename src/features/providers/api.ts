@@ -35,7 +35,7 @@ export const useProvidersByStatus = (
     {
       params: {
         query: {
-          verificationStatus: status as unknown as number,
+          verificationStatus: status,
           Search: search || undefined,
           Page: 1,
           PageSize: 100,

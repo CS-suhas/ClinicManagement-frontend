@@ -71,13 +71,3 @@ export function toPatientRow(
       : undefined,
   };
 }
-
-export function parseAllergySeverities(raw: unknown): string[] {
-  if (
-    !Array.isArray(raw) ||
-    raw.length === 0 ||
-    !raw.every((s) => typeof s === "string" && s.trim() !== "")
-  )
-    throw new Error("The API returned invalid allergy severity settings.");
-  return raw;
-}

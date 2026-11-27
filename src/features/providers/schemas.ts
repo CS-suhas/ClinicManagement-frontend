@@ -3,10 +3,15 @@ import type { Schemas } from "@/lib/api";
 
 export type Provider = Schemas["ProviderResponse"];
 
-export const ProviderGender = z.enum(["MALE", "FEMALE", "OTHER"]);
-export type ProviderGender = z.infer<typeof ProviderGender>;
+export type ProviderGender = Schemas["Gender"];
+export const GENDERS = [
+  "MALE",
+  "FEMALE",
+  "OTHER",
+] as const satisfies readonly ProviderGender[];
+export const ProviderGender = z.enum(GENDERS);
 
-export const providerGenderLabels = {
+export const providerGenderLabels: Record<ProviderGender, string> = {
   MALE: "Male",
   FEMALE: "Female",
   OTHER: "Other",

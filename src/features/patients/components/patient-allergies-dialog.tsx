@@ -23,6 +23,7 @@ import {
   type Patient,
   type PatientAllergy,
   type PatientAllergyForm,
+  type PatientAllergyValues,
   patientAllergyDefaults,
   patientAllergyForm,
 } from "../schemas";
@@ -73,7 +74,7 @@ function AllergiesDialogContent({
     editing?.allergyId,
     active && !readOnly,
   );
-  const form = useForm<PatientAllergyForm>({
+  const form = useForm<PatientAllergyForm, unknown, PatientAllergyValues>({
     resolver: zodResolver(patientAllergyForm),
     defaultValues: patientAllergyDefaults,
   });
@@ -100,11 +101,7 @@ function AllergiesDialogContent({
     setEditing(allergy);
     form.reset({
       allergyId: allergy.allergyId,
-      severity:
-        severities.data?.find(
-          (severity) =>
-            severity.toLowerCase() === allergy.severity.toLowerCase(),
-        ) ?? "",
+      severity: allergy.severity,
       notes: allergy.notes ?? "",
     });
   };
