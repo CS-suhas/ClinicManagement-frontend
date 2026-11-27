@@ -5,8 +5,8 @@ import { Button, Popover, Text } from "@radix-ui/themes";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { RelativeTime } from "@/components/ui/relative-time";
-import type { CurrentUser } from "@/domain/auth";
-import type { MeDashboard } from "@/domain/repositories";
+import type { CurrentUser } from "@/features/auth/schemas";
+import type { MeDashboard } from "@/features/dashboard/schemas";
 import {
   notificationItems,
   readSeenIds,

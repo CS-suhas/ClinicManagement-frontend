@@ -5,8 +5,8 @@ import { Dialog, Text } from "@radix-ui/themes";
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { PersonAvatar } from "@/components/ui/person-avatar";
-import type { CurrentUser } from "@/domain/auth";
 import { canAccessRoute, NAV_ITEMS } from "@/features/auth/permissions";
+import type { CurrentUser } from "@/features/auth/schemas";
 import {
   type PaletteRecent,
   readRecents,

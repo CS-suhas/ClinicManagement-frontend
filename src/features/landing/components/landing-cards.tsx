@@ -9,8 +9,8 @@ import {
   PlusIcon,
 } from "@radix-ui/react-icons";
 import type { ReactNode } from "react";
-import type { CurrentUser } from "@/domain/auth";
-import type { MeDashboard } from "@/domain/repositories";
+import type { CurrentUser } from "@/features/auth/schemas";
+import type { MeDashboard } from "@/features/dashboard/schemas";
 import type { LinkTone } from "./quick-link-card";
 
 export type LinkCard = {

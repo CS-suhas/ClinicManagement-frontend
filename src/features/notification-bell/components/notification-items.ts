@@ -1,5 +1,5 @@
-import type { CurrentUser } from "@/domain/auth";
-import type { MeDashboard } from "@/domain/repositories";
+import type { CurrentUser } from "@/features/auth/schemas";
+import type { MeDashboard } from "@/features/dashboard/schemas";
 
 export type NotificationItem = {
   id: string;

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useService } from "@/di/container-provider";
-import type { CurrentUser } from "@/domain/auth";
+import { useEffect, useMemo, useState } from "react";
+import type { CurrentUser } from "@/features/auth/schemas";
+import { useGlobalSearch } from "@/features/command-palette/api";
+import type { Schemas } from "@/lib/api";
 
 export const PALETTE_DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
-const RESULTS_PER_GROUP = 5;
 
 export type PaletteEntity = {
   id: string;
@@ -22,15 +22,35 @@ export type PaletteRemoteResults = {
 
 const EMPTY: PaletteRemoteResults = { patients: [], doctors: [], clinics: [] };
 
+function toPaletteResults(
+  found: Schemas["SearchResponse"],
+): PaletteRemoteResults {
+  return {
+    patients: found.patients.map((p) => ({
+      id: p.id,
+      name: p.name,
+      detail: p.subtitle || undefined,
+    })),
+    doctors: found.providers.map((d) => ({
+      id: d.id,
+      name: d.name,
+      detail:
+        [d.specialty, d.clinicName].filter(Boolean).join(" · ") || undefined,
+    })),
+    clinics: found.clinics.map((c) => ({
+      id: c.id,
+      name: c.name,
+      detail: c.address || undefined,
+    })),
+  };
+}
+
 export function usePaletteSearch(
   query: string,
   user: CurrentUser | null,
   enabled: boolean,
 ) {
-  const searchService = useService("searchService");
   const [debounced, setDebounced] = useState("");
-  const [results, setResults] = useState<PaletteRemoteResults>(EMPTY);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(
@@ -40,50 +60,17 @@ export function usePaletteSearch(
     return () => clearTimeout(timer);
   }, [query]);
 
-  const subject = user?.subject ?? null;
+  const active =
+    enabled && user !== null && debounced.length >= MIN_QUERY_LENGTH;
+  const found = useGlobalSearch(debounced, active);
+  const results = useMemo(
+    () => (active && found.data ? toPaletteResults(found.data) : EMPTY),
+    [active, found.data],
+  );
 
-  useEffect(() => {
-    if (!enabled || subject === null || debounced.length < MIN_QUERY_LENGTH) {
-      setResults(EMPTY);
-      setLoading(false);
-      return;
-    }
-    let current = true;
-    setLoading(true);
-    searchService
-      .search(debounced, RESULTS_PER_GROUP)
-      .then((found) => {
-        if (!current) return;
-        setResults({
-          patients: found.patients.map((p) => ({
-            id: p.id,
-            name: p.name,
-            detail: p.subtitle || undefined,
-          })),
-          doctors: found.providers.map((d) => ({
-            id: d.id,
-            name: d.name,
-            detail:
-              [d.specialty, d.clinicName].filter(Boolean).join(" · ") ||
-              undefined,
-          })),
-          clinics: found.clinics.map((c) => ({
-            id: c.id,
-            name: c.name,
-            detail: c.address || undefined,
-          })),
-        });
-      })
-      .catch(() => {
-        if (current) setResults(EMPTY);
-      })
-      .finally(() => {
-        if (current) setLoading(false);
-      });
-    return () => {
-      current = false;
-    };
-  }, [enabled, subject, debounced, searchService]);
-
-  return { results, loading, searching: debounced.length >= MIN_QUERY_LENGTH };
+  return {
+    results,
+    loading: active && found.isFetching,
+    searching: debounced.length >= MIN_QUERY_LENGTH,
+  };
 }

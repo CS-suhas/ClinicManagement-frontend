@@ -4,12 +4,12 @@ import Link from "next/link";
 import { DoctorChip, StatusChip } from "@/components/glance";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Surface } from "@/components/ui/surface";
-import type { AppointmentListItem } from "@/domain/repositories";
+import type { Appointment } from "@/features/dashboard/schemas";
 
 export function NextAppointmentGlance({
   appointment,
 }: {
-  appointment: AppointmentListItem | null;
+  appointment: Appointment | null;
 }) {
   if (!appointment)
     return (

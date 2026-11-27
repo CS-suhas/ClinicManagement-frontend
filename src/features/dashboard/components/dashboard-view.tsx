@@ -16,26 +16,22 @@ import { PatientChip, StatusChip } from "@/components/glance";
 import { PageHeader } from "@/components/ui/page-header";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Surface } from "@/components/ui/surface";
-import { useService } from "@/di/container-provider";
-import type { CurrentUser } from "@/domain/auth";
+import { useAuth } from "@/features/auth/auth-provider";
+import type { CurrentUser } from "@/features/auth/schemas";
+import { useDashboard } from "@/features/dashboard/api";
 import type {
-  AppointmentListItem,
+  Appointment,
   MeDashboard,
   RecentDecision,
-} from "@/domain/repositories";
-import { useAuth } from "@/features/auth/auth-provider";
+} from "@/features/dashboard/schemas";
 import { needsSetup } from "@/features/landing/components/landing-cards";
 import { NextAppointmentGlance } from "@/features/landing/components/next-appointment-glance";
 import { QuickLinkCard } from "@/features/landing/components/quick-link-card";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { getErrorMessage } from "@/lib/errors";
 
 export function DashboardView() {
   const { user } = useAuth();
-  const dashboardService = useService("dashboardService");
-  const mine = useAsyncData(
-    () => dashboardService.getMine(),
-    user?.subject ?? "",
-  );
+  const dashboard = useDashboard();
 
   return (
     <>
@@ -44,12 +40,14 @@ export function DashboardView() {
         subtitle={user ? `Welcome back, ${user.displayName}.` : undefined}
       />
       <AsyncContent
-        loading={mine.loading}
-        error={mine.error}
-        isEmpty={!mine.data}
-        onRetry={mine.reload}
+        loading={dashboard.isPending}
+        error={dashboard.error ? getErrorMessage(dashboard.error) : null}
+        isEmpty={!dashboard.data}
+        onRetry={() => void dashboard.refetch()}
       >
-        {user && mine.data && <Sections user={user} data={mine.data} />}
+        {user && dashboard.data && (
+          <Sections user={user} data={dashboard.data} />
+        )}
       </AsyncContent>
     </>
   );
@@ -269,11 +267,7 @@ function Section({
   );
 }
 
-function NextVisit({
-  appointment,
-}: {
-  appointment: AppointmentListItem | null;
-}) {
+function NextVisit({ appointment }: { appointment: Appointment | null }) {
   return (
     <Surface
       padding="md"

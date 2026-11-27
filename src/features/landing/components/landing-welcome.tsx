@@ -3,10 +3,9 @@
 import { DashboardIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { PersonAvatar } from "@/components/ui/person-avatar";
-import { useService } from "@/di/container-provider";
 import { useAuth } from "@/features/auth/auth-provider";
 import { RoleBadges } from "@/features/auth/role-badges";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useDashboard } from "@/features/dashboard/api";
 import { buildLandingCards, MAX_LANDING_CARDS } from "./landing-cards";
 import { NextAppointmentGlance } from "./next-appointment-glance";
 import { QuickLinkCard } from "./quick-link-card";
@@ -34,14 +33,10 @@ export function LandingWelcome() {
 
 function SignedIn() {
   const { user } = useAuth();
-  const dashboardService = useService("dashboardService");
-  const mine = useAsyncData(
-    () => dashboardService.getMine(),
-    user?.subject ?? "",
-  );
+  const dashboard = useDashboard();
   if (!user) return null;
 
-  const cards = buildLandingCards(user, mine.data ?? null);
+  const cards = buildLandingCards(user, dashboard.data ?? null);
   const shown = cards.slice(0, MAX_LANDING_CARDS);
   const hidden = cards.length - shown.length;
 
@@ -76,9 +71,9 @@ function SignedIn() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {user.roles.includes("patient") && user.patient && mine.data && (
+        {user.roles.includes("patient") && user.patient && dashboard.data && (
           <NextAppointmentGlance
-            appointment={mine.data.patient?.nextAppointment ?? null}
+            appointment={dashboard.data.patient?.nextAppointment ?? null}
           />
         )}
         {shown.map((card) => (
